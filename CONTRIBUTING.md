@@ -39,8 +39,8 @@ on.
 
 ## Reporting bugs
 
-Open an issue with your macOS version, what you did, what you expected, and what happened. If it's about what the box
-says, the last few lines of `~/.claude/hookpet/state.json` help (check them for anything private first).
+Open an issue with your macOS version, what you did, what you expected, and what happened. If it's about what the status
+bubble says, the last few lines of `~/.claude/hookpet/state.json` help (check them for anything private first).
 
 ## Be kind
 

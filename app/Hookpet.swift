@@ -1,5 +1,5 @@
 // hookpet: a desktop pet for Claude Code. A transparent layer over your whole main screen that Clawd lives on.
-// Clicks pass straight through it everywhere except Clawd himself and his open box.
+// Clicks pass straight through it everywhere except Clawd himself and his open bubble.
 // He shows what Claude Code is doing from state.json next to this app, which hookpet-hook keeps from Claude Code's hooks.
 import Cocoa
 import WebKit
@@ -31,7 +31,7 @@ final class Handle: NSView {
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
     var panel: NSPanel!
     var web: WKWebView!
-    /// Where Clawd and his open box are, in page coordinates (top-left origin).
+    /// Where Clawd and his open bubble are, in page coordinates (top-left origin).
     var hitRects: [NSRect] = []
     var holding = false
     var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
@@ -93,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         web.evaluateJavaScript("hookpet.screen(\(Int(top)),\(Int(bottom)))")
     }
 
-    /// Takes the mouse only while it's over Clawd or his open box; everywhere else clicks go straight through.
+    /// Takes the mouse only while it's over Clawd or his open bubble; everywhere else clicks go straight through.
     func trackPointer() {
         let mouse = NSEvent.mouseLocation, frame = panel.frame
         let point = NSPoint(x: mouse.x - frame.minX, y: frame.maxY - mouse.y)

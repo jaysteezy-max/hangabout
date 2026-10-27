@@ -35,7 +35,7 @@ body.light .code .k{color:#a626a4}body.light .code .s{color:#a31515}body.light .
 .sheet div{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:3px 6px;white-space:nowrap;overflow:hidden}
 .sheet .h{background:var(--winbar);font-weight:600}
 
-/* Clawd and his box */
+/* Clawd and his status bubble */
 /* .pet is his footprint at normal size; --s grows or shrinks what's drawn around his feet (bottom center). */
 .pet{--s:1;position:absolute;width:132px;height:120px;z-index:10}
 .pet button{position:absolute;left:calc(66px - 66px * var(--s));top:calc(120px - 120px * var(--s));width:calc(132px * var(--s));height:calc(120px * var(--s));padding:0;border:0;background:none;cursor:grab}
@@ -79,7 +79,7 @@ body.native .desk{position:fixed;inset:0;height:auto;min-height:0;border-radius:
     <button class="t" id="light" aria-pressed="false">Light</button>
   </div>
 </header>
-<p class="intro">Clawd lives on top of every window on your screen. When you don't need him he wanders, hops onto window edges, fidgets and watches your cursor. Pick him up and drop him anywhere (shake him and he gets dizzy), double-click for a hop, click a window and he'll notice. Hover him to peek at his box, click to pin his recent activity, Esc to close.</p>
+<p class="intro">Clawd lives on top of every window on your screen. When you don't need him he wanders, hops onto window edges, fidgets and watches your cursor. Pick him up and drop him anywhere (shake him and he gets dizzy), double-click for a hop, click a window and he'll notice. Hover him to see what Claude is doing, click to pin his recent activity, Esc to close.</p>
 <div class="bar" id="states"></div>
 <div class="desk" id="desk">
   <div class="menubar"><b></b><span>Finder</span><span>File</span><span>Edit</span><span>View</span><span style="margin-left:auto">Mon 3:41 PM</span></div>
@@ -116,7 +116,7 @@ nothing to commit, working tree clean
   </div>
 </div>
 <div class="sr" aria-live="polite" id="live"></div>
-<p class="notes">Pick a state above, or watch the demo run through a real turn: thinking, editing, running a command, asking you, done. Needs you and Blocked keep the box open; Done and a new plan step open it briefly; tool calls never do. The trick buttons play any trick on demand; Calm, Normal and Erratic set how busy he is on his own.</p>
+<p class="notes">Pick a state above, or watch the demo run through a real turn: thinking, editing, running a command, asking you, done. Needs you and Blocked keep the bubble open; Done and a new plan step open it briefly; tool calls never do. The trick buttons play any trick on demand; Calm, Normal and Erratic set how busy he is on his own.</p>
 <p class="notes">Put him on your real desktop: <a href="https://github.com/jaysteezy-max/hookpet" style="color:var(--clay)">github.com/jaysteezy-max/hookpet</a>. hookpet is an unofficial fan project, not affiliated with or endorsed by Anthropic. Clawd and Claude are Anthropic's. Fan-pack tricks are fan art of other people's characters.</p>
 </main>
 <script>
@@ -735,7 +735,7 @@ function draw(now, dt){
   }
   const o = pet.open ? now - pet.openedAt : -1, c = !pet.open ? now - pet.closedAt : -1
   const toward = petEl.classList.contains('flip') ? -1 : 1
-  // Opening his box: he glances at it and flicks the near arm. Closing: a blink.
+  // Opening his status bubble: he glances at it and flicks the near arm. Closing: a blink.
   if (!still && o >= 0 && o < 150) { const arms = [...(pose.arms || ['mid', 'mid'])]; arms[toward > 0 ? 1 : 0] = 'up'; pose = {...pose, eyes: 'side', look: toward, arms} }
   if (!still && c >= 230 && c < 350) pose = {...pose, eyes: 'blink'}
   const eye = pet.id === 'needs' && Math.floor(t / 530) % 2 === 0 ? C.peri : EYE
@@ -928,7 +928,7 @@ function runDemo(now){
   if (now - demo.at >= DEMO[demo.step][1]) { demo.step = (demo.step + 1) % DEMO.length; demo.at = now; setState(DEMO[demo.step][0], now) }
 }
 
-// ---- input: drag him anywhere, hover to peek, click to pin ----
+// ---- input: drag him anywhere, hover to show the bubble, click to pin ----
 const button = petEl.querySelector('button')
 const grab = (x, y) => { pet.drag = {sx: x, sy: y, x: pet.x, y: pet.y, moved: false} }
 function pull(x, y){
@@ -1008,7 +1008,7 @@ const hookpet = window.hookpet = {
   settings(s){ sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); useFanPack(s.fan) },
 }
 let hitKey = ''
-/** Tells the app where he and his open box are, so only those spots catch the mouse. */
+/** Tells the app where he and his open bubble are, so only those spots catch the mouse. */
 function reportHits(){
   const {x: fx, y: fy} = feet(), s = size, wall = ai.mode === 'script' ? Math.round(ai.rot / 90) : 0 // on a wall his body lies sideways off his feet
   const rects = [wall < 0 ? [fx - 66 * s, fy - 54 * s, 66 * s, 108 * s] : wall > 0 ? [fx, fy - 54 * s, 66 * s, 108 * s] : [fx - 54 * s, fy - 66 * s, 108 * s, 66 * s]] // his body, not the headroom above it
@@ -1059,7 +1059,7 @@ addEventListener('resize', () => place(pet.x, pet.y))
 let last = 0
 addEventListener('DOMContentLoaded', () => {
   readTheme()
-  if (NATIVE) { // his box follows your system's light or dark appearance
+  if (NATIVE) { // his status bubble follows your system's light or dark appearance
     const q = matchMedia('(prefers-color-scheme: light)'), sync = () => { document.body.classList.toggle('light', q.matches); readTheme() }
     q.addEventListener('change', sync); sync()
     webkit.messageHandlers.hookpet.postMessage({tricks: Object.values(TRICKS).filter(t => t.label).map(t => ({name: t.name, label: t.label, fan: t.pack === 'fan'}))}) // for the Tricks menu
@@ -1071,7 +1071,7 @@ addEventListener('DOMContentLoaded', () => {
   requestAnimationFrame(frame)
 })
 function frame(now){
-  // In the app, on a timer: 30 fps while he moves or his box animates, 15 while he stands (his slowest-changing poses
+  // In the app, on a timer: 30 fps while he moves or the bubble animates, 15 while he stands (his slowest-changing poses
   // last 120 ms and more), so a 120 Hz screen doesn't wake him 120 times a second all day.
   const busy = ['walk', 'jump', 'fall', 'dangle', 'fidget', 'land', 'hang', 'script'].includes(ai.mode) || pet.drag || now - Math.max(pet.openedAt, pet.closedAt) < 700
   NATIVE ? setTimeout(() => frame(performance.now()), busy ? 33 : 66) : requestAnimationFrame(frame)

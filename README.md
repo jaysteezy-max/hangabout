@@ -11,7 +11,7 @@
 
 [Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hookpet/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
 
-<img src="assets/hero.gif" width="820" alt="Clawd standing on a terminal window. His box beside him reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he types, 'Bash(npm test) Running…' while he taps a foot, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
+<img src="assets/hero.gif" width="820" alt="Clawd standing on a terminal window. His status bubble reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he types, 'Bash(npm test) Running…' while he taps a foot, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
 
 <sub>Clawd on a window ledge, following one Claude Code turn: thinking, editing, running a command, waiting on you, done.</sub>
 
@@ -20,7 +20,7 @@
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude, Claude Code and Clawd
 > are Anthropic's. The optional fan pack is fan art of other people's characters (see [Fan pack](#fan-pack)).
 
-- **Knows what Claude is doing.** A small box beside him says it in Claude Code's own words: the plan step, the file
+- **Knows what Claude is doing.** A status bubble beside him says it in Claude Code's own words: the plan step, the file
   being edited, the command running, the question waiting on you. It opens by itself only when it matters.
 - **Lives on your real windows.** He walks along the Dock and the tops of your windows, rides a window you drag, hangs
   from a maximized one, climbs the sides of the screen and phases through its edges.
@@ -40,8 +40,8 @@ git clone https://github.com/jaysteezy-max/hookpet.git && cd hookpet && ./instal
 1. The installer builds hookpet into `~/.claude/hookpet` and starts it: Clawd appears at the bottom right of your screen.
 2. It shows the hooks it wants to add to `~/.claude/settings.json` and **asks first**. If you say yes, it backs that
    file up as `settings.json.hookpet-backup-<time>` and leaves everything else in it as it was.
-3. **Check it works:** start a new Claude Code session and send a prompt. Clawd puts a hand to his chin and his box
-   says what Claude is doing.
+3. **Check it works:** start a new Claude Code session and send a prompt. Clawd puts a hand to his chin and his
+   status bubble says what Claude is doing.
 
 Run `./install.sh` again any time to update.
 
@@ -81,14 +81,14 @@ the command line tools) and starts the pet. Use the plugin **or** `install.sh`, 
 
 | Do this | He does this |
 | --- | --- |
-| Hover him | Wiggles and opens his box for a peek |
-| Click him | Pins his box open with your recent tool calls; Esc or a click elsewhere closes it |
+| Hover him | Does a happy wiggle and shows his status bubble |
+| Click him | Pins the status bubble open with your recent tool calls; Esc or a click elsewhere closes it |
 | Drag him | Dangles from your cursor; shake him and he gets dizzy |
 | Double-click | Hops |
 | Click a window | Notices, with a little "!" |
 | Right-click | Tricks, Behavior, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Quit |
 
-| Claude Code is… | Clawd | The box |
+| Claude Code is… | Clawd | Status bubble |
 | --- | --- | --- |
 | Thinking | Hand on chin, a spinning star | Opens for each new plan step |
 | Editing | Typing, + and − floating up | Lines added and removed |
@@ -133,7 +133,7 @@ homage, not affiliated with or endorsed by any of those rights holders, and they
 ## FAQ
 
 <details>
-<summary><b>He's on screen but his box only says "waiting for Claude Code".</b></summary>
+<summary><b>He's on screen but his status bubble only says "waiting for Claude Code".</b></summary>
 
 Hooks only reach Claude Code sessions started after they were added, so start a new session. If that doesn't help, run
 `./install.sh` again: it says whether the hooks are in `~/.claude/settings.json`. While Claude works,
@@ -220,7 +220,7 @@ Claude Code ── hook events ──▶ hookpet-hook ──▶ state.json ─�
 
 | Path | What it is |
 | --- | --- |
-| `web/pet.html` | The whole pet: pixel engine, behavior, the box. Opened in a browser it's a mockup desktop with buttons for every state and trick. |
+| `web/pet.html` | The whole pet: pixel engine, behavior, the status bubble. Opened in a browser it's a mockup desktop with buttons for every state and trick. |
 | `web/tricks/` | One file per trick (`core/` ships on; `fan/` is the fan pack). |
 | `app/Hookpet.swift` | The app: a transparent, click-through layer over your main screen hosting the page. |
 | `app/HookpetHook.swift` | The hook: turns Claude Code events into `state.json`. |
