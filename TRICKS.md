@@ -157,6 +157,7 @@ returns steps, run in order:
 | `{go: 'slide', x, y, rot, T, pose}` | Eases to a spot and a rotation over `T` ms. Leave out what shouldn't change. |
 | `{go: 'hold', T, pose}` | Holds a pose for `T` ms. `pose` can be a function of the ms since the step began. |
 | `{go: 'do', fn}` | Runs `fn(now)` once: jump him somewhere, add something to the page. |
+| `{go: 'move', fn, pose}` | Calls `fn(t, dt)` every frame (ms since the step began, ms since the last frame) to move him yourself with `putFeet`, for motion the other steps can't do: a swing on a web, a throw. Ends when `fn` returns true. `pose` as for `hold`. |
 | `{go: 'drop', vy}` | Lets go: he falls from where he is (optionally already moving down at `vy`) and the trip is over. |
 
 When the steps run out he falls to whatever is below him, so a trip can end anywhere. Distances are in screen points:
@@ -168,6 +169,7 @@ multiply your art-sized distances by `hookpet.size` so a bigger Clawd goes furth
 | `putFeet(x, y, rot)` | Puts his feet there at once, rotated `rot` degrees about them if given. |
 | `width`, `size`, `scr` | The screen's width; his size; `{top, bottom}`: the menu bar's and the Dock's heights. |
 | `surfaces()` | Everywhere he can stand: the floor first, then each window's top edge, as `{x0, x1, y}` measured at the top-left of his footprint. His feet can go from `x0 + 66` to `x1 + 66`, at `y + PH`. `here` is one of these. |
+| `edges()` | The top edges of the windows, as `{y, x0, x1, wx, w, h}`: the visible stretch of the top (`x0` to `x1`), and the window's left, width and height. For things that stick to windows (see `fan/spidey.js`). |
 | `clip({x, dir})`, `clip({y})` | Hides the part of him past `x` on the side he's heading, or above `y`, until he lands (into and out of a portal). |
 | `desk` | The element he lives in, for adding your own pieces of page (see `fan/portal.js`). |
 

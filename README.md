@@ -125,10 +125,11 @@ through it, and in this repo you can ask Claude Code to "make a new trick" (ther
 
 ### Fan pack
 
-Off by default. Turn it on with right-click → **Fan pack**. It adds eight fan-made tricks of other people's characters:
-a Super Saiyan power-up (Dragon Ball), Guts (Berserk), Thorfinn (Vinland Saga), the Silver Surfer (Marvel), Darth Vader
-(Star Wars), a Ghost revive and an Exotic engram (Destiny) and a portal gun (Portal 2). They're original pixel art made as
-homage, not affiliated with or endorsed by any of those rights holders, and they'll be removed on request.
+Off by default. Turn it on with right-click → **Fan pack**. It adds nine fan-made tricks of other people's characters:
+a Super Saiyan power-up (Dragon Ball), Guts (Berserk), Thorfinn (Vinland Saga), the Silver Surfer and Spider-Man
+(Marvel), Darth Vader (Star Wars), a Ghost revive and an Exotic engram (Destiny) and a portal gun (Portal 2). They're
+original pixel art made as homage, not affiliated with or endorsed by any of those rights holders, and they'll be removed
+on request.
 
 ## FAQ
 

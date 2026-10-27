@@ -378,9 +378,9 @@ const PW = 132, PH = 120 // his footprint on screen at normal size; his feet sit
 let size = 1 // how big he's drawn around his feet; steps of 1/6 keep every art pixel a whole number of screen pixels
 function setSize(s){ size = s; petEl.style.setProperty('--s', s); place(pet.x, pet.y) }
 const scr = {top: 26, bottom: 0} // the menu bar above and the Dock below; the app sends the real ones
-let nativeTops = [] // in the app: the visible top edges of your real windows, {id, y, x0, x1, wx}
-/** The top edges of windows: your real ones in the app, the pretend ones in the mockup. */
-const edges = () => NATIVE ? nativeTops : [...desk.querySelectorAll('.win')].map(w => ({y: w.offsetTop, x0: w.offsetLeft, x1: w.offsetLeft + w.offsetWidth}))
+let nativeTops = [] // in the app: the visible top edges of your real windows, {id, y, x0, x1, wx, w, h}
+/** The top edges of windows (and each window's left, width and height): your real ones in the app, the pretend ones in the mockup. */
+const edges = () => NATIVE ? nativeTops : [...desk.querySelectorAll('.win')].map(w => ({y: w.offsetTop, x0: w.offsetLeft, x1: w.offsetLeft + w.offsetWidth, wx: w.offsetLeft, w: w.offsetWidth, h: w.offsetHeight}))
 const roomToStand = t => t.y + 1 - 84 * size >= scr.top // his body, not his headroom, must clear the menu bar
 /** Places his feet can rest: the bottom of the screen, and the top edge of each window. */
 function surfaces(){
@@ -479,7 +479,8 @@ function leapToGrip(now, g){
 
 // ---- trips: scripted outings off the usual paths (through the screen's edge, up its sides, through portals) ----
 // A trip is a list of steps, run one after another: walk (along x), climb (along y, on a wall), slide (ease to a spot and
-// a rotation), hold (a pose for a while), do (a one-off), drop (let go and fall). Positions are his feet: bottom center.
+// a rotation), hold (a pose for a while), do (a one-off), move (a trick moves him itself, frame by frame: a swing on a
+// web), drop (let go and fall). Positions are his feet: bottom center.
 const feet = () => ({x: pet.x + 66, y: pet.y + PH})
 /** Puts his feet at (x, y), turned rot degrees about them if given (on a wall: -90 on the right side, 90 on the left). */
 const putFeet = (x, y, rot) => { if (rot != null) ai.rot = rot; place(x - 66, y - PH) }
@@ -515,6 +516,7 @@ function runStep(now, dt){
     ai.rot = f.rot + ((s.rot ?? f.rot) - f.rot) * e
     if (p >= 1) nextStep(now)
   } else if (s.go === 'hold' && t >= s.T) nextStep(now)
+  else if (s.go === 'move' && s.fn(t, dt)) nextStep(now)
 }
 /** His pose on a trip: walking or climbing frames, or the step's own pose; a violet shimmer while he's partly off screen. */
 function tripPose(now){
@@ -978,7 +980,7 @@ const hookpet = window.hookpet = {
   trick: registerTrick,
   GW, GH, OX, OY, LIFT, PH, BODY, TOP, SIDE, EYE, C,
   thickLine, paint, mix, recolor, rand, pick,
-  feet, putFeet, surfaces, scr, desk,
+  feet, putFeet, surfaces, edges, scr, desk,
   clip(c){ pet.clip = c }, // hides part of him until he lands: {x, dir} or {y} (see portalClip)
   get size(){ return size }, get width(){ return desk.clientWidth },
   perform,
@@ -1096,4 +1098,5 @@ function frame(now){
 <script src="tricks/fan/ghost.js"></script>
 <script src="tricks/fan/engram.js"></script>
 <script src="tricks/fan/portal.js"></script>
+<script src="tricks/fan/spidey.js"></script>
 </body></html>

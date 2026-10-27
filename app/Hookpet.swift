@@ -117,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         web.evaluateJavaScript("hookpet.click(\(Int(mouse.x - frame.minX)),\(Int(frame.maxY - mouse.y)))")
     }
 
-    /// The top edges of your windows that aren't hidden behind a window in front, for him to walk on.
+    /// The top edges of your windows that aren't hidden behind a window in front, for him to walk on, with each window's size (for webs to stick to).
     func sendWindows(force: Bool = false) {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return }
         let width = panel.frame.width, height = panel.frame.height, me = getpid()
@@ -135,7 +135,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             }
             let id = window[kCGWindowNumber as String] as? Int ?? 0
             for s in spans where s.1 - s.0 >= 100 {
-                tops.append("{\"id\":\(id),\"y\":\(Int(r.minY)),\"x0\":\(Int(s.0)),\"x1\":\(Int(s.1)),\"wx\":\(Int(r.minX))}")
+                tops.append("{\"id\":\(id),\"y\":\(Int(r.minY)),\"x0\":\(Int(s.0)),\"x1\":\(Int(s.1)),\"wx\":\(Int(r.minX)),\"w\":\(Int(r.width)),\"h\":\(Int(r.height))}")
             }
         }
         let json = "[\(tops.joined(separator: ","))]"
