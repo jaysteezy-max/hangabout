@@ -11,7 +11,7 @@
 
 [Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hookpet/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
 
-<img src="assets/hero.gif" width="820" alt="Clawd standing on a terminal window. His status bubble reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he types, 'Bash(npm test) Running…' while he taps a foot, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
+<img src="assets/hero.gif" width="820" alt="Clawd standing on a terminal window. His status bubble reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he writes on a page, 'Bash(npm test) Running…' while he presses Enter on a little terminal and watches it, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
 
 <sub>Clawd on a window ledge, following one Claude Code turn: thinking, editing, running a command, waiting on you, done.</sub>
 
