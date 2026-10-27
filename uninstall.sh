@@ -1,15 +1,17 @@
 #!/bin/zsh
 # Uninstalls hookpet: quits it, takes its hooks out of ~/.claude/settings.json (backing that file up first), and
 # deletes ~/.claude/hookpet and its saved preferences. Your other settings and hooks stay as they are.
+#   ./uninstall.sh --yes  you've already said yes: no question asked
 set -euo pipefail
 cd "${0:A:h}"
 CONFIG=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 DEST=$CONFIG/hookpet
 SETTINGS=$CONFIG/settings.json
 
+ask(){ [[ -t 0 ]] || return 1; read -q "?$1 [y/N] "; local yes=$?; echo; return $yes }
+
 echo "This quits hookpet, removes its hooks from $SETTINGS (after a backup) and deletes $DEST."
-read -q "?Uninstall hookpet? [y/N] " || { echo; echo "Nothing changed."; exit 0 }
-echo
+[[ ${1:-} == --yes ]] || ask "Uninstall hookpet?" || { echo "Nothing changed."; exit 0 }
 
 if [[ -f $DEST/hookpet.pid ]]; then kill "$(<$DEST/hookpet.pid)" 2>/dev/null || true; fi
 
