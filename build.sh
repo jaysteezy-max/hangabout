@@ -25,5 +25,5 @@ cat > "$APP/Info.plist" <<EOF
   <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 EOF
-codesign --force --sign - "$OUT/Hookpet.app" # ad hoc: enough to run on the Mac that built it
+signed=$(codesign --force --sign - "$OUT/Hookpet.app" 2>&1) || { echo "$signed" >&2; exit 1 } # ad hoc: enough to run on the Mac that built it
 echo "built $OUT/Hookpet.app and $OUT/hookpet-hook"
