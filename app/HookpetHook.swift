@@ -1,10 +1,10 @@
-// Claude Code hook: reads the event on stdin and records what each Claude session is doing in ~/.claude/clawd/state.json.
+// Claude Code hook: reads the event on stdin and records what each Claude session is doing in state.json next to it.
 // Never prints and always exits 0, so it can never block or change a Claude Code action.
 import Foundation
 
-let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/clawd")
+let dir = (Bundle.main.executableURL ?? URL(fileURLWithPath: CommandLine.arguments[0])).resolvingSymlinksInPath().deletingLastPathComponent() // the install folder
 let stateURL = dir.appendingPathComponent("state.json")
-let appPath = dir.appendingPathComponent("Clawd.app").path
+let appPath = dir.appendingPathComponent("Hookpet.app").path
 let editTools: Set<String> = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
 let forgetAfter: TimeInterval = 24 * 60 * 60
 
@@ -42,10 +42,10 @@ func display(_ tool: String, _ input: [String: Any]) -> String {
     }
 }
 
-/// Starts Clawd in the background unless he's already up.
-// shortcut: trusts the pid file; a stale one whose pid got reused would skip a launch until Clawd next starts.
-func launchClawd() {
-    if let pid = Int32((try? String(contentsOf: dir.appendingPathComponent("clawd.pid"), encoding: .utf8)) ?? ""), kill(pid, 0) == 0 { return }
+/// Starts the pet in the background unless he's already up.
+// shortcut: trusts the pid file; a stale one whose pid got reused would skip a launch until the pet next starts.
+func launchPet() {
+    if let pid = Int32((try? String(contentsOf: dir.appendingPathComponent("hookpet.pid"), encoding: .utf8)) ?? ""), kill(pid, 0) == 0 { return }
     let open = Process()
     open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
     open.arguments = ["-g", appPath]
@@ -58,7 +58,7 @@ guard
     let name = event["hook_event_name"] as? String
 else { exit(0) }
 
-if name == "SessionStart" { launchClawd() }
+if name == "SessionStart" { launchPet() }
 
 // Parallel tool calls fire hooks at once: hold a lock across the read-modify-write.
 let lock = open(dir.appendingPathComponent(".state.lock").path, O_CREAT | O_RDWR, 0o600)
@@ -89,7 +89,7 @@ func setStep(_ steps: [String], _ at: Int) {
     if steps.indices.contains(at) { state["task"] = steps[at] }
 }
 
-/// One finished tool call for the history Clawd shows when you click him.
+/// One finished tool call for the history he shows when you click him.
 func logCall(ok: Bool, _ out: String) {
     guard !quiet else { return }
     var log = state["log"] as? [[String: Any]] ?? []

@@ -1,12 +1,13 @@
-// Clawd: Claude Code's desktop pet. A transparent layer over your whole main screen that Clawd lives on.
+// hookpet: a desktop pet for Claude Code. A transparent layer over your whole main screen that Clawd lives on.
 // Clicks pass straight through it everywhere except Clawd himself and his open box.
-// He shows what Claude Code is doing from ~/.claude/clawd/state.json, which clawd-hook keeps from Claude Code's hooks.
+// He shows what Claude Code is doing from state.json next to this app, which hookpet-hook keeps from Claude Code's hooks.
 import Cocoa
 import WebKit
 
-let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/clawd")
+let dir = Bundle.main.bundleURL.deletingLastPathComponent() // the install folder: Hookpet.app, hookpet-hook and their state live together
 let stateURL = dir.appendingPathComponent("state.json")
-let pidURL = dir.appendingPathComponent("clawd.pid")
+let pidURL = dir.appendingPathComponent("hookpet.pid")
+let presets = [("calm", "Calm"), ("normal", "Normal"), ("erratic", "Erratic")]
 
 /// Catches the mouse while it's over Clawd (the window ignores it everywhere else) and hands it to the page.
 final class Handle: NSView {
@@ -19,11 +20,11 @@ final class Handle: NSView {
         return "\(Int(p.x)),\(Int(p.y))"
     }
     override func mouseDown(with e: NSEvent) {
-        send("clawd.pointer('down',\(at(e)))")
-        if e.clickCount == 2 { send("clawd.pointer('dbl',\(at(e)))") }
+        send("hookpet.pointer('down',\(at(e)))")
+        if e.clickCount == 2 { send("hookpet.pointer('dbl',\(at(e)))") }
     }
-    override func mouseDragged(with e: NSEvent) { send("clawd.pointer('move',\(at(e)))") }
-    override func mouseUp(with e: NSEvent) { send("clawd.pointer('up',\(at(e)))") }
+    override func mouseDragged(with e: NSEvent) { send("hookpet.pointer('move',\(at(e)))") }
+    override func mouseUp(with e: NSEvent) { send("hookpet.pointer('up',\(at(e)))") }
     override func rightMouseDown(with e: NSEvent) { NSMenu.popUpContextMenu(makeMenu(), with: e, for: self) }
 }
 
@@ -36,10 +37,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
     let sizeLabel = NSTextField(labelWithString: "")
     let prefs = UserDefaults.standard
+    /// The tricks the page has, for the menu: (name, label, fan pack).
+    var tricks: [(String, String, Bool)] = []
 
     func applicationDidFinishLaunching(_ note: Notification) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        try? "\(getpid())".write(to: pidURL, atomically: true, encoding: .utf8) // tells clawd-hook he's already running
+        try? "\(getpid())".write(to: pidURL, atomically: true, encoding: .utf8) // tells hookpet-hook he's already running
 
         panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.level = .statusBar // above every app window, below menus
@@ -51,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         panel.ignoresMouseEvents = true
 
         let config = WKWebViewConfiguration()
-        config.userContentController.add(self, name: "clawd")
+        config.userContentController.add(self, name: "hookpet")
         config.mediaTypesRequiringUserActionForPlayback = [] // the chirp plays without a click on the page
         web = WKWebView(frame: .zero, configuration: config)
         web.setValue(false, forKey: "drawsBackground")
@@ -66,7 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
         panel.contentView = root
         fitScreen()
-        if let page = Bundle.main.url(forResource: "clawd", withExtension: "html") {
+        if let page = Bundle.main.url(forResource: "pet", withExtension: "html", subdirectory: "web") {
             web.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())
         }
         panel.orderFrontRegardless()
@@ -87,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         panel.setFrame(screen.frame, display: true)
         for view in panel.contentView?.subviews ?? [] { view.frame = panel.contentView!.bounds }
         let top = screen.frame.maxY - screen.visibleFrame.maxY, bottom = screen.visibleFrame.minY - screen.frame.minY
-        web.evaluateJavaScript("clawd.screen(\(Int(top)),\(Int(bottom)))")
+        web.evaluateJavaScript("hookpet.screen(\(Int(top)),\(Int(bottom)))")
     }
 
     /// Takes the mouse only while it's over Clawd or his open box; everywhere else clicks go straight through.
@@ -98,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let near = hitRects.first.map { hypot(point.x - $0.midX, point.y - $0.midY) < 500 } ?? true
         if point != lastCursor, near || cursorWasNear {
             lastCursor = point
-            web.evaluateJavaScript("clawd.cursor(\(Int(point.x)),\(Int(point.y)))")
+            web.evaluateJavaScript("hookpet.cursor(\(Int(point.x)),\(Int(point.y)))")
         }
         cursorWasNear = near
         let over = hitRects.contains { $0.contains(point) }
@@ -106,12 +109,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard take != holding else { return }
         holding = take
         panel.ignoresMouseEvents = !take
-        web.evaluateJavaScript("clawd.hover(\(take))")
+        web.evaluateJavaScript("hookpet.hover(\(take))")
     }
 
     func clickedElsewhere() {
         let mouse = NSEvent.mouseLocation, frame = panel.frame
-        web.evaluateJavaScript("clawd.click(\(Int(mouse.x - frame.minX)),\(Int(frame.maxY - mouse.y)))")
+        web.evaluateJavaScript("hookpet.click(\(Int(mouse.x - frame.minX)),\(Int(frame.maxY - mouse.y)))")
     }
 
     /// The top edges of your windows that aren't hidden behind a window in front, for him to walk on.
@@ -138,7 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let json = "[\(tops.joined(separator: ","))]"
         guard force || json != lastTops else { return }
         lastTops = json
-        web.evaluateJavaScript("clawd.windows(\(json))")
+        web.evaluateJavaScript("hookpet.windows(\(json))")
     }
 
     func sendState(force: Bool = false) {
@@ -146,13 +149,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard force || stamp != lastState, let data = try? Data(contentsOf: stateURL),
               let json = String(data: data, encoding: .utf8) else { return }
         lastState = stamp
-        web.evaluateJavaScript("clawd.claude(\(json))")
+        web.evaluateJavaScript("hookpet.claude(\(json))")
     }
 
     var scale: Double { prefs.object(forKey: "scale") as? Double ?? 1 }
+    var preset: String { prefs.string(forKey: "preset").flatMap { p in presets.contains { $0.0 == p } ? p : nil } ?? "normal" }
 
     func sendSettings() {
-        web.evaluateJavaScript("clawd.settings({sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale)})")
+        web.evaluateJavaScript("hookpet.settings({sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale), preset: '\(preset)', fan: \(prefs.bool(forKey: "fan"))})")
     }
 
     /// A Size slider for the menu. Its stops are sixths: at those, each of his art pixels covers whole screen pixels, so he stays crisp.
@@ -180,28 +184,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     func menu() -> NSMenu {
         let menu = NSMenu()
-        let tricks = NSMenu()
-        for (name, title) in [("powerUp", "Power up ⚡"), ("guts", "Guts ⚔"), ("thorfinn", "Thorfinn 🗡"), ("dance", "Dance ♪"), ("surfer", "Silver Surfer 🏄"), ("vader", "Darth Vader 🔴"), ("ghost", "Ghost revive ✦"), ("engram", "Exotic engram ◆"), ("portal", "Portal gun ◐"), ("sneak", "Sneak through ↔"), ("climb", "Climb the side ↕")] {
-            let item = tricks.addItem(withTitle: title, action: #selector(trick(_:)), keyEquivalent: "")
+        let tricksMenu = NSMenu()
+        let fan = prefs.bool(forKey: "fan")
+        for (name, title, fanMade) in tricks where !fanMade || fan {
+            if fanMade && !tricksMenu.items.contains(where: { $0.isSeparatorItem }) { tricksMenu.addItem(.separator()) } // fan pack below the core ones
+            let item = tricksMenu.addItem(withTitle: title, action: #selector(trick(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = name
         }
-        menu.addItem(withTitle: "Tricks", action: nil, keyEquivalent: "").submenu = tricks
+        menu.addItem(withTitle: "Tricks", action: nil, keyEquivalent: "").submenu = tricksMenu
+        let behavior = NSMenu()
+        for (key, title) in presets {
+            let item = behavior.addItem(withTitle: title, action: #selector(choosePreset(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = key
+            item.state = key == preset ? .on : .off
+        }
+        menu.addItem(withTitle: "Behavior", action: nil, keyEquivalent: "").submenu = behavior
         menu.addItem(.separator())
         menu.addItem(sizeItem())
         menu.addItem(.separator())
-        for (key, title) in [("sound", "Chirp when Claude needs you"), ("reduced", "Reduce motion")] {
+        for (key, title) in [("sound", "Chirp when Claude needs you"), ("reduced", "Reduce motion"), ("fan", "Fan pack (fan-made tricks)")] {
             let item = menu.addItem(withTitle: title, action: #selector(toggle(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = key
             item.state = prefs.bool(forKey: key) ? .on : .off
         }
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Clawd", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "hookpet: unofficial, not affiliated with Anthropic", action: nil, keyEquivalent: "").isEnabled = false
+        menu.addItem(withTitle: "Quit hookpet", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         return menu
     }
 
-    @objc func trick(_ item: NSMenuItem) { web.evaluateJavaScript("clawd.perform('\(item.representedObject as? String ?? "")')") }
+    @objc func trick(_ item: NSMenuItem) { web.evaluateJavaScript("hookpet.perform('\(item.representedObject as? String ?? "")')") }
+
+    @objc func choosePreset(_ item: NSMenuItem) {
+        prefs.set(item.representedObject as? String, forKey: "preset")
+        sendSettings()
+    }
 
     @objc func toggle(_ item: NSMenuItem) {
         guard let key = item.representedObject as? String else { return }
@@ -219,6 +239,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { webView.reload() }
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        if let list = (message.body as? [String: Any])?["tricks"] as? [[String: Any]] {
+            tricks = list.compactMap { t in (t["name"] as? String).map { ($0, t["label"] as? String ?? $0, t["fan"] as? Bool ?? false) } }
+            return
+        }
         guard let rects = message.body as? [[Double]] else { return }
         hitRects = rects.filter { $0.count == 4 }.map { NSRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }
     }

@@ -1,0 +1,11 @@
+{
+  "name": "hookpet",
+  "owner": { "name": "Jay Baldwin" },
+  "plugins": [
+    {
+      "name": "hookpet",
+      "source": "./",
+      "description": "A desktop pet for macOS that shows what Claude Code is doing. Unofficial fan project, not affiliated with Anthropic."
+    }
+  ]
+}

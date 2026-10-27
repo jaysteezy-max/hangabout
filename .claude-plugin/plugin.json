@@ -1,0 +1,10 @@
+{
+  "name": "hookpet",
+  "version": "0.1.0",
+  "description": "A desktop pet for macOS that shows what Claude Code is doing. Unofficial fan project, not affiliated with Anthropic.",
+  "author": { "name": "Jay Baldwin" },
+  "homepage": "https://github.com/jaysteezy-max/hookpet",
+  "repository": "https://github.com/jaysteezy-max/hookpet",
+  "license": "MIT",
+  "keywords": ["desktop-pet", "macos", "hooks", "clawd"]
+}
