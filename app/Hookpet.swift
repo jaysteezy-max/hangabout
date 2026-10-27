@@ -1,0 +1,231 @@
+// Clawd: Claude Code's desktop pet. A transparent layer over your whole main screen that Clawd lives on.
+// Clicks pass straight through it everywhere except Clawd himself and his open box.
+// He shows what Claude Code is doing from ~/.claude/clawd/state.json, which clawd-hook keeps from Claude Code's hooks.
+import Cocoa
+import WebKit
+
+let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/clawd")
+let stateURL = dir.appendingPathComponent("state.json")
+let pidURL = dir.appendingPathComponent("clawd.pid")
+
+/// Catches the mouse while it's over Clawd (the window ignores it everywhere else) and hands it to the page.
+final class Handle: NSView {
+    var send: (String) -> Void = { _ in }
+    var makeMenu: () -> NSMenu = { NSMenu() }
+    override var isFlipped: Bool { true } // top-left origin, like the page
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    private func at(_ e: NSEvent) -> String {
+        let p = convert(e.locationInWindow, from: nil)
+        return "\(Int(p.x)),\(Int(p.y))"
+    }
+    override func mouseDown(with e: NSEvent) {
+        send("clawd.pointer('down',\(at(e)))")
+        if e.clickCount == 2 { send("clawd.pointer('dbl',\(at(e)))") }
+    }
+    override func mouseDragged(with e: NSEvent) { send("clawd.pointer('move',\(at(e)))") }
+    override func mouseUp(with e: NSEvent) { send("clawd.pointer('up',\(at(e)))") }
+    override func rightMouseDown(with e: NSEvent) { NSMenu.popUpContextMenu(makeMenu(), with: e, for: self) }
+}
+
+final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
+    var panel: NSPanel!
+    var web: WKWebView!
+    /// Where Clawd and his open box are, in page coordinates (top-left origin).
+    var hitRects: [NSRect] = []
+    var holding = false
+    var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
+    let sizeLabel = NSTextField(labelWithString: "")
+    let prefs = UserDefaults.standard
+
+    func applicationDidFinishLaunching(_ note: Notification) {
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? "\(getpid())".write(to: pidURL, atomically: true, encoding: .utf8) // tells clawd-hook he's already running
+
+        panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.level = .statusBar // above every app window, below menus
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        panel.hidesOnDeactivate = false
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = false
+        panel.ignoresMouseEvents = true
+
+        let config = WKWebViewConfiguration()
+        config.userContentController.add(self, name: "clawd")
+        config.mediaTypesRequiringUserActionForPlayback = [] // the chirp plays without a click on the page
+        web = WKWebView(frame: .zero, configuration: config)
+        web.setValue(false, forKey: "drawsBackground")
+        web.navigationDelegate = self
+        let handle = Handle()
+        handle.send = { [weak self] js in self?.web.evaluateJavaScript(js) }
+        handle.makeMenu = { [weak self] in self?.menu() ?? NSMenu() }
+        let root = NSView()
+        for view in [web!, handle] as [NSView] {
+            view.autoresizingMask = [.width, .height]
+            root.addSubview(view)
+        }
+        panel.contentView = root
+        fitScreen()
+        if let page = Bundle.main.url(forResource: "clawd", withExtension: "html") {
+            web.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())
+        }
+        panel.orderFrontRegardless()
+
+        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in self?.fitScreen() }
+        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in self?.clickedElsewhere() }
+        Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.trackPointer() }
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.sendWindows() }
+        Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in self?.sendState() }
+    }
+
+    func applicationWillTerminate(_ note: Notification) { try? FileManager.default.removeItem(at: pidURL) }
+
+    /// He lives on the main display (the one with the menu bar), over everything on it.
+    // shortcut: one display only; spanning several needs a window per screen.
+    func fitScreen() {
+        guard let screen = NSScreen.screens.first else { return }
+        panel.setFrame(screen.frame, display: true)
+        for view in panel.contentView?.subviews ?? [] { view.frame = panel.contentView!.bounds }
+        let top = screen.frame.maxY - screen.visibleFrame.maxY, bottom = screen.visibleFrame.minY - screen.frame.minY
+        web.evaluateJavaScript("clawd.screen(\(Int(top)),\(Int(bottom)))")
+    }
+
+    /// Takes the mouse only while it's over Clawd or his open box; everywhere else clicks go straight through.
+    func trackPointer() {
+        let mouse = NSEvent.mouseLocation, frame = panel.frame
+        let point = NSPoint(x: mouse.x - frame.minX, y: frame.maxY - mouse.y)
+        // His eyes only follow a cursor that's near him, so a far one isn't worth a message (one last one lets him look away).
+        let near = hitRects.first.map { hypot(point.x - $0.midX, point.y - $0.midY) < 500 } ?? true
+        if point != lastCursor, near || cursorWasNear {
+            lastCursor = point
+            web.evaluateJavaScript("clawd.cursor(\(Int(point.x)),\(Int(point.y)))")
+        }
+        cursorWasNear = near
+        let over = hitRects.contains { $0.contains(point) }
+        let take = over || (holding && NSEvent.pressedMouseButtons != 0) // keeps him while you drag him around
+        guard take != holding else { return }
+        holding = take
+        panel.ignoresMouseEvents = !take
+        web.evaluateJavaScript("clawd.hover(\(take))")
+    }
+
+    func clickedElsewhere() {
+        let mouse = NSEvent.mouseLocation, frame = panel.frame
+        web.evaluateJavaScript("clawd.click(\(Int(mouse.x - frame.minX)),\(Int(frame.maxY - mouse.y)))")
+    }
+
+    /// The top edges of your windows that aren't hidden behind a window in front, for him to walk on.
+    func sendWindows(force: Bool = false) {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return }
+        let width = panel.frame.width, height = panel.frame.height, me = getpid()
+        var inFront: [CGRect] = [], tops: [String] = []
+        for window in list { // front to back
+            guard (window[kCGWindowLayer as String] as? Int) == 0, (window[kCGWindowOwnerPID as String] as? pid_t) != me,
+                  (window[kCGWindowAlpha as String] as? Double ?? 1) > 0.1,
+                  let bounds = window[kCGWindowBounds as String] as? NSDictionary,
+                  let r = CGRect(dictionaryRepresentation: bounds) else { continue }
+            defer { inFront.append(r) }
+            guard r.width >= 160, r.height >= 60, r.minY > 0, r.minY < height else { continue }
+            var spans = [(max(0, r.minX), min(width, r.maxX))]
+            for c in inFront where c.minY <= r.minY && c.maxY > r.minY {
+                spans = spans.flatMap { s in [(s.0, min(s.1, c.minX)), (max(s.0, c.maxX), s.1)].filter { $0.1 > $0.0 } }
+            }
+            let id = window[kCGWindowNumber as String] as? Int ?? 0
+            for s in spans where s.1 - s.0 >= 100 {
+                tops.append("{\"id\":\(id),\"y\":\(Int(r.minY)),\"x0\":\(Int(s.0)),\"x1\":\(Int(s.1)),\"wx\":\(Int(r.minX))}")
+            }
+        }
+        let json = "[\(tops.joined(separator: ","))]"
+        guard force || json != lastTops else { return }
+        lastTops = json
+        web.evaluateJavaScript("clawd.windows(\(json))")
+    }
+
+    func sendState(force: Bool = false) {
+        let stamp = (try? FileManager.default.attributesOfItem(atPath: stateURL.path))?[.modificationDate] as? Date
+        guard force || stamp != lastState, let data = try? Data(contentsOf: stateURL),
+              let json = String(data: data, encoding: .utf8) else { return }
+        lastState = stamp
+        web.evaluateJavaScript("clawd.claude(\(json))")
+    }
+
+    var scale: Double { prefs.object(forKey: "scale") as? Double ?? 1 }
+
+    func sendSettings() {
+        web.evaluateJavaScript("clawd.settings({sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale)})")
+    }
+
+    /// A Size slider for the menu. Its stops are sixths: at those, each of his art pixels covers whole screen pixels, so he stays crisp.
+    func sizeItem() -> NSMenuItem {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 230, height: 46))
+        sizeLabel.frame = NSRect(x: 21, y: 26, width: 190, height: 16)
+        sizeLabel.stringValue = "Size  \(Int((scale * 100).rounded()))%"
+        let slider = NSSlider(value: scale, minValue: 0.5, maxValue: 2.5, target: self, action: #selector(resize(_:)))
+        slider.frame = NSRect(x: 19, y: 4, width: 192, height: 20)
+        slider.numberOfTickMarks = 13
+        slider.allowsTickMarkValuesOnly = true
+        slider.isContinuous = true
+        view.addSubview(sizeLabel)
+        view.addSubview(slider)
+        let item = NSMenuItem()
+        item.view = view
+        return item
+    }
+
+    @objc func resize(_ slider: NSSlider) {
+        prefs.set(slider.doubleValue, forKey: "scale")
+        sizeLabel.stringValue = "Size  \(Int((slider.doubleValue * 100).rounded()))%"
+        sendSettings()
+    }
+
+    func menu() -> NSMenu {
+        let menu = NSMenu()
+        let tricks = NSMenu()
+        for (name, title) in [("powerUp", "Power up ⚡"), ("guts", "Guts ⚔"), ("thorfinn", "Thorfinn 🗡"), ("dance", "Dance ♪"), ("surfer", "Silver Surfer 🏄"), ("vader", "Darth Vader 🔴"), ("ghost", "Ghost revive ✦"), ("engram", "Exotic engram ◆"), ("portal", "Portal gun ◐"), ("sneak", "Sneak through ↔"), ("climb", "Climb the side ↕")] {
+            let item = tricks.addItem(withTitle: title, action: #selector(trick(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = name
+        }
+        menu.addItem(withTitle: "Tricks", action: nil, keyEquivalent: "").submenu = tricks
+        menu.addItem(.separator())
+        menu.addItem(sizeItem())
+        menu.addItem(.separator())
+        for (key, title) in [("sound", "Chirp when Claude needs you"), ("reduced", "Reduce motion")] {
+            let item = menu.addItem(withTitle: title, action: #selector(toggle(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = key
+            item.state = prefs.bool(forKey: key) ? .on : .off
+        }
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit Clawd", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        return menu
+    }
+
+    @objc func trick(_ item: NSMenuItem) { web.evaluateJavaScript("clawd.perform('\(item.representedObject as? String ?? "")')") }
+
+    @objc func toggle(_ item: NSMenuItem) {
+        guard let key = item.representedObject as? String else { return }
+        prefs.set(!prefs.bool(forKey: key), forKey: key)
+        sendSettings()
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        fitScreen()
+        sendSettings()
+        sendWindows(force: true)
+        sendState(force: true)
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { webView.reload() }
+
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let rects = message.body as? [[Double]] else { return }
+        hitRects = rects.filter { $0.count == 4 }.map { NSRect(x: $0[0], y: $0[1], width: $0[2], height: $0[3]) }
+    }
+}
+
+let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
+app.setActivationPolicy(.accessory)
+app.run()
