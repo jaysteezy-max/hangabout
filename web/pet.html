@@ -1,5 +1,5 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>Clawd Desktop Pet</title>
+<html><head><meta charset="utf-8"><title>hookpet</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 /* Claude Code's own theme colors (dark, then light). */
@@ -54,14 +54,6 @@ body.light .code .k{color:#a626a4}body.light .code .s{color:#a31515}body.light .
 .box .l2{color:var(--dim)}
 .box .hist{border-bottom:1px solid var(--line);margin-bottom:4px;padding-bottom:4px}
 .ico{width:11px;height:11px;vertical-align:-1px;margin-right:4px;color:var(--dim)}
-/* Portal gun: the two portals (behind him) and the shots that open them. */
-.portal{position:absolute;border-radius:50%;pointer-events:none;z-index:9;transform:scale(0);transition:transform .22s cubic-bezier(.2,1.4,.4,1)}
-.portal.open{transform:scale(1)}
-.portal.blue{background:radial-gradient(closest-side,#082036 55%,#1d6fd0 78%,#8fd0ff 92%,transparent);box-shadow:0 0 14px 4px rgba(70,160,255,.75)}
-.portal.orange{background:radial-gradient(closest-side,#3a1700 55%,#e8780f 78%,#ffc27a 92%,transparent);box-shadow:0 0 14px 4px rgba(255,150,40,.75)}
-.shot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;pointer-events:none;z-index:11;transition:left .17s linear,top .17s linear}
-.shot.blue{background:#bfe4ff;box-shadow:0 0 8px 3px #3fa9ff}
-.shot.orange{background:#ffe0b8;box-shadow:0 0 8px 3px #ff9a1f}
 .caret{color:var(--clay);animation:caret .5s steps(1) infinite}
 @keyframes caret{50%{opacity:0}}
 .clay{color:var(--clay)}.ok{color:var(--ok)}.err{color:var(--err)}.peri{color:var(--peri)}.dim{color:var(--dim)}
@@ -76,8 +68,11 @@ body.native .desk{position:fixed;inset:0;height:auto;min-height:0;border-radius:
 <body>
 <main>
 <header>
-  <h1>Clawd, desktop pet</h1>
+  <h1>hookpet <span class="dim" style="font-weight:400">· Clawd</span></h1>
   <div class="bar" style="margin:0">
+    <button class="t" data-preset="calm">Calm</button><button class="t" data-preset="normal">Normal</button><button class="t" data-preset="erratic">Erratic</button>
+    <span class="sep"></span>
+    <button class="t" id="fan" aria-pressed="false">Fan pack</button>
     <button class="t" id="replay">Replay entrance</button>
     <button class="t" id="reduced" aria-pressed="false">Reduced motion</button>
     <button class="t" id="sound" aria-pressed="false">Sound</button>
@@ -121,11 +116,12 @@ nothing to commit, working tree clean
   </div>
 </div>
 <div class="sr" aria-live="polite" id="live"></div>
-<p class="notes">Pick a state above, or watch the demo run through a real turn: thinking, editing, running a command, asking you, done. Needs you and Blocked keep the box open; Done and a new plan step open it briefly; tool calls never do.</p>
+<p class="notes">Pick a state above, or watch the demo run through a real turn: thinking, editing, running a command, asking you, done. Needs you and Blocked keep the box open; Done and a new plan step open it briefly; tool calls never do. The trick buttons play any trick on demand; Calm, Normal and Erratic set how busy he is on his own.</p>
+<p class="notes">hookpet is an unofficial fan project, not affiliated with or endorsed by Anthropic. Clawd and Claude are Anthropic's. Fan-pack tricks are fan art of other people's characters.</p>
 </main>
 <script>
-// In the Clawd app this page is a transparent layer over your whole screen; in a browser it's the mockup desktop.
-const NATIVE = !!window.webkit?.messageHandlers?.clawd
+// In the hookpet app this page is a transparent layer over your whole screen; in a browser it's the mockup desktop.
+const NATIVE = !!window.webkit?.messageHandlers?.hookpet
 if (NATIVE) { document.body.classList.add('native'); for (const e of document.querySelectorAll('.win, .menubar')) e.remove() }
 const GW = 44, GH = 40, OX = 4, OY = 20 // room above his head for big hair and high hops
 const LIFT = OY - 8 // effects around him were laid out for 8 rows of headroom
@@ -407,158 +403,41 @@ const surfaceUnder = (x, y) => surfaces().filter(s => x >= s.x0 && x <= s.x1 && 
 const rand = (a, b) => a + Math.random() * (b - a)
 const pick = list => list[Math.floor(Math.random() * list.length)]
 
-const FIDGETS = {
-  stretch: [[{squash: 1}, 160], [{stretch: 2, arms: ['high', 'high'], eyes: 'blink'}, 750], [{stretch: 1, arms: ['up', 'up']}, 180], [{squash: 1}, 220], [{}, 300]],
-  yawn: [[{squash: 1, eyes: 'blink'}, 260], [{stretch: 1, eyes: 'blink', arms: ['up', 'mid']}, 950], [{squash: 1, eyes: 'blink'}, 200], [{}, 250]],
-  lookAround: [[{eyes: 'side', look: -1}, 650], [{eyes: 'side', look: 1}, 650], [{eyes: 'up'}, 450], [{}, 200]],
-  scratch: [...Array(4)].flatMap(() => [[{arms: ['high', 'mid'], eyes: 'up', lookX: -1}, 170], [{arms: ['up', 'mid'], eyes: 'up'}, 170]]),
-  hop: [[{squash: 2}, 110], [{dy: -4, stretch: 1, tuck: 1}, 150], [{dy: -6, tuck: 1, arms: ['up', 'up']}, 150], [{dy: -2}, 110], [{squash: 2}, 130], [{}, 220]],
-  sit: [[{squash: 2, tuck: 1}, 220], [{squash: 2, tuck: 1, eyes: 'blink'}, 1600], [{squash: 2, tuck: 1}, 1100], [{squash: 1}, 220]],
-  wave: [...WAVE, ...WAVE, ...WAVE, [{}, 200]],
-  // Rare: a Super Saiyan power-up. Charge (trembling, pebbles rising, the screen rumbling), a white flash,
-  // then golden spiky hair, golden flames, teal eyes and crackling lightning, then a happy power-down.
-  powerUp: [
-    [{squash: 1, arms: ['down', 'down'], eyes: 'strain', ssj: 'charge'}, 250],
-    [{squash: 2, arms: ['down', 'down'], eyes: 'strain', ssj: 'charge'}, 950],
-    [{stretch: 1, arms: ['down', 'down'], eyes: 'strain', ssj: 'flash'}, 180],
-    [{dy: -1, arms: ['down', 'down'], ssj: 'on'}, 2000],
-    [{dy: -1, arms: ['down', 'down'], ssj: 'release'}, 260],
-    [{eyes: 'happy', arms: ['up', 'up']}, 550], [{}, 200],
-  ],
-  // Rare: a little dance. Side steps turning left and right, a hop, music notes floating up.
-  dance: [
-    ...[-1, 1, -1, 1].flatMap(face => [
-      [{face, arms: ['up', 'mid'], lift: [0, 3], swing: 1, tilt: face * 4, notes: 1}, 190],
-      [{face, dy: -2, arms: ['mid', 'mid'], swing: -1, tilt: -face * 4, notes: 1}, 190],
-    ]),
-    [{squash: 2, notes: 1}, 120], [{dy: -5, tuck: 1, arms: ['high', 'high'], eyes: 'happy', notes: 1}, 200],
-    [{squash: 2, eyes: 'happy', notes: 1}, 140], [{arms: ['up', 'up'], eyes: 'happy', notes: 1}, 450], [{}, 200],
-  ],
-  // On a window: he sinks behind its top edge until only his eyes peek over, looks around, and comes back up.
-  peek: [
-    [{sink: 12, clip: 1}, 90], [{sink: 24, clip: 1}, 90], [{sink: 36, clip: 1}, 500],
-    [{sink: 36, clip: 1, eyes: 'side', look: -1}, 650], [{sink: 36, clip: 1, eyes: 'side', look: 1}, 650],
-    [{sink: 36, clip: 1, eyes: 'blink'}, 120], [{sink: 36, clip: 1}, 450],
-    [{sink: 24, clip: 1}, 90], [{sink: 12, clip: 1}, 90], [{}, 250],
-  ],
-  // On a window: he sits on its edge, legs dangling over the front and swinging.
-  ledgeSit: [
-    [{sink: 6}, 120], [{sink: 12, arms: ['down', 'down']}, 300],
-    ...[...Array(8)].map((_, i) => [{sink: 12, arms: ['down', 'down'], lift: i % 2 ? [0, 2] : [1, 3], eyes: i === 5 ? 'blink' : 'open'}, 380]),
-    [{sink: 6}, 120], [{}, 200],
-  ],
-  // Rare: Guts. Cloak, the Brand, one scarred eye; he draws a sword taller than he is, slashes, and shoulders it.
-  guts: [
-    [{eyes: 'angry', guts: {cape: 1, aura: 1}}, 260],
-    [{squash: 1, eyes: 'angry', guts: {cape: 1, aura: 1, sword: .35}}, 110],
-    [{squash: 1, eyes: 'angry', guts: {cape: 1, aura: 1, sword: .7}}, 110],
-    [{squash: 1, eyes: 'angry', guts: {cape: 1, aura: 1, sword: 1}}, 180],
-    [{squash: 2, eyes: 'angry', guts: {cape: 1, aura: 2, sword: 1, brand: 2}}, 420], // winds up
-    [{dy: -1, eyes: 'angry', arms: ['mid', 'down'], guts: {cape: 1, slash: 1, low: 1, brand: 2, shake: 1}}, 110], // the slash
-    [{squash: 2, eyes: 'angry', arms: ['mid', 'down'], guts: {cape: 1, slash: .5, low: 1, brand: 1, shake: 1, dust: 1}}, 150],
-    [{squash: 1, eyes: 'angry', arms: ['mid', 'down'], guts: {cape: 1, low: 1, brand: 1}}, 300],
-    [{eyes: 'angry', guts: {cape: 1, shoulder: 1, brand: 1, aura: 1}}, 1500], // rests it on his shoulder
-    [{guts: {cape: .5, shoulder: .5}}, 160], [{guts: {cape: .25, shoulder: .25}}, 160], [{}, 200],
-  ],
-  // Rare: Thorfinn. Shaggy blond hair and a scar; twin daggers in reverse grip, dashes with afterimages,
-  // an aerial flip into an X-slash. Then the farmer: the blades go away and a little sprout grows at his feet.
-  thorfinn: [
-    [{eyes: 'angry', th: {hair: 1, daggers: 1, glint: 1}}, 320],
-    [{squash: 2, eyes: 'angry', arms: ['down', 'down'], th: {hair: 1, daggers: 1}}, 220],
-    [{ox: -7, eyes: 'angry', arms: ['down', 'down'], th: {hair: 1, daggers: 1, ghost: 1}}, 110],
-    [{ox: -7, squash: 1, eyes: 'angry', arms: ['down', 'down'], th: {hair: 1, daggers: 1}}, 140],
-    [{ox: 7, eyes: 'angry', arms: ['down', 'down'], th: {hair: 1, daggers: 1, ghost: -1}}, 110],
-    [{ox: 7, squash: 1, eyes: 'angry', arms: ['down', 'down'], th: {hair: 1, daggers: 1}}, 140],
-    [{squash: 2, eyes: 'angry', th: {hair: 1, daggers: 1}}, 120],
-    ...[60, 120, 180, 240, 300, 360].map((spin, i) => [{dy: -7 + (Math.abs(i - 2.5) * 1.5 | 0), tuck: 1, eyes: 'angry', tilt: spin, th: {hair: 1, daggers: 1}}, 55]), // aerial flip
-    [{squash: 2, eyes: 'angry', arms: ['up', 'up'], th: {hair: 1, daggers: 1, x: 1, shake: 1}}, 140], // lands in an X-slash
-    [{eyes: 'angry', arms: ['up', 'up'], th: {hair: 1, daggers: 1, x: .5}}, 160],
-    [{eyes: 'angry', arms: ['down', 'down'], th: {hair: 1, daggers: 1}}, 500],
-    [{eyes: 'blink', th: {hair: 1, sheathe: 1}}, 160], // "I have no enemies": the blades go away
-    [{eyes: 'happy', squash: 1, th: {hair: 1, sprout: 1}}, 350],
-    [{eyes: 'happy', squash: 1, th: {hair: 1, sprout: 2}}, 350],
-    [{eyes: 'happy', th: {hair: 1, sprout: 3}}, 1300],
-    [{th: {sprout: 3}}, 200], [{}, 150],
-  ],
-  // Rare: the Silver Surfer. Power cosmic twinkles up and he turns to chrome; his board appears, he hops on and glides
-  // across your screen with a trail streaming behind; then he kicks the board up into his hand and the shine fades.
-  surfer: [
-    [{eyes: 'up', surf: {cosmic: .5, chrome: .3}}, 260],
-    [{eyes: 'up', surf: {cosmic: 1, chrome: .7}}, 200],
-    [{surf: {cosmic: 1, chrome: 1, board: .5}}, 180],
-    [{surf: {cosmic: 1, chrome: 1, board: 1}}, 220],
-    [{squash: 2, surf: {cosmic: 1, chrome: 1, board: 1}}, 140],
-    [{dy: -6, tuck: 1, arms: ['up', 'up'], surf: {cosmic: 1, chrome: 1, board: 1}}, 120], // hops on
-    ...[...Array(12)].map((_, i) => [{dy: i % 2 ? -5 : -4, arms: ['mid', 'mid'], swing: 1, glide: 150, surf: {cosmic: 1, chrome: 1, board: 1, ride: 1, bob: i % 2 ? -1 : 0}}, 220]),
-    [{squash: 1, surf: {cosmic: 1, chrome: 1, board: 'up'}}, 240], // kicks it up into his hand
-    [{arms: ['up', 'mid'], eyes: 'happy', surf: {cosmic: .6, chrome: .6}}, 240],
-    [{eyes: 'happy', surf: {cosmic: .3, chrome: .3}}, 200],
-    [{}, 200],
-  ],
-  // Rare: Darth Vader. His armor goes black, the cape falls, the helmet comes down; two slow breaths with the chest
-  // panel blinking; the red saber snaps on, a big slash across; then it switches off and it all comes away again.
-  vader: [
-    [{vader: {dark: .4}}, 160],
-    [{vader: {dark: .8, cape: .5, helmet: -6}}, 160],
-    [{vader: {dark: 1, cape: 1, helmet: -3}}, 160],
-    [{squash: 1, vader: {dark: 1, cape: 1, helmet: 0, mask: 1}}, 140], // clunk
-    ...[0, 1, 0, 1].map(squash => [{squash, vader: {dark: 1, cape: 1, helmet: 0, mask: 1}}, 700]), // in... and out
-    [{arms: ['mid', 'mid'], vader: {dark: 1, cape: 1, helmet: 0, mask: 1, blade: 0}}, 220], // draws the hilt
-    ...[.35, .7, 1].map(blade => [{arms: ['mid', 'mid'], vader: {dark: 1, cape: 1, helmet: 0, mask: 1, blade, shake: 1}}, 60]), // snap-hiss
-    [{arms: ['mid', 'mid'], vader: {dark: 1, cape: 1, helmet: 0, mask: 1, blade: 1}}, 900],
-    ...[105, 135, 160, 180].map(angle => [{arms: ['mid', 'mid'], squash: angle === 180 ? 1 : 0, vader: {dark: 1, cape: 1, helmet: 0, mask: 1, blade: 1, angle, trail: 1}}, 70]), // the slash
-    [{arms: ['mid', 'mid'], squash: 1, vader: {dark: 1, cape: 1, helmet: 0, mask: 1, blade: 1, angle: 180}}, 500],
-    [{arms: ['mid', 'mid'], vader: {dark: 1, cape: 1, helmet: 0, mask: 1, blade: 1, angle: 130}}, 120],
-    [{arms: ['mid', 'mid'], vader: {dark: 1, cape: 1, helmet: 0, mask: 1, blade: 1}}, 400],
-    ...[.5, 0].map(blade => [{arms: ['mid', 'mid'], vader: {dark: 1, cape: 1, helmet: 0, mask: 1, blade}}, 80]), // switches off
-    [{vader: {dark: 1, cape: 1, helmet: 0, mask: 1}}, 400],
-    [{vader: {dark: .6, cape: .5, helmet: -4}}, 160],
-    [{vader: {dark: .2, helmet: -8}}, 160],
-    [{eyes: 'blink'}, 140], [{}, 200],
-  ],
-  // Rare (Destiny): Guardian down. He takes a hit and collapses, grey and still; his Ghost pops out over his shoulder and
-  // scans him with a beam of light; he's revived in a flash, the Light rising off him, and the Ghost transmats away.
-  ghost: [
-    [{squash: 1, eyes: 'strain', ghost: {hit: 1}}, 120],
-    [{squash: 2, tilt: -10, eyes: 'dizzy', ghost: {dead: .5}}, 160],
-    [{squash: 2, tilt: 6, eyes: 'dizzy', ghost: {dead: 1}}, 140],
-    [{squash: 2, eyes: 'dizzy', ghost: {dead: 1}}, 800],
-    [{squash: 2, eyes: 'dizzy', ghost: {dead: 1, shell: .4}}, 120], // his Ghost pops out
-    [{squash: 2, eyes: 'dizzy', ghost: {dead: 1, shell: 1}}, 500],
-    [{squash: 2, eyes: 'dizzy', ghost: {dead: 1, shell: 1, scan: 1}}, 1400],
-    [{stretch: 2, dy: -2, arms: ['up', 'up'], ghost: {flash: 1, shell: 1}}, 120], // revived
-    [{stretch: 1, dy: -3, arms: ['up', 'up'], eyes: 'happy', ghost: {shell: 1, light: 1}}, 320],
-    [{squash: 1, arms: ['up', 'up'], eyes: 'happy', ghost: {shell: .5, light: .6}}, 220],
-    [{eyes: 'happy', ghost: {vanish: 1, light: .3}}, 220],
-    [{}, 200],
-  ],
-  // Rare (Destiny): an Exotic engram. It drops in on a loot beam; he catches it overhead, it decrypts in rolling gold
-  // rings, bursts, and he's holding up a Gjallarhorn, glowing; then it goes to his inventory and he hops for joy.
-  engram: [
-    ...[-6, -2, 2, 6].map(engram => [{eyes: 'up', loot: {engram, beam: 1}}, 150]),
-    [{eyes: 'up', arms: ['high', 'high'], loot: {engram: 9, beam: 1}}, 160],
-    [{squash: 1, eyes: 'up', arms: ['high', 'high'], loot: {engram: 9}}, 160], // caught
-    ...[1, 2, 3, 4].map(decrypt => [{arms: ['high', 'high'], eyes: 'up', loot: {engram: 9, decrypt}}, 150]),
-    [{stretch: 1, arms: ['high', 'high'], loot: {flash: 1}}, 100],
-    [{stretch: 1, dy: -2, arms: ['high', 'high'], eyes: 'happy', aura: 1, loot: {gun: 1, sparkle: 1}}, 1400], // Exotic!
-    [{arms: ['high', 'high'], eyes: 'happy', aura: 1, loot: {gun: 1, sparkle: 1}}, 500],
-    [{arms: ['up', 'up'], eyes: 'happy', loot: {gun: .4, sparkle: 1}}, 160], // into his inventory
-    [{squash: 2, eyes: 'happy'}, 110], [{dy: -4, tuck: 1, arms: ['up', 'up'], eyes: 'happy'}, 160], [{squash: 1, eyes: 'happy'}, 120], [{}, 200],
-  ],
+// ---- tricks: every move he makes on his own or on request lives in its own file under tricks/ and registers here ----
+// See TRICKS.md. A trick plays frames on the spot (a fidget) or runs steps that take him places (a trip).
+const TRICKS = {}
+const RARITIES = ['common', 'rare', 'perched', 'edge', 'manual']
+function registerTrick(t){
+  const problem = !/^[A-Za-z][\w-]*$/.test(t?.name || '') ? 'needs a name (letters, digits, - or _)'
+    : !RARITIES.includes(t.rarity) ? `needs a rarity: ${RARITIES.join(', ')}`
+    : !Array.isArray(t.frames) === !t.trip ? 'needs frames or a trip (one, not both)'
+    : t.frames && !t.frames.every(f => Array.isArray(f) && typeof f[0] === 'object' && f[1] > 0) ? 'frames must be [pose, ms] pairs with ms > 0' : ''
+  if (problem) throw new Error(`hookpet trick "${t?.name}": ${problem}`)
+  TRICKS[t.name] = t
 }
-const RARE = ['powerUp', 'guts', 'thorfinn', 'dance', 'surfer', 'vader', 'ghost', 'engram', 'portal']
-const COMMON = ['stretch', 'yawn', 'lookAround', 'scratch', 'hop', 'sit', 'wave']
-const PERCHED = ['peek', 'ledgeSit'] // only on top of a window
-// What he does with his free time. Each time he finishes something he picks his next thing by these chances (they add
-// up to 1); on a window ledge there are no edge trips, so their share goes to jumping (it's his way back down).
-const CHANCE = {walk: .38, pause: .2, move: .24, jump: .05, trip: .13}
-const ODDS = {
-  farWalk: .35, // of walks: a trot to anywhere along the ledge, not a stroll nearby
-  rare: .15, // of moves: one of the RARE ones, not the everyday COMMON ones
-  hangNotLedge: .2, // of jumps, when there are both ledges to land on and edges to hang from: hang
-  hangAlone: .5, // of jumps, when an edge to hang from is all there is (a maximized window): hang; otherwise a stroll
-  sneakNotClimb: .55, // of edge trips: phase through the edge, not climb the side
+let fanPack = false // fan-made tricks of other people's characters: off unless you turn them on
+const usable = t => t.pack !== 'fan' || fanPack
+/** A trick of one of these rarities, picked by weight, or null if there are none. */
+function choose(...rarities){
+  const pool = Object.values(TRICKS).filter(t => rarities.includes(t.rarity) && usable(t))
+  let r = Math.random() * pool.reduce((s, t) => s + (t.weight ?? 1), 0)
+  for (const t of pool) if ((r -= t.weight ?? 1) < 0) return t.name
+  return null
 }
+
+// ---- behavior presets: how busy he is when nobody needs him ----
+// chance: each time he finishes something he picks his next thing by these (they add up to 1); on a window ledge there are
+// no edge trips, so their share goes to jumping (it's his way back down). odds: the finer choices within those.
+// pace stretches or shortens his pauses; speed scales his walking.
+const PRESETS = {
+  calm: {chance: {walk: .3, pause: .45, move: .17, jump: .03, trip: .05}, odds: {farWalk: .2, rare: .08, hangNotLedge: .1, hangAlone: .3}, pace: 1.8, speed: .8},
+  normal: {chance: {walk: .38, pause: .2, move: .24, jump: .05, trip: .13}, odds: {farWalk: .35, rare: .15, hangNotLedge: .2, hangAlone: .5}, pace: 1, speed: 1},
+  erratic: {chance: {walk: .3, pause: .05, move: .33, jump: .15, trip: .17}, odds: {farWalk: .6, rare: .35, hangNotLedge: .4, hangAlone: .8}, pace: .4, speed: 1.6},
+}
+// farWalk: of walks, a trot to anywhere along the ledge, not a stroll nearby. rare: of moves, a rare trick, not an everyday one.
+// hangNotLedge: of jumps, with ledges to land on and edges to hang from, hang. hangAlone: of jumps, with only an edge to hang from (a maximized window), hang; otherwise a stroll.
+for (const [name, p] of Object.entries(PRESETS)) console.assert(Math.abs(Object.values(p.chance).reduce((a, b) => a + b) - 1) < 1e-9, `preset ${name}: chances must add up to 1`)
+let preset = PRESETS.normal
 // Walking: turned toward where he's going, legs stepping in diagonal pairs, arms swinging fore and aft, rocking side to side.
 const walkFrame = (now, dir, arms) => {
   const i = Math.floor(now / 130) % 4
@@ -567,8 +446,8 @@ const walkFrame = (now, dir, arms) => {
 const ai = {mode: 'stand', until: 0, dir: -1, targetX: 0, speed: 40, seq: null, seqStart: 0, jump: null, vy: 0, landAt: -1e9, anchorX: null}
 /** Which states let him roam: idle and a finished turn freely, thinking only to pace. */
 const roam = now => pet.id === 'idle' || (pet.id === 'done' && now - pet.since > 2600) ? 'free' : pet.id === 'thinking' ? 'pace' : null
-function walkTo(x, speed){ ai.mode = 'walk'; ai.targetX = x; ai.dir = x < pet.x ? -1 : 1; ai.speed = speed }
-function fidget(now, name){ ai.mode = 'fidget'; ai.seq = FIDGETS[name]; ai.seqStart = now; ai.until = now + sum(ai.seq) }
+function walkTo(x, speed){ ai.mode = 'walk'; ai.targetX = x; ai.dir = x < pet.x ? -1 : 1; ai.speed = speed * preset.speed }
+function fidget(now, frames){ ai.mode = 'fidget'; ai.seq = frames; ai.seqStart = now; ai.until = now + sum(frames) }
 function land(now){
   ai.mode = 'land'; ai.landAt = now; ai.until = now + 260; ai.vy = 0
   if (pet.pendingDizzy) { pet.pendingDizzy = false; pet.dizzyUntil = now + 2400 } // you shook him about
@@ -578,13 +457,14 @@ function hang(now, g){ ai.mode = 'hang'; ai.grip = g; ai.hangAt = now; ai.until 
 /** Plays one of his moves now, or as soon as he's back on his feet. */
 function perform(name){
   const now = performance.now()
+  if (!TRICKS[name]) return console.warn(`hookpet: no trick named "${name}"`)
   if (ai.mode === 'script') endTrip(now) // a move asked for on a trip: back on screen first
   if (['jump', 'fall', 'dangle', 'hang'].includes(ai.mode)) { ai.next = name; return }
   startMove(now, name, surfaceUnder(pet.x, pet.y))
 }
 function jumpFrom(now, here){
   const others = surfaces().filter(o => Math.abs(o.y - here.y) > 4), holds = grips() // any ledge on screen: a real desktop is far taller than a hop
-  if (holds.length && Math.random() < (others.length ? ODDS.hangNotLedge : ODDS.hangAlone)) return leapToGrip(now, pick(holds))
+  if (holds.length && Math.random() < (others.length ? preset.odds.hangNotLedge : preset.odds.hangAlone)) return leapToGrip(now, pick(holds))
   if (!others.length) return walkTo(Math.max(here.x0, Math.min(here.x1, pet.x + rand(-200, 200))), 40)
   const to = pick(others), x1 = Math.max(to.x0, Math.min(to.x1, pet.x + rand(-170, 170))), rise = Math.abs(pet.y - to.y)
   ai.mode = 'jump'; ai.dir = x1 < pet.x ? -1 : 1
@@ -601,7 +481,8 @@ function leapToGrip(now, g){
 // A trip is a list of steps, run one after another: walk (along x), climb (along y, on a wall), slide (ease to a spot and
 // a rotation), hold (a pose for a while), do (a one-off), drop (let go and fall). Positions are his feet: bottom center.
 const feet = () => ({x: pet.x + 66, y: pet.y + PH})
-const putFeet = (x, y) => place(x - 66, y - PH)
+/** Puts his feet at (x, y), turned rot degrees about them if given (on a wall: -90 on the right side, 90 on the left). */
+const putFeet = (x, y, rot) => { if (rot != null) ai.rot = rot; place(x - 66, y - PH) }
 function trip(now, steps){ ai.mode = 'script'; ai.steps = steps; ai.step = -1; ai.rot = 0; nextStep(now) }
 function nextStep(now){
   const s = ai.steps[++ai.step]
@@ -612,7 +493,7 @@ function nextStep(now){
 }
 /** Back to ordinary life: upright, on screen, falling to whatever is below (or standing, if he's already on it). */
 function endTrip(now){
-  ai.rot = 0; pet.clip = null; closePortals()
+  ai.rot = 0; pet.clip = null; ai.trick?.end?.() // a trip cut short tidies up after itself (the portal gun's portals)
   ai.mode = 'fall'; ai.vy = 0
   place(pet.x, pet.y)
   const here = surfaceUnder(pet.x, pet.y)
@@ -645,113 +526,8 @@ function tripPose(now){
   return (typeof s.pose === 'function' ? s.pose(t) : s.pose) || {}
 }
 
-/** His head pokes in sideways from the side of the screen at height y: looks up and down the edge, grins, ducks back out. */
-function sidePeek(side, y){
-  const W = desk.clientWidth, s = size, rot = side === 'right' ? -90 : 90
-  const out = side === 'right' ? W + 70 * s : -70 * s, peek = side === 'right' ? W + 36 * s : -36 * s // 36: just his head and eyes show
-  return [
-    {go: 'do', fn: () => { putFeet(out, y); ai.rot = rot }},
-    {go: 'slide', x: peek, T: 350, pose: {eyes: 'up'}},
-    {go: 'hold', T: 650, pose: {eyes: 'side', look: -1}},
-    {go: 'hold', T: 650, pose: {eyes: 'side', look: 1}},
-    {go: 'hold', T: 140, pose: {eyes: 'blink'}},
-    {go: 'hold', T: 420, pose: {eyes: 'happy'}},
-    {go: 'slide', x: out, T: 300, pose: {}},
-    {go: 'do', fn: () => { ai.rot = 0 }},
-  ]
-}
-/** Out the near side of the screen, shimmering as he goes; one eye round the far side; a duck back; then in he comes. */
-function sneakThrough(now){
-  const W = desk.clientWidth, s = size, {x, y} = feet(), right = x > W / 2, inward = right ? 1 : -1
-  const away = right ? -80 * s : W + 80 * s, oneEye = right ? -6 * s : W + 6 * s // -6: the edge cuts him just past his near eye
-  const steps = [{go: 'walk', to: right ? W + 80 * s : -80 * s, speed: 70, phase: 1}]
-  if (Math.random() < .5) { // first his head pops in up the sides, once or twice
-    const sideY = () => rand(scr.top + 90 * s, y - 140 * s)
-    steps.push(...sidePeek(Math.random() < .5 ? 'left' : 'right', sideY()))
-    if (Math.random() < .5) steps.push(...sidePeek(Math.random() < .5 ? 'left' : 'right', sideY()))
-  }
-  steps.push(
-    {go: 'do', fn: () => putFeet(away, y)},
-    {go: 'slide', x: oneEye, T: 450, pose: t => ({eyes: 'side', look: inward, phase: t < 260 ? 1 : 0})},
-    {go: 'hold', T: 700, pose: {eyes: 'side', look: inward}},
-    {go: 'hold', T: 140, pose: {eyes: 'blink'}},
-    {go: 'slide', x: away, T: 260, pose: {}}, // ducks back out...
-    {go: 'hold', T: 420, pose: {}},
-    {go: 'slide', x: oneEye, T: 300, pose: {eyes: 'happy'}}, // ...and pops in again, grinning
-    {go: 'hold', T: 500, pose: {eyes: 'happy'}},
-    {go: 'walk', to: right ? 160 * s : W - 160 * s, speed: 50, phase: 1},
-  )
-  trip(now, steps)
-}
-/** Up the side of the screen like a gecko: hops onto the wall, climbs, looks about and waves, then climbs down or lets go. */
-function climbSide(now){
-  const W = desk.clientWidth, s = size, {x, y} = feet(), right = x > W / 2, wall = right ? W : 0, rot = right ? -90 : 90
-  const low = y - 54 * s - 4, high = rand(scr.top + 90 * s, Math.max(scr.top + 90 * s, y - 260 * s)), off = right ? W - 62 * s : 62 * s
-  const steps = [
-    {go: 'walk', to: right ? W - 54 * s : 54 * s, speed: 60},
-    {go: 'slide', x: wall, y: low, rot, T: 260, pose: {squash: 1, arms: ['up', 'up']}}, // onto the wall
-    {go: 'climb', to: high, speed: 50},
-    {go: 'hold', T: 600, pose: {eyes: 'side', look: -1}},
-    {go: 'hold', T: 600, pose: {eyes: 'side', look: 1}},
-    ...[0, 1, 0, 1].map(i => ({go: 'hold', T: 200, pose: {eyes: 'up', arms: ['mid', i ? 'up' : 'high']}})),
-  ]
-  if (Math.random() < .5) steps.push({go: 'climb', to: low, speed: 70}, {go: 'slide', x: off, y, rot: 0, T: 260, pose: {squash: 1}})
-  else steps.push({go: 'slide', x: off, rot: 0, T: 180, pose: {arms: ['high', 'high'], eyes: 'up'}}, {go: 'drop'}) // lets go
-  trip(now, steps)
-}
-
-// ---- the portal gun (Portal 2): blue portal on the floor ahead, orange one up high; in one, and out of the other ----
-const portals = []
-let portalsCloseAt = Infinity
-function openPortal(color, x, y){
-  const p = document.createElement('div'), s = size, upright = color === 'blue', w = (upright ? 34 : 84) * s, h = (upright ? 78 : 26) * s
-  p.className = 'portal ' + color
-  Object.assign(p.style, {left: x - w / 2 + 'px', top: y - h / 2 + 'px', width: w + 'px', height: h + 'px'})
-  desk.append(p); portals.push(p)
-  void p.offsetWidth; p.classList.add('open') // laid out shut first, so it swirls open
-}
-function closePortals(){
-  for (const p of portals.splice(0)) { p.classList.remove('open'); setTimeout(() => p.remove(), 300) }
-  portalsCloseAt = Infinity
-}
-/** A shot from the gun's tip to (x, y), where its portal opens. */
-function shoot(color, dir, x, y){
-  const s = size, left = pet.x + 66 - 66 * s, top = pet.y + PH - 120 * s, shot = document.createElement('div')
-  shot.className = 'shot ' + color
-  Object.assign(shot.style, {left: left + (dir > 0 ? 43 : 0) * 3 * s + 'px', top: top + 28 * 3 * s + 'px'})
-  desk.append(shot)
-  void shot.offsetWidth; Object.assign(shot.style, {left: x + 'px', top: y + 'px'}) // laid out at the gun first, so it flies
-  setTimeout(() => { shot.remove(); if (ai.mode === 'script') openPortal(color, x, y) }, 200)
-}
-function portalGun(now, here = surfaces()[0]){
-  const W = desk.clientWidth, s = size, {x, y} = feet(), floorY = surfaces()[0].y + PH
-  const lo = here.x0 + 66 + 40, hi = here.x1 + 66 - 40
-  let dir = ai.dir || 1
-  if (x + dir * 160 * s < lo || x + dir * 160 * s > hi) dir = -dir // room on the other side
-  const ax = Math.max(lo, Math.min(hi, x + dir * 160 * s))
-  let bx, by
-  for (let i = 0; i < 12; i++) { // the orange one somewhere high, with room below to drop all the way out before he lands
-    bx = rand(140, W - 140); by = rand(scr.top + 120, Math.max(scr.top + 120, floorY - 300))
-    const below = surfaces().filter(o => o.y + PH > by && bx - 66 >= o.x0 && bx - 66 <= o.x1).sort((a, b) => a.y - b.y)[0]
-    if (!below || below.y + PH - by >= 140 * s) break
-  }
-  trip(now, [
-    {go: 'hold', T: 380, pose: {arms: ['mid', 'mid'], pgun: {tip: 'blue', dir}}},
-    {go: 'do', fn: () => shoot('blue', dir, ax, y - 39 * s)},
-    {go: 'hold', T: 420, pose: {arms: ['mid', 'mid'], squash: 1, pgun: {tip: 'blue', dir, fire: 1}}},
-    {go: 'hold', T: 260, pose: {arms: ['mid', 'up'], eyes: 'up', pgun: {tip: 'orange', dir}}},
-    {go: 'do', fn: () => shoot('orange', dir, bx, by)},
-    {go: 'hold', T: 520, pose: {arms: ['mid', 'up'], eyes: 'up', squash: 1, pgun: {tip: 'orange', dir, fire: 1}}},
-    {go: 'hold', T: 300, pose: {eyes: 'happy'}},
-    {go: 'do', fn: () => { pet.clip = {x: ax, dir} }}, // he disappears into it as he walks through
-    {go: 'walk', to: ax + dir * 70 * s, speed: 55},
-    {go: 'do', fn: n => { putFeet(bx, by); pet.clip = {y: by}; portalsCloseAt = n + 1600 }}, // and comes out the other one, feet first
-    {go: 'drop', vy: 320}, // speedy thing goes in, speedy thing comes out
-  ])
-}
-const TRIPS = {sneak: sneakThrough, climb: climbSide, portal: portalGun}
 const PHASE = {[BODY]: '#B1B9F9', [TOP]: '#D4D9FF', [SIDE]: '#8C95E8'}
-/** The part of him that's through a portal, hidden: past the blue one going in, above the orange one coming out. */
+/** The part of him that's hidden by a clip (a trick sets it): past x on the side he's heading ({x, dir}: into a portal), or above y ({y}: coming out of one, feet first). */
 function portalClip(){
   const s = size, left = pet.x + 66 - 66 * s, top = pet.y + PH - 120 * s, c = pet.clip
   if (c.y != null) {
@@ -761,19 +537,8 @@ function portalClip(){
   }
   return c.dir > 0 ? `inset(0 ${Math.max(0, left + 132 * s - c.x)}px 0 0)` : `inset(0 0 0 ${Math.max(0, c.x - left)}px)`
 }
-/** The portal gun in his hand: white body, black prongs, its core glowing the color it's about to fire. */
-function pgunFront(g, pose){
-  const d = g.dir || 1, y = OY + 7 + (pose.dy || 0) + Math.ceil((pose.squash || 0) / 2), core = g.tip === 'orange' ? '#FF9A1F' : '#3FA9FF'
-  const at = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(d > 0 ? x : GW - x - w, yy, w, h) } // drawn for his right hand, mirrored for his left
-  at(34, y, 7, 3, '#E9EDF0'); at(34, y + 2, 7, 1, '#B9C0C8'); at(36, y, 1, 3, '#2E3238')
-  at(41, y - 1, 2, 1, '#1C1F24'); at(41, y + 3, 2, 1, '#1C1F24') // the prongs
-  at(41, y, 2, 3, core)
-  if (g.fire) { ctx.globalAlpha = .8; at(43, y - 1, 1, 5, '#FFFFFF'); ctx.globalAlpha = 1 }
-}
-
 function behave(now, dt){
-  if (now > portalsCloseAt) closePortals()
-  if (pet.drag?.moved) { if (ai.mode === 'script') { ai.rot = 0; pet.clip = null; closePortals() } ai.mode = 'dangle'; return }
+  if (pet.drag?.moved) { if (ai.mode === 'script') { ai.rot = 0; pet.clip = null; ai.trick?.end?.() } ai.mode = 'dangle'; return }
   if (ai.mode === 'dangle') { ai.mode = 'fall'; ai.vy = 0 } // just let go
   if (ai.mode === 'script') {
     if (roam(now) === 'free' && !isStill()) return runStep(now, dt)
@@ -799,7 +564,7 @@ function behave(now, dt){
   }
   if (!here || Math.abs(here.y - pet.y) > 1.5) { ai.mode = 'fall'; ai.vy = 0; return } // nothing under his feet
   if ((ai.mode === 'land' || ai.mode === 'fidget') && now < ai.until) {
-    const glide = ai.mode === 'fidget' && frameAt(ai.seq, now - ai.seqStart).glide // a move that carries him along (the Surfer's ride)
+    const glide = ai.mode === 'fidget' && frameAt(ai.seq, now - ai.seqStart).glide // a move that carries him along (a ride, a cartwheel)
     if (glide) {
       const x = pet.x + ai.dir * glide * dt / 1000
       if (x <= here.x0 || x >= here.x1) ai.dir *= -1 // turns at the end of the ledge
@@ -814,28 +579,36 @@ function behave(now, dt){
   if (kind === 'pace' && ai.anchorX == null) ai.anchorX = pet.x
   if (ai.mode === 'walk') {
     let x = pet.x + ai.dir * ai.speed * dt / 1000
-    if ((ai.dir > 0 && x >= ai.targetX) || (ai.dir < 0 && x <= ai.targetX)) { x = ai.targetX; ai.mode = 'pause'; ai.until = now + rand(600, 1800) }
+    if ((ai.dir > 0 && x >= ai.targetX) || (ai.dir < 0 && x <= ai.targetX)) { x = ai.targetX; ai.mode = 'pause'; ai.until = now + rand(600, 1800) * preset.pace }
     return place(x, pet.y)
   }
   if (ai.mode === 'pause' && now < ai.until) return
   const clampX = x => Math.max(here.x0, Math.min(here.x1, x)), r = Math.random()
   if (kind === 'pace') {
     if (r < .6) walkTo(clampX(ai.anchorX + rand(-45, 45)), 22)
-    else { ai.mode = 'pause'; ai.until = now + rand(1400, 2800) }
+    else { ai.mode = 'pause'; ai.until = now + rand(1400, 2800) * preset.pace }
     return
   }
-  const onFloor = here.y >= surfaces()[0].y - 2, c = CHANCE
+  const onFloor = here.y >= surfaces()[0].y - 2, c = preset.chance
   if (r < c.walk) { // a stroll nearby, or now and then a trot to anywhere along the ledge
-    const far = Math.random() < ODDS.farWalk, x = clampX(far ? rand(here.x0, here.x1) : pet.x + pick([-1, 1]) * rand(60, 260))
+    const far = Math.random() < preset.odds.farWalk, x = clampX(far ? rand(here.x0, here.x1) : pet.x + pick([-1, 1]) * rand(60, 260))
     walkTo(x, Math.abs(x - pet.x) > 400 ? 75 : 40)
   }
-  else if (r < c.walk + c.pause) { ai.mode = 'pause'; ai.until = now + rand(900, 2600) }
-  else if (r < c.walk + c.pause + c.move) startMove(now, Math.random() < ODDS.rare ? pick(RARE) : pick(onFloor ? COMMON : [...COMMON, ...PERCHED, ...PERCHED]), here)
+  else if (r < c.walk + c.pause) { ai.mode = 'pause'; ai.until = now + rand(900, 2600) * preset.pace }
+  else if (r < c.walk + c.pause + c.move) { // a trick: now and then a rare one; on a window ledge, maybe one only done up there
+    const name = (Math.random() < preset.odds.rare && choose('rare')) || (onFloor ? choose('common') : choose('common', 'perched'))
+    if (name) startMove(now, name, here)
+  }
   else if (r < c.walk + c.pause + c.move + c.jump || !onFloor) jumpFrom(now, here)
-  else (Math.random() < ODDS.sneakNotClimb ? sneakThrough : climbSide)(now) // off to the screen's edges
+  else { const name = choose('edge'); name ? startMove(now, name, here) : jumpFrom(now, here) } // off to the screen's edges
 }
-/** A move by name: most are played on the spot; a few are trips that take him places. */
-function startMove(now, name, here){ TRIPS[name] ? TRIPS[name](now, here) : fidget(now, name) }
+/** A trick by name: most are played on the spot; a few are trips that take him places. */
+function startMove(now, name, here){
+  const t = ai.trick = TRICKS[name]
+  if (!t.trip) return fidget(now, t.frames)
+  const {x, y} = feet()
+  trip(now, t.trip({now, here: here || surfaces()[0], x, y, dir: ai.dir || 1}))
+}
 
 /** What his body is doing because of where he is, overriding his mood's own pose. */
 function lifePose(now){
@@ -843,8 +616,7 @@ function lifePose(now){
     case 'walk': return walkFrame(now, ai.dir, pet.id === 'thinking' ? THINK : null)
     case 'fidget': {
       const f = frameAt(ai.seq, now - ai.seqStart)
-      if (f.glide) return {...f, face: ai.dir, tilt: 4 * ai.dir} // riding: turned the way he's going, leaning into it
-      return f.ssj === 'on' ? {...f, dy: -1 - (Math.floor(now / 180) % 2)} : f // powered up, he floats and bobs
+      return f.glide ? {...f, face: f.face ?? ai.dir, tilt: (f.tilt ?? 4) * ai.dir} : f // gliding: turned the way he's going (unless the frame says), leaning or turning that way
     }
     case 'jump': { const p = (now - ai.jump.t0 - 120) / ai.jump.T, face = ai.dir; return p < 0 ? {squash: 2, face} : p < .5 ? {stretch: 2, tuck: 1, arms: ['up', 'mid'], eyes: 'up', face} : {arms: ['up', 'mid'], lookX: 1, face} }
     case 'fall': return {stretch: 1, arms: ['high', 'high'], eyes: 'up'}
@@ -910,216 +682,18 @@ function setState(id, now = performance.now()){
   for (const b of document.querySelectorAll('[data-state]')) b.setAttribute('aria-pressed', String(b.dataset.state === id && !demo.on))
 }
 
-// ---- the Super Saiyan power-up ----
-const GOLD = ['#FFF3B0', '#FFD84D', '#FFB938', '#FF8F2A'] // white-hot core → orange tips
-/** The Super Saiyan mane: a cap over his head, seven spikes fanning up and out, two bangs over his brow. */
-function ssjHair(pose, px){
-  const hair = new Map()
-  if (pose.ssj !== 'on' && pose.ssj !== 'release') return hair
-  const headTop = Math.min(...px.map(([, y]) => y)), bx = OX + 6, scale = pose.ssj === 'release' ? .4 : 1
-  const put = (x, y, c) => hair.set(x + ',' + y, c)
-  for (let x = bx - 1; x <= bx + 24; x++) for (let y = headTop; y < headTop + 2; y++) put(x, y, '#F7CF3A') // the cap
-  // [base center along his head, base width, height, lean per row]: tall in the middle, sweeping out at the sides
-  const SPIKES = [[0, 5, 7, -.95], [4, 6, 10, -.55], [9, 6, 13, -.22], [13, 6, 14, .08], [17, 6, 12, .3], [21, 6, 10, .6], [25, 5, 7, .95]]
-  for (const [off, bw, h0, lean] of SPIKES) {
-    const h = Math.max(2, Math.round(h0 * scale))
-    for (let r = 0; r < h; r++) {
-      const w = Math.max(1, Math.round(bw * (1 - r / h))), x0 = Math.round(bx + off + lean * r - w / 2)
-      for (let i = 0; i < w; i++) put(x0 + i, headTop - 1 - r, r >= h - 2 ? '#FFFBD6' : i < w / 2 ? '#FFF39A' : '#F7CF3A') // lit left, shaded right, white-hot tips
-    }
-  }
-  for (const [x0, len] of [[bx + 6, 3], [bx + 15, 4]]) // bangs falling over his brow
-    for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), headTop + 2 + r, '#F7CF3A')
-  return hair
-}
-
-/** Behind him: a flickering white aura while he charges; golden flames once he's powered up, rising off his hair. */
-function ssjBehind(pose, px, hair, now){
-  const shape = [...px.map(([x, y]) => [x, y]), ...[...hair.keys()].map(k => k.split(',').map(Number))]
-  const filled = new Set(shape.map(([x, y]) => x + ',' + y)), ring = []
-  for (const [x, y] of shape) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
-    const k = (x + a) + ',' + (y + b)
-    if (!filled.has(k)) { filled.add(k); ring.push([x + a, y + b]) }
-  }
-  if (pose.ssj === 'charge') {
-    ctx.fillStyle = '#FFFFFF'
-    for (const [x, y] of ring) if (Math.random() < .55) { ctx.globalAlpha = .35 + Math.random() * .55; ctx.fillRect(x, y, 1, 1) }
-    ctx.globalAlpha = 1
-    return
-  }
-  if (pose.ssj === 'flash') return
-  const grow = pose.ssj === 'release' ? .35 : 1
-  ctx.fillStyle = GOLD[1]; ctx.globalAlpha = .85
-  for (const [x, y] of ring) ctx.fillRect(x, y, 1, 1)
-  // Flame tongues licking up from every column of him.
-  const top = new Map()
-  for (const [x, y] of shape) if (!top.has(x) || y < top.get(x)) top.set(x, y)
-  for (const [x, yTop] of top) {
-    const h = Math.max(1, Math.round((2 + 4 * Math.abs(Math.sin(x * 1.3 + now / 75))) * grow))
-    for (let i = 1; i <= h; i++) { ctx.fillStyle = GOLD[Math.min(3, Math.floor(i / h * 3.99))]; ctx.globalAlpha = 1 - i / (h + 1) * .6; ctx.fillRect(x, yTop - 1 - i, 1, 1) }
-  }
-  // And flickering at his sides.
-  const rows = new Map()
-  for (const [x, y] of shape) { const r = rows.get(y) || [x, x]; rows.set(y, [Math.min(r[0], x), Math.max(r[1], x)]) }
-  ctx.fillStyle = GOLD[2]; ctx.globalAlpha = .7
-  for (const [y, [x0, x1]] of rows) if (Math.sin(y * 2.1 + now / 60) > .2 * grow) { ctx.fillRect(x0 - 2, y, 1, 1); ctx.fillRect(x1 + 2, y, 1, 1) }
-  ctx.globalAlpha = 1
-}
-/** In front: the white flash, the golden mane, crackling lightning, rising pebbles or sparks. */
-function ssjFront(pose, px, hair, now){
-  if (pose.ssj === 'flash') { ctx.fillStyle = '#FFFFFF'; for (const [x, y] of px) ctx.fillRect(x, y, 1, 1); return }
-  if (hair.size) {
-    // A dark gold outline so every spike reads clearly against the flames behind it.
-    const body = new Set(px.map(([x, y]) => x + ',' + y))
-    ctx.fillStyle = '#8A5410'
-    for (const k of hair.keys()) {
-      const [x, y] = k.split(',').map(Number)
-      for (const [a, b] of [[1, 0], [-1, 0], [0, -1], [1, -1], [-1, -1]]) { const n = (x + a) + ',' + (y + b); if (!hair.has(n) && !body.has(n)) ctx.fillRect(x + a, y + b, 1, 1) }
-    }
-    for (const [k, c] of hair) { const [x, y] = k.split(',').map(Number); ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
-    if (pose.ssj === 'on' && now % 520 < 90) { // lightning crackles down one side, then the other
-      const base = Math.floor(now / 520) % 2 ? 39 : 4
-      ctx.fillStyle = '#CFEFFF'
-      for (let y = 6 + LIFT; y < 24 + LIFT; y++) ctx.fillRect(base + (Math.floor(y / 3) % 2 ? 1 : -1), y, 1, 1)
-    }
-  }
-  const charging = pose.ssj === 'charge'
-  for (let i = 0; i < 9; i++) { // pebbles lift off the ground while he charges; golden sparks rise once he's powered
-    const y = GH - 1 - ((now * (charging ? .008 : .022) + i * 4.3) % (GH - 2))
-    ctx.fillStyle = charging ? (i % 2 ? '#8C7B6B' : '#B4A491') : (i % 3 ? '#FFD84D' : '#FFF3B0')
-    ctx.globalAlpha = charging ? .9 : .8
-    ctx.fillRect((i * 7 + 3) % GW, Math.floor(y), 1, 1)
-  }
-  ctx.globalAlpha = 1
-}
-
-// ---- Guts ----
-function thickLine(x0, y0, x1, y1, w, color, alpha = 1){
+// ---- drawing helpers for tricks ----
+/** A line w art pixels thick from (x0, y0) to (x1, y1): blades, sabers, slashes. */
+function thickLine(ctx, x0, y0, x1, y1, w, color, alpha = 1){
   const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1)
   ctx.fillStyle = color; ctx.globalAlpha = alpha
   for (let i = 0; i <= n; i++) ctx.fillRect(Math.round(x0 + (x1 - x0) * i / n - w / 2), Math.round(y0 + (y1 - y0) * i / n - w / 2), w, w)
   ctx.globalAlpha = 1
 }
-const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
-/** Behind him: the dark aura, the cloak's flaps, and the sword when it's upright or on his shoulder. */
-function gutsBehind(g, px, now){
-  if (g.aura) { // dark red aura flickering at his edges
-    const filled = new Set(px.map(([x, y]) => x + ',' + y))
-    ctx.globalAlpha = .8
-    for (const [x, y] of px) for (const [a, b] of [[1, 0], [-1, 0], [0, -1], [0, 1]]) {
-      const k = (x + a) + ',' + (y + b)
-      if (!filled.has(k) && Math.random() < .5 * g.aura) { ctx.fillStyle = Math.random() < .5 ? '#8C1C26' : '#2A0A10'; ctx.fillRect(x + a, y + b, 1, 1) }
-    }
-    ctx.globalAlpha = 1
-  }
-  if (g.cape) { // the cloak's flaps behind his arms, fluttering at the hem
-    ctx.globalAlpha = g.cape
-    for (const x0 of [OX + 2, OX + 30]) for (let x = x0; x < x0 + 4; x++) {
-      ctx.fillStyle = x === x0 || x === x0 + 3 ? '#2E2A36' : CLOAK
-      ctx.fillRect(x, OY + 1, 1, 15 + Math.round(1.5 + 1.5 * Math.sin(x * 1.7 + now / 110)))
-    }
-    ctx.globalAlpha = 1
-  }
-  if (g.sword) { // drawn up from behind his back: longer than he is tall
-    const cut = Math.round((1 - g.sword) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } }
-    row(0, 38, 1, EDGE); row(1, 37, 3, IRON)
-    for (let y = 2; y <= 26; y++) { row(y, 36, 1, EDGE); row(y, 37, 3, IRON); row(y, 40, 1, DARK) }
-    row(27, 33, 10, STEELGUARD)
-    for (let y = 28; y <= 32; y++) row(y, 37, 3, LEATHER) // the grip, in his hand
-    row(33, 37, 3, STEELGUARD)
-  }
-  if (g.shoulder) { // resting on his shoulder, angled up behind his head
-    thickLine(37, 29, 7, 2, 5, IRON, g.shoulder)
-    thickLine(36, 27, 6, 0, 1, EDGE, g.shoulder)
-    thickLine(33, 26, 39, 32, 2, STEELGUARD, g.shoulder)
-    thickLine(38, 31, 41, 35, 3, LEATHER, g.shoulder)
-  }
+/** Pixel art from strings, one per row, its top-left at (x, y): each character is looked up in ink for its color; others are left clear. */
+function paint(ctx, rows, x, y, ink){
+  rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ink[ch]) { ctx.fillStyle = ink[ch]; ctx.fillRect(x + i, y + j, 1, 1) } }))
 }
-/** In front: the mantle on his shoulders, the Brand, his scarred eye, the slash, and the sword after the swing. */
-function gutsFront(g, px, now, pose){
-  const top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + (pose.dy || 0) + (pose.squash || 0)
-  if (g.cape) {
-    ctx.globalAlpha = g.cape
-    ctx.fillStyle = CLOAK; ctx.fillRect(OX + 4, top, 28, 2)
-    ctx.fillStyle = '#3A3442'; ctx.fillRect(OX + 4, top + 2, 28, 1)
-    ctx.globalAlpha = 1
-  }
-  ctx.fillStyle = BODY; ctx.fillRect(OX + 24, eyeY, 2, 4) // his right eye, scarred shut
-  ctx.fillStyle = EYE; ctx.fillRect(OX + 24, eyeY + 2, 2, 1)
-  ctx.fillStyle = '#8C3B2E'; ctx.fillRect(OX + 25, eyeY - 1, 1, 6)
-  if (g.brand) { // the Brand of Sacrifice, bleeding red on his brow
-    if (g.brand > 1) { ctx.globalAlpha = .45; ctx.fillStyle = '#FF4D5E'; ctx.fillRect(OX + 15, eyeY - 2, 5, 6) }
-    ctx.globalAlpha = g.brand > 1 ? 1 : .6 + .4 * Math.sin(now / 160); ctx.fillStyle = '#D7263D'
-    ;['.#.', '.##', '##.', '.#.'].forEach((r, j) => [...r].forEach((ch, i) => { if (ch === '#') ctx.fillRect(OX + 16 + i, eyeY - 1 + j, 1, 1) }))
-    ctx.globalAlpha = 1
-  }
-  if (g.low) { // after the swing: the blade along the ground in front of him
-    ctx.fillStyle = EDGE; ctx.fillRect(2, OY + 14, 29, 1)
-    ctx.fillStyle = IRON; ctx.fillRect(1, OY + 15, 30, 3)
-    ctx.fillStyle = DARK; ctx.fillRect(2, OY + 18, 29, 1)
-    ctx.fillStyle = STEELGUARD; ctx.fillRect(31, OY + 12, 2, 8)
-    ctx.fillStyle = LEATHER; ctx.fillRect(33, OY + 15, 5, 2)
-  }
-  if (g.slash) { // a huge white arc tearing across
-    for (let i = 0; i <= 80; i++) {
-      const t = i / 80, s = Math.sin(Math.PI * t), w = Math.round(1 + 2.5 * s)
-      ctx.globalAlpha = g.slash * (.6 + .4 * s); ctx.fillStyle = s > .5 ? '#FFFFFF' : '#FFD6D6'
-      ctx.fillRect(Math.round(41 - 40 * t + 8 * s) - (w >> 1), Math.round(OY - 18 + 37 * t + 4 * s) - (w >> 1), w, w)
-    }
-    ctx.globalAlpha = 1
-  }
-  if (g.dust) { ctx.fillStyle = '#CFC4BA'; for (const x of [0, 6, 26, 34]) ctx.fillRect(x, GH - 2, 2, 1) }
-}
-
-// ---- Thorfinn ----
-const BLADE = '#DCE1E8', STEEL = '#8E96A3'
-/** Behind him: afterimages trailing a dash. */
-function thBehind(th, px){
-  if (!th.ghost) return
-  ctx.fillStyle = '#9FD3FF'
-  for (const [k, a] of [[1, .32], [2, .16]]) { ctx.globalAlpha = a; for (const [x, y] of px) ctx.fillRect(x + th.ghost * 5 * k, y, 1, 1) }
-  ctx.globalAlpha = 1
-}
-/** In front: his scar, shaggy blond hair, the daggers (reverse grip), the X-slash, and the sprout. */
-function thFront(th, px, now, pose){
-  const dy = pose.dy || 0, sq = pose.squash || 0, ox = pose.ox || 0, top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + dy + sq
-  if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(OX + 14 + i + ox, eyeY + 5 - (i >> 1), 1, 1) } // scar across his nose
-  if (th.hair) { // long, messy blond hair: uneven strands on top, locks hanging past his eyes, parted bangs
-    const bx = OX + 4 + ox, LIGHT = '#F7DD8E', MID = '#E8C25A', SHADE = '#B8892E'
-    const strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x, y0, 1, len) }
-    const TOP_H = [2, 3, 4, 3, 2, 4, 5, 3, 4, 2, 3, 5, 4, 3, 2, 4, 3, 5, 3, 2, 4, 3, 2, 3, 2, 2, 1, 1]
-    TOP_H.forEach((h, i) => strand(bx + i, top - h, h + 2, i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID)) // the mop on top
-    for (const [x, len, c] of [[bx, 9, SHADE], [bx + 1, 8, MID], [bx + 2, 6, MID], [bx + 25, 6, MID], [bx + 26, 8, MID], [bx + 27, 9, SHADE]]) strand(x, top, len, c) // side locks
-    for (const [x, len] of [[bx + 6, 4], [bx + 7, 3], [bx + 10, 2], [bx + 16, 3], [bx + 19, 4], [bx + 20, 3]]) strand(x, top + 2, len, MID) // bangs, parted
-    ctx.fillStyle = LIGHT; for (const x of [bx + 8, bx + 13, bx + 18]) ctx.fillRect(x, top - 1, 1, 1) // shine
-  }
-  if (th.daggers) { // one in each hand, reverse grip: the blade points away from the way his arm is raised
-    const arms = pose.arms || ['mid', 'mid'], ARM = {down: 12, mid: 8, up: 4, high: -2}
-    for (const [i, side] of [[0, -1], [1, 1]]) {
-      const a = arms[i], ax = (side < 0 ? OX + 2 : OX + 30) + ox, ay = OY + ARM[a] + dy + (a === 'mid' || a === 'down' ? Math.ceil(sq / 2) : 0)
-      const up = a === 'up' || a === 'high', bx = ax + 1, y0 = up ? ay - 5 : ay + 4
-      ctx.fillStyle = BLADE; ctx.fillRect(bx, y0, 2, 5)
-      ctx.fillStyle = STEEL; ctx.fillRect(bx + 1, y0, 1, 5)
-      if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, up ? y0 - 1 : y0 + 5, 1, 1) }
-    }
-  }
-  if (th.x) { // the X-slash
-    ctx.globalAlpha = th.x; ctx.fillStyle = '#FFFFFF'
-    for (let i = 0; i <= 30; i++) { ctx.fillRect(OX + 2 + i, OY - 2 + Math.round(i * .6), 1, 1); ctx.fillRect(OX + 32 - i, OY - 2 + Math.round(i * .6), 1, 1) }
-    ctx.globalAlpha = 1
-  }
-  if (th.sheathe) { ctx.fillStyle = '#FFFFFF'; for (const x of [OX + 3, OX + 31]) ctx.fillRect(x, OY + 13, 1, 1) }
-  if (th.sprout) { // a little sprout comes up beside him
-    const sx = OX + 35, base = GH - 1, stem = [1, 3, 5][th.sprout - 1]
-    ctx.fillStyle = '#6B4A2B'; ctx.fillRect(sx - 1, base, 4, 1)
-    ctx.fillStyle = '#3E8E47'; ctx.fillRect(sx + 1, base - stem, 1, stem)
-    ctx.fillStyle = '#5DBB63'
-    if (th.sprout >= 2) { ctx.fillRect(sx - 1, base - stem + 1, 2, 1); ctx.fillRect(sx + 2, base - stem, 2, 1) }
-    if (th.sprout >= 3) { ctx.fillRect(sx, base - stem - 1, 2, 1); ctx.fillRect(sx - 2, base - 2, 3, 1) }
-  }
-}
-
-// ---- recoloring: chrome for the Silver Surfer, black armor for Vader ----
 const MIXES = new Map()
 /** Color a blended toward b by t (0..1), kept once worked out: the same few blends repeat every frame. */
 function mix(a, b, t){
@@ -1131,176 +705,8 @@ function mix(a, b, t){
   }
   return m
 }
-/** His terracotta (and eyes) swapped toward another palette by t; anything that isn't him is left alone. */
+/** His colors swapped toward another palette ({from: to}) by t; anything not in it is left alone. */
 const recolor = (px, pal, t) => px.map(([x, y, c]) => [x, y, pal[c] ? mix(c, pal[c], t) : c])
-
-// ---- Silver Surfer ----
-const CHROME = {[BODY]: '#C3CCD6', [TOP]: '#EEF3F8', [SIDE]: '#8793A1', [EYE]: '#3B4654'}
-/** Chrome all over, with a glint sweeping across him (never his eyes) once he's fully silver. */
-function chromed(px, s, now){
-  const band = Math.floor(now / 40) % 60, shine = s.chrome >= 1
-  return px.map(([x, y, c]) => [x, y, shine && c !== EYE && ((x + y - band) % 60 + 60) % 60 < 3 ? '#FFFFFF' : CHROME[c] ? mix(c, CHROME[c], s.chrome) : c])
-}
-/** Behind him: afterimages and a streaming trail of power cosmic while he rides, and the board under his feet. */
-function surfBehind(s, px, now, pose){
-  const dir = pose.face || 1, by = 36 + (s.bob || 0)
-  if (s.ride) {
-    ctx.fillStyle = '#9FD3FF'
-    for (const [k, a] of [[1, .2], [2, .08]]) { ctx.globalAlpha = a; for (const [x, y] of px) ctx.fillRect(x - dir * 4 * k, y, 1, 1) }
-    for (let i = 0; i < 14; i++) {
-      ctx.globalAlpha = .9 * (1 - i / 14); ctx.fillStyle = i % 3 ? '#BFE6FF' : '#FFFFFF'
-      ctx.fillRect(dir > 0 ? 7 - i : 36 + i, by + (i * 7 + Math.floor(now / 60)) % 3, 1, 1)
-    }
-    ctx.globalAlpha = 1
-  }
-  if (s.board === 'up') { // kicked up into his hand, standing on its tail beside him
-    const bx = dir > 0 ? 38 : 4
-    ctx.fillStyle = '#7D8896'; ctx.fillRect(bx, 14, 2, 26)
-    ctx.fillStyle = '#E8EEF5'; ctx.fillRect(bx, 14, 1, 26)
-  } else if (s.board) { // long and slim, its nose turned up at the front, a glint running along it
-    const x0 = 8, x1 = 36
-    ctx.globalAlpha = s.board
-    ctx.fillStyle = '#E8EEF5'; ctx.fillRect(x0, by, x1 - x0, 1)
-    ctx.fillStyle = '#B8C2CE'; ctx.fillRect(x0 - 1, by + 1, x1 - x0 + 2, 1)
-    ctx.fillStyle = '#7D8896'; ctx.fillRect(x0 + 1, by + 2, x1 - x0 - 2, 1)
-    ctx.fillStyle = '#E8EEF5'
-    for (const k of [1, 2]) ctx.fillRect(dir > 0 ? x1 - 1 + k : x0 - k, by - k + 1, 1, 1)
-    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x0 + Math.floor(now / 50) % (x1 - x0 - 2), by, 2, 1)
-    ctx.globalAlpha = 1
-  }
-}
-/** In front: power cosmic twinkling all around him. */
-function surfFront(s, now){
-  if (!s.cosmic) return
-  for (let i = 0; i < 10; i++) {
-    const seed = Math.floor(now / 130) + i * 17
-    ctx.globalAlpha = s.cosmic * (.4 + .15 * (seed % 5)); ctx.fillStyle = i % 2 ? '#FFFFFF' : '#9FD3FF'
-    ctx.fillRect((seed * 37) % GW, (seed * 23 + i * 11) % (GH - 4), 1, 1)
-  }
-  ctx.globalAlpha = 1
-}
-
-// ---- Darth Vader ----
-const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
-/** Behind him: the cape, sweeping to the floor behind his arms. */
-function vaderBehind(v, now){
-  if (!v.cape) return
-  ctx.globalAlpha = v.cape
-  for (const x0 of [OX + 1, OX + 31]) for (let x = x0; x < x0 + 4; x++) {
-    ctx.fillStyle = x === x0 || x === x0 + 3 ? '#2A2A31' : '#0D0D10'
-    ctx.fillRect(x, OY + 2, 1, GH - OY - 2 - Math.round(1 + Math.sin(x * 1.3 + now / 260)))
-  }
-  ctx.globalAlpha = 1
-}
-/** In front: the helmet coming down, the mask and chest panel, and the red saber (hilt in his right hand). */
-function vaderFront(v, px, now, pose){
-  const dy = pose.dy || 0, sq = pose.squash || 0, eyeY = OY + 4 + dy + sq, top = Math.min(...px.map(([, y]) => y)) + (v.helmet || 0)
-  const row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0, 1) }
-  if (v.helmet != null) { // a black dome, flaring out at the sides
-    row(top - 5, OX + 11, OX + 25, '#111114'); row(top - 4, OX + 8, OX + 28, '#111114'); row(top - 3, OX + 6, OX + 30, '#111114')
-    for (let y = top - 2; y < top + 4; y++) row(y, OX + 5, OX + 31, '#111114')
-    for (let y = top + 4; y < top + 9; y++) { const f = (y - top - 4) >> 1; row(y, OX + 3 + f, OX + 7, '#111114'); row(y, OX + 29, OX + 33 - f, '#111114') }
-    ctx.fillStyle = '#4B4E5C'; for (const [x, y] of [[OX + 12, top - 4], [OX + 11, top - 3], [OX + 10, top - 2], [OX + 10, top - 1]]) ctx.fillRect(x, y, 1, 1) // shine
-  }
-  if (v.mask) {
-    for (const [x0, x1, outer] of [[OX + 9, OX + 13, -1], [OX + 23, OX + 27, 1]]) { // angled lenses, cut away at the outer bottom corner
-      row(eyeY + 1, x0, x1, '#2B0E10'); row(eyeY + 2, x0, x1, '#2B0E10'); row(eyeY + 3, x0 + (outer < 0), x1 - (outer > 0), '#2B0E10')
-      ctx.fillStyle = '#7A3232'; ctx.fillRect(x0 + 1, eyeY + 1, 1, 1)
-    }
-    ctx.fillStyle = '#5D606B'; ctx.fillRect(OX + 17, eyeY, 2, 5) // the ridge between them
-    for (const [y, w] of [[eyeY + 5, 2], [eyeY + 6, 3], [eyeY + 7, 4]]) for (let x = OX + 18 - w; x < OX + 18 + w; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille
-    row(eyeY + 9, OX + 13, OX + 23, '#4F525C'); row(eyeY + 10, OX + 13, OX + 23, '#4F525C') // chest panel, its lights blinking
-    const on = Math.floor(now / 350)
-    ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(OX + 14 + i * 2, eyeY + 9 + (i % 2), 1, 1) } })
-  }
-  if (v.blade != null) {
-    const hx = OX + 32, hy = OY + 7 + dy + Math.ceil(sq / 2), a = (v.angle ?? 80) * Math.PI / 180, L = 22 * v.blade
-    thickLine(hx - Math.cos(a) * 4, hy + Math.sin(a) * 4, hx, hy, 2, '#B9BDC6') // the hilt
-    if (v.trail) for (const d of [30, 20, 10]) { const b = a - d * Math.PI / 180; thickLine(hx, hy, hx + Math.cos(b) * 22, hy - Math.sin(b) * 22, 2, '#FF2B2B', .4 - d / 100) }
-    if (L > 0) {
-      thickLine(hx, hy, hx + Math.cos(a) * L, hy - Math.sin(a) * L, 3, '#FF2B2B', .8 * (.85 + .15 * Math.sin(now / 23))) // humming
-      thickLine(hx, hy, hx + Math.cos(a) * L, hy - Math.sin(a) * L, 1, '#FFF2F2')
-    }
-  }
-}
-
-// ---- Destiny: his Ghost reviving him, and an Exotic engram ----
-const DEAD = {[BODY]: '#8A8A8A', [TOP]: '#A8A8A8', [SIDE]: '#6C6C6C'}, HURT = {[BODY]: '#FF6A6A', [TOP]: '#FF9C9C', [SIDE]: '#C83C3C'}
-const LIT = {[BODY]: '#FFFFFF', [TOP]: '#FFFFFF', [SIDE]: '#FFFFFF'}
-const GHOST_SHELL = ['..X.X..', '.XXXXX.', 'XXGEGXX', '.XEWEX.', 'XXGEGXX', '.XXXXX.', '..X.X..'] // spiky shell, glowing eye
-/** His Ghost bobbing over his shoulder, the scan beam it sweeps over him, and the Light rising off him as he comes back. */
-function ghostFront(g, now){
-  const gx = 28, gy = 6 + Math.floor(now / 260) % 2
-  if (g.scan) { // widening down toward him, a bright line running through it
-    const sweep = gy + 8 + Math.floor(now / 45) % (GH - gy - 10)
-    for (let y = gy + 7; y < GH - 1; y++) {
-      const half = Math.round((y - gy - 6) * .45), cx = Math.round(gx + 3 - (y - gy - 7) * .36)
-      ctx.globalAlpha = y === sweep ? .75 : .26; ctx.fillStyle = '#7FE6FF'
-      ctx.fillRect(cx - half, y, half * 2 + 1, 1)
-    }
-  }
-  if (g.shell) {
-    ctx.globalAlpha = g.shell
-    const C = {X: '#E4E7EE', G: '#3A3F4D', E: '#6FE3FF', W: '#FFFFFF'}
-    GHOST_SHELL.forEach((r, j) => [...r].forEach((ch, i) => { if (C[ch]) { ctx.fillStyle = ch === 'X' && (i + j) % 3 === 0 ? '#A6ACBA' : C[ch]; ctx.fillRect(gx + i, gy + j, 1, 1) } }))
-  }
-  ctx.globalAlpha = 1
-  if (g.vanish) { ctx.fillStyle = '#BFF4FF'; for (const [a, b] of [[0, 0], [6, 1], [3, -2], [1, 5], [5, 6]]) ctx.fillRect(gx + a, gy + b, 1, 1) } // transmats out
-  if (g.light) for (let i = 0; i < 8; i++) {
-    const age = (now / 6 + i * 37) % 30
-    ctx.globalAlpha = g.light * (1 - age / 30); ctx.fillStyle = i % 2 ? '#FFFFFF' : '#FFE9A8'
-    ctx.fillRect(6 + (i * 5) % 32, GH - 6 - Math.round(age), 1, 1)
-  }
-  ctx.globalAlpha = 1
-}
-const ENGRAM = ['..###..', '.#####.', '###*###', '#######', '###*###', '.#####.', '..###..']
-/** The engram dropping in on its loot beam and decrypting in his hands; then the Exotic, a Gjallarhorn hoisted overhead. */
-function lootFront(l, now, pose){
-  const dy = pose.dy || 0, ex = 19, ey = l.engram
-  if (l.beam) { ctx.fillStyle = '#FFD84D'; ctx.globalAlpha = .22; ctx.fillRect(ex + 1, 0, 5, Math.max(0, ey + 4)); ctx.globalAlpha = .45; ctx.fillRect(ex + 3, 0, 1, Math.max(0, ey + 4)) }
-  if (ey != null) {
-    const spin = Math.floor(now / 120) % 2, white = l.decrypt % 2 === 1
-    ctx.globalAlpha = .45; ctx.fillStyle = '#FFF3B0'
-    ENGRAM.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== '.') for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (ENGRAM[j + b]?.[i + a] !== '#' && ENGRAM[j + b]?.[i + a] !== '*') ctx.fillRect(ex + i + a, ey + j + b, 1, 1) })) // its glow
-    ctx.globalAlpha = 1
-    ENGRAM.forEach((r, j) => [...r].forEach((ch, i) => {
-      if (ch === '.') return
-      ctx.fillStyle = white ? '#FFFFFF' : ch === '*' ? '#FFFFFF' : (i < 3) !== !!spin ? '#FFE27A' : j > 3 ? '#B87A10' : '#E8B33A' // facets catch the light as it turns
-      ctx.fillRect(ex + i, ey + j, 1, 1)
-    }))
-    if (l.decrypt) { // rings rolling out as it decrypts
-      const r = 3 + l.decrypt * 2
-      ctx.globalAlpha = .7 - l.decrypt * .12; ctx.fillStyle = '#FFE27A'
-      for (let k = -r; k <= r; k++) { const w = r - Math.abs(k); ctx.fillRect(ex + 3 + w, ey + 3 + k, 1, 1); ctx.fillRect(ex + 3 - w, ey + 3 + k, 1, 1) }
-      ctx.globalAlpha = 1
-    }
-  }
-  if (l.flash) { ctx.globalAlpha = .85; ctx.fillStyle = '#FFFFFF'; for (let k = -7; k <= 7; k++) { const w = 7 - Math.abs(k); ctx.fillRect(22 - w, 12 + k, w * 2 + 1, 1) } ctx.globalAlpha = 1 }
-  if (l.gun) { // held up in both hands, after the real one: thin rear tube, gunmetal body with bronze trim and a red
-    // mark, a fat ribbed barrel at the front, and the carved bronze wolf crouched on top of it
-    const y = 13 + dy, r = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, yy, w, h) }
-    ctx.globalAlpha = l.gun
-    const t = y - 8 // it's huge, even on a Guardian: nearly as wide as he is, its top well above his head
-    r(0, t + 8, 14, 2, '#C9CDD3'); r(0, t + 9, 14, 1, '#7E838C') // rear rod
-    r(10, t + 10, 2, 4, '#2E2F34'); r(21, t + 12, 2, 2, '#2E2F34') // grips
-    r(14, t + 6, 24, 6, '#D9DCE0'); r(14, t + 6, 24, 1, '#F2F3F5'); r(14, t + 11, 24, 1, '#9A9EA6') // silver body
-    r(17, t + 6, 1, 6, '#C9A24A'); r(25, t + 6, 1, 6, '#C9A24A') // gold bands
-    r(28, t + 8, 10, 3, '#3A3B40'); for (let x = 28; x < 38; x += 2) r(x, t + 8, 1, 3, '#C9A24A') // gold-ribbed barrel
-    r(38, t + 4, 6, 9, '#E6E8EB'); r(39, t + 5, 4, 7, '#1E1F23'); r(38, t + 4, 1, 9, '#C9A24A') // big round muzzle
-    // the gold wolf crouched over the front half, head down at the muzzle, ears back
-    r(19, t + 2, 19, 4, '#D4A94E'); r(19, t + 5, 19, 1, '#9C7430'); r(27, t + 1, 9, 1, '#D4A94E')
-    for (let x = 20; x < 36; x += 2) r(x, t + 2, 1, 1, '#E8C56E') // fur
-    r(38, t + 2, 4, 2, '#D4A94E'); r(41, t + 3, 1, 1, '#4A2E10') // snout, nose
-    r(29, t, 1, 1, '#E8C56E'); r(32, t, 1, 1, '#E8C56E'); r(35, t + 3, 1, 1, '#4A2E10') // ears, eye
-    ctx.globalAlpha = 1
-  }
-  if (l.sparkle) for (let i = 0; i < 9; i++) { // Exotic gold twinkling round him
-    const seed = Math.floor(now / 110) + i * 13
-    ctx.globalAlpha = .5 + .1 * (seed % 5); ctx.fillStyle = i % 3 ? '#FFD84D' : '#FFFFFF'
-    ctx.fillRect((seed * 29) % GW, (seed * 17 + i * 7) % (GH - 6), 1, 1)
-  }
-  ctx.globalAlpha = 1
-}
 
 // The same poses come round constantly, and building one is ~1,000 little arrays: each is made once and kept.
 const FIGURES = new Map(), RINGS = new WeakMap()
@@ -1332,18 +738,18 @@ function draw(now, dt){
   // Opening his box: he glances at it and flicks the near arm. Closing: a blink.
   if (!still && o >= 0 && o < 150) { const arms = [...(pose.arms || ['mid', 'mid'])]; arms[toward > 0 ? 1 : 0] = 'up'; pose = {...pose, eyes: 'side', look: toward, arms} }
   if (!still && c >= 230 && c < 350) pose = {...pose, eyes: 'blink'}
-  const powered = pose.ssj === 'on' || pose.ssj === 'release'
-  const eye = powered ? '#2EE6C8' : pet.id === 'needs' && Math.floor(t / 530) % 2 === 0 ? C.peri : EYE // teal eyes when powered up
+  const eye = pet.id === 'needs' && Math.floor(t / 530) % 2 === 0 ? C.peri : EYE
   let px = figureOf(pose, eye)
-  if (pose.ssj === 'charge') { const jx = Math.floor(now / 45) % 2 ? 1 : -1; px = px.map(([x, y, c]) => [x + jx, y, c]) } // trembling with effort
-  if (pose.surf?.chrome && !still) px = chromed(px, pose.surf, now)
-  if (pose.vader?.dark && !still) px = recolor(px, ARMOR, pose.vader.dark)
-  if (pose.ghost?.dead && !still) px = recolor(px, DEAD, pose.ghost.dead)
-  if (pose.ghost?.hit && !still) px = recolor(px, HURT, 1)
-  if ((pose.ghost?.flash || pose.loot?.flash) && !still) px = recolor(px, LIT, 1)
+  // Tricks draw themselves: a trick's hooks run while the pose carries its name ({guts: {...}} runs the guts trick's hooks).
+  const tricks = still ? [] : Object.values(TRICKS).filter(k => pose[k.name] != null)
+  const run = (k, hook, extra) => {
+    try { return k[hook]?.({ctx, d: pose[k.name], px, pose, now, ...extra}) }
+    catch (e) { console.error(`hookpet: trick "${k.name}" failed in ${hook}(), so it's switched off`, e); delete TRICKS[k.name] }
+  }
+  for (const k of tricks) px = run(k, 'pixels') || px
   if (pose.phase && !still) { const k = Math.floor(now / 70); px = recolor(px.filter(([x, y]) => (x + y + k) % 3), PHASE, .45) } // phasing through the screen's edge: dithered, violet
-  // The rumble: the whole screen shakes as he finishes charging and transforms.
-  const rumble = !still && (pose.ssj === 'flash' || (pose.ssj === 'charge' && now - ai.seqStart > 650) || pose.guts?.shake || pose.th?.shake || pose.vader?.shake)
+  // The rumble: the whole screen shakes, for a trick's big moment.
+  const rumble = !still && pose.shake
   desk.style.transform = rumble ? `translate(${(Math.random() * 4 - 2).toFixed(1)}px,${(Math.random() * 3 - 1.5).toFixed(1)}px)` : ''
 
   if (still) ctx.clearRect(0, 0, GW, GH)
@@ -1362,7 +768,7 @@ function draw(now, dt){
   }
   const dark = !document.body.classList.contains('light')
   // Power-up aura: a white outline around his whole silhouette, for moments that should stand out.
-  const auraOn = !still && !pose.ssj && (pose.aura || (pet.id === 'done' && t < 2600) || pet.id === 'needs')
+  const auraOn = !still && (pose.aura || (pet.id === 'done' && t < 2600) || pet.id === 'needs')
   if (auraOn) {
     let ring = RINGS.get(px)
     if (!ring) {
@@ -1376,21 +782,9 @@ function draw(now, dt){
     for (const k of ring) { const [x, y] = k.split(',').map(Number); ctx.fillRect(shift(x, y), y, 1, 1) }
     ctx.globalAlpha = 1
   }
-  const hair = pose.ssj && !still ? ssjHair(pose, px) : null
-  if (hair) ssjBehind(pose, px, hair, now)
-  if (pose.guts && !still) gutsBehind(pose.guts, px, now)
-  if (pose.th && !still) thBehind(pose.th, px)
-  if (pose.surf && !still) surfBehind(pose.surf, px, now, pose)
-  if (pose.vader && !still) vaderBehind(pose.vader, now)
+  for (const k of tricks) run(k, 'behind')
   for (const [x, y, col] of px) { ctx.fillStyle = col; ctx.fillRect(shift(x, y), y, 1, 1) }
-  if (hair) ssjFront(pose, px, hair, now)
-  if (pose.guts && !still) gutsFront(pose.guts, px, now, pose)
-  if (pose.th && !still) thFront(pose.th, px, now, pose)
-  if (pose.surf && !still) surfFront(pose.surf, now)
-  if (pose.vader && !still) vaderFront(pose.vader, px, now, pose)
-  if (pose.ghost && !still) ghostFront(pose.ghost, now)
-  if (pose.loot && !still) lootFront(pose.loot, now, pose)
-  if (pose.pgun && !still) pgunFront(pose.pgun, pose)
+  for (const k of tricks) run(k, 'front')
   for (const gl of glyphs(pet.id, t, m, still)) {
     ctx.globalAlpha = gl.a ?? 1
     ctx.fillStyle = gl.c
@@ -1438,12 +832,8 @@ function draw(now, dt){
   canvas.style.clipPath = pet.clip ? portalClip() : sink && pose.clip ? `inset(0 0 ${sink}px 0)` : ''
   // A soft shadow so he reads over any window, light or dark; a faint phosphor glow on dark.
   const lift = 'drop-shadow(0 3px 4px rgba(0,0,0,.35))', glow = dark ? ' drop-shadow(0 0 2px rgba(215,119,87,.45))' : ''
-  const ssjGlow = still ? '' : powered || pose.ssj === 'flash' ? ' drop-shadow(0 0 4px rgba(255,205,70,.95)) drop-shadow(0 0 12px rgba(255,170,40,.6))'
-    : pose.ssj === 'charge' ? ' drop-shadow(0 0 3px rgba(255,255,255,.6))' : ''
-  const rage = !still && pose.guts?.aura ? ' drop-shadow(0 0 4px rgba(170,20,35,.85))' : ''
-  const saber = !still && pose.vader?.blade > 0 ? ' drop-shadow(0 0 3px rgba(255,40,40,.8))' : '', cosmic = !still && pose.surf?.ride ? ' drop-shadow(0 0 3px rgba(150,210,255,.7))' : ''
-  const exotic = !still && pose.loot?.gun ? ' drop-shadow(0 0 4px rgba(255,200,60,.85))' : '', ghostLight = !still && pose.ghost?.scan ? ' drop-shadow(0 0 3px rgba(120,230,255,.6))' : ''
-  canvas.style.filter = lift + glow + (auraOn ? ' drop-shadow(0 0 3px rgba(255,255,255,.75))' : '') + ssjGlow + rage + saber + cosmic + exotic + ghostLight + (pet.id === 'blocked' && t > 600 ? ' brightness(.6)' : '')
+  const trickGlow = tricks.map(k => { try { return k.glow?.(pose[k.name], pose) || '' } catch { return '' } }).join('') // a saber's red, a power-up's gold
+  canvas.style.filter = lift + glow + (auraOn ? ' drop-shadow(0 0 3px rgba(255,255,255,.75))' : '') + trickGlow + (pet.id === 'blocked' && t > 600 ? ' brightness(.6)' : '')
   canvas.style.opacity = pet.id === 'nap' ? .6 : 1
 }
 
@@ -1571,9 +961,28 @@ const leave = () => { clearTimeout(pet.hoverTimer); pet.hoverTimer = setTimeout(
 if (!NATIVE) for (const target of [button, box]) { target.addEventListener('mouseenter', enter); target.addEventListener('mouseleave', leave) }
 addEventListener('keydown', e => { if (e.key === 'Escape') { pet.pinned = false; pet.hover = false } })
 
-// ---- the app's side: it owns the mouse (clicks pass through everywhere but him) and knows your real windows ----
+function usePreset(name){
+  preset = PRESETS[name] || PRESETS.normal
+  for (const b of document.querySelectorAll('[data-preset]')) b.setAttribute('aria-pressed', String(PRESETS[b.dataset.preset] === preset))
+}
+function useFanPack(on){
+  fanPack = !!on
+  document.getElementById('fan').setAttribute('aria-pressed', String(fanPack))
+  trickButtons()
+}
+
+// ---- window.hookpet: tricks register through it (see TRICKS.md), and the app talks to the page through it ----
 const inBox = (x, y) => { const b = box.getBoundingClientRect(); return box.style.visibility === 'visible' && x >= b.left && x <= b.right && y >= b.top && y <= b.bottom }
-window.clawd = {
+const hookpet = window.hookpet = {
+  // For tricks: register, the art grid and his colors, drawing helpers, and what trips need to move him about.
+  trick: registerTrick,
+  GW, GH, OX, OY, LIFT, PH, BODY, TOP, SIDE, EYE, C,
+  thickLine, paint, mix, recolor, rand, pick,
+  feet, putFeet, surfaces, scr, desk,
+  clip(c){ pet.clip = c }, // hides part of him until he lands: {x, dir} or {y} (see portalClip)
+  get size(){ return size }, get width(){ return desk.clientWidth },
+  perform,
+  // From the app: the menu bar and Dock, your windows, the mouse, Claude Code's state, and your settings.
   screen(top, bottom){ scr.top = top; scr.bottom = bottom; place(pet.x, pet.y) },
   windows(tops){
     const on = surfaceUnder(pet.x, pet.y), was = on?.id != null && nativeTops.find(t => t.id === on.id)
@@ -1596,8 +1005,7 @@ window.clawd = {
     else perform('hop')
   },
   claude(state){ cc.sessions = state.sessions || {}; syncClaude(performance.now()) },
-  settings(s){ sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1) },
-  perform(name){ perform(name) },
+  settings(s){ sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); useFanPack(s.fan) },
 }
 let hitKey = ''
 /** Tells the app where he and his open box are, so only those spots catch the mouse. */
@@ -1607,7 +1015,7 @@ function reportHits(){
   if (box.style.visibility === 'visible') { const b = box.getBoundingClientRect(); rects.push([b.x, b.y, b.width, b.height]) }
   if (ai.mode === 'hang') rects.length = 0 // hanging over a title bar, he lets every click through to the toolbar behind him
   const r = rects.map(a => a.map(Math.round)), key = r.join(';')
-  if (key !== hitKey) { hitKey = key; webkit.messageHandlers.clawd.postMessage(r) }
+  if (key !== hitKey) { hitKey = key; webkit.messageHandlers.hookpet.postMessage(r) }
 }
 
 // ---- controls ----
@@ -1624,13 +1032,17 @@ for (const id of Object.keys(MOODS)) {
   states.append(b)
 }
 const sep2 = document.createElement('span'); sep2.className = 'sep'; states.append(sep2)
-// The rare moves, on demand. (On his own he picks one now and then while idle.)
-for (const [name, label] of [['powerUp', 'Power up ⚡'], ['guts', 'Guts ⚔'], ['thorfinn', 'Thorfinn 🗡'], ['dance', 'Dance ♪'], ['surfer', 'Silver Surfer 🏄'], ['vader', 'Darth Vader 🔴'], ['ghost', 'Ghost revive ✦'], ['engram', 'Exotic engram ◆'], ['portal', 'Portal gun ◐'], ['sneak', 'Sneak through ↔'], ['climb', 'Climb the side ↕']]) {
-  const b = document.createElement('button')
-  b.className = 't'; b.textContent = label; b.dataset.rare = name
-  b.onclick = () => { demo.on = false; demoBtn.setAttribute('aria-pressed', 'false'); setState('idle'); perform(name) }
-  states.append(b)
+/** A button for each trick with a label, on demand. (On his own he picks one now and then while idle.) */
+function trickButtons(){
+  for (const b of states.querySelectorAll('[data-trick]')) b.remove()
+  for (const t of Object.values(TRICKS)) if (t.label && usable(t)) {
+    const b = document.createElement('button')
+    b.className = 't'; b.textContent = t.label; b.dataset.trick = t.name
+    b.onclick = () => { demo.on = false; demoBtn.setAttribute('aria-pressed', 'false'); setState('idle'); perform(t.name) }
+    states.append(b)
+  }
 }
+for (const b of document.querySelectorAll('[data-preset]')) b.onclick = () => usePreset(b.dataset.preset)
 function entrance(){
   ctx.clearRect(0, 0, GW, GH)
   if (!isStill()) { petEl.classList.remove('on'); void petEl.offsetWidth; petEl.classList.add('on') }
@@ -1639,18 +1051,25 @@ document.getElementById('replay').onclick = entrance
 const toggle = (id, fn) => { const b = document.getElementById(id); b.onclick = () => b.setAttribute('aria-pressed', String(fn())) }
 toggle('reduced', () => document.body.classList.toggle('reduced'))
 toggle('sound', () => { sound.on = !sound.on; if (sound.on) chirp(); return sound.on }) // plays the chirp once so you know what it sounds like
+toggle('fan', () => (useFanPack(!fanPack), fanPack))
 toggle('light', () => { const on = document.body.classList.toggle('light'); readTheme(); return on })
 addEventListener('resize', () => place(pet.x, pet.y))
 
-// ---- go ----
-readTheme()
-if (NATIVE) { // his box follows your system's light or dark appearance
-  const q = matchMedia('(prefers-color-scheme: light)'), sync = () => { document.body.classList.toggle('light', q.matches); readTheme() }
-  q.addEventListener('change', sync); sync()
-}
-place(desk.clientWidth - PW - 40, surfaces()[0].y) // on the floor, bottom-right, like Codex's pet
-let last = performance.now()
-demo.at = last; setState('idle', last); entrance()
+// ---- go: once the trick files after this script have registered ----
+let last = 0
+addEventListener('DOMContentLoaded', () => {
+  readTheme()
+  if (NATIVE) { // his box follows your system's light or dark appearance
+    const q = matchMedia('(prefers-color-scheme: light)'), sync = () => { document.body.classList.toggle('light', q.matches); readTheme() }
+    q.addEventListener('change', sync); sync()
+    webkit.messageHandlers.hookpet.postMessage({tricks: Object.values(TRICKS).filter(t => t.label).map(t => ({name: t.name, label: t.label, fan: t.pack === 'fan'}))}) // for the Tricks menu
+  }
+  usePreset('normal'); trickButtons()
+  place(desk.clientWidth - PW - 40, surfaces()[0].y) // on the floor, bottom-right, like Codex's pet
+  last = performance.now()
+  demo.at = last; setState('idle', last); entrance()
+  requestAnimationFrame(frame)
+})
 function frame(now){
   // In the app, on a timer: 30 fps while he moves or his box animates, 15 while he stands (his slowest-changing poses
   // last 120 ms and more), so a 120 Hz screen doesn't wake him 120 times a second all day.
@@ -1660,6 +1079,21 @@ function frame(now){
   runDemo(now); behave(now, dt); draw(now, dt); updateBox(now)
   if (NATIVE) { reportHits(); if (now - cc.checkedAt > 1000) syncClaude(now) } // re-checks once a second, for the time-based changes
 }
-requestAnimationFrame(frame)
 </script>
+<!-- Tricks: each file registers one or more with hookpet.trick(). Add yours here (see TRICKS.md). -->
+<script src="tricks/core/everyday.js"></script>
+<script src="tricks/core/dance.js"></script>
+<script src="tricks/core/juggle.js"></script>
+<script src="tricks/core/cartwheel.js"></script>
+<script src="tricks/core/sneak.js"></script>
+<script src="tricks/core/climb.js"></script>
+<!-- The fan pack: fan art of other people's characters. Loaded always, played only while the Fan pack setting is on. -->
+<script src="tricks/fan/powerup.js"></script>
+<script src="tricks/fan/guts.js"></script>
+<script src="tricks/fan/thorfinn.js"></script>
+<script src="tricks/fan/surfer.js"></script>
+<script src="tricks/fan/vader.js"></script>
+<script src="tricks/fan/ghost.js"></script>
+<script src="tricks/fan/engram.js"></script>
+<script src="tricks/fan/portal.js"></script>
 </body></html>
