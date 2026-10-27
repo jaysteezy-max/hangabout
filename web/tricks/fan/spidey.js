@@ -37,8 +37,8 @@
     const s = hookpet.size, a = rot * Math.PI / 180, hx = dir * 14 * 3 * s, hy = -23 * 3 * s
     return [x + hx * Math.cos(a) - hy * Math.sin(a), y + hx * Math.sin(a) + hy * Math.cos(a)]
   }
-  /** Longest web he can swing on from (x, y) without his feet hitting the floor at the bottom of the arc. */
-  const reach = (f, x, y) => Math.min(Math.hypot(x - f.x, f.y - y), surfaces()[0].y + PH - 24 * hookpet.size - y)
+  /** Longest web he'll swing on from (x, y): his feet clear the floor at the bottom of the arc, and a few swings fit across the screen. */
+  const reach = (f, x, y) => Math.min(Math.hypot(x - f.x, f.y - y), surfaces()[0].y + PH - 24 * hookpet.size - y, .3 * hookpet.width)
   const room = swings => swings * 150 * hookpet.size // screen to leave ahead for swings still to come
 
   /**
@@ -56,8 +56,8 @@
     const fits = ([x, y]) => {
       const dx = Math.abs(x - f.x), len = Math.hypot(x - f.x, f.y - y), R = reach(f, x, y), at = air ? len : R
       const out = x + (x - f.x) * .85 + Math.sign(x - f.x) * ahead // about as far as he gets before he lets go, and the room beyond
-      return y > scr.top + 2 && f.y - y > 140 * s && R > 130 * s && dx > .35 * at && dx < .85 * at && out > 66 && out < W - 66 // swings out 20–58°, and lets go on screen
-        && (!dir || Math.sign(x - f.x) === dir) && (!air || R > .6 * len) // reeled in no more than that: it speeds him up
+      return y >= scr.top - 2 && f.y - y > 140 * s && R > 130 * s && dx > .35 * at && dx < .85 * at && out > 66 && out < W - 66 // swings out 20–58°, and lets go on screen
+        && (!dir || Math.sign(x - f.x) === dir) && (!air || R > .5 * len) // reeled in no more than that: it speeds him up
     }
     let ok = spots.filter(fits)
     if (!ok.length) ok = [...Array(24)].map(() => [rand(80, W - 80), scr.top]).filter(fits) // no window will do: the top of the screen
@@ -79,14 +79,15 @@
           if (!a) return true // nothing above him to swing from
           const [ax, ay] = a, dx = f.x - ax, R = reach(f, ax, ay)
           // th: his angle out from straight under the web (positive: his feet to its right). y1: where the web takes his
-          // weight, up off the ledge if a full-length swing would hit the floor. let: how far up the far side he lets go.
+          // weight, zipping him up off the ledge if it's longer than he'll swing on. let: how far up the far side he lets go.
           m = {ax, ay, R, r: R, dir: Math.sign(-dx), x0: f.x, y0: f.y, y1: ay + Math.sqrt(R * R - dx * dx), th: Math.asin(dx / R), rot: 0, phase: 'aim', left: swings - 1}
+          m.upT = 200 + (m.y0 - m.y1) * .4 // a longer zip takes longer
           m.w = m.dir * .8; m.let = Math.abs(m.th) * rand(.5, .8) // w: a push off as he goes, in radians per second
           shoot(ax, ay)
         }
         if (m.phase === 'aim' && t >= 320) m.phase = 'up'
         if (m.phase === 'up') { // leaning in under the web as it takes his weight
-          const p = Math.min(1, (t - 320) / 200), e = 1 - (1 - p) * (1 - p)
+          const p = Math.min(1, (t - 320) / m.upT), e = 1 - (1 - p) * (1 - p)
           m.rot = -m.th * 180 / Math.PI * e
           putFeet(m.x0, m.y0 + (m.y1 - m.y0) * e, m.rot)
           if (p >= 1) m.phase = 'swing'
