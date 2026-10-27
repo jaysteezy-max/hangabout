@@ -38,7 +38,7 @@ body.light .code .k{color:#a626a4}body.light .code .s{color:#a31515}body.light .
 /* Clawd and his status bubble */
 /* .pet is his footprint at normal size; --s grows or shrinks what's drawn around his feet (bottom center). */
 .pet{--s:1;position:absolute;width:132px;height:120px;z-index:10}
-.pet button{position:absolute;left:calc(66px - 66px * var(--s));top:calc(120px - 120px * var(--s));width:calc(132px * var(--s));height:calc(120px * var(--s));padding:0;border:0;background:none;cursor:grab}
+.pet button{position:absolute;left:calc(66px - 66px * var(--s));top:calc(120px - 120px * var(--s));width:calc(132px * var(--s));height:calc(120px * var(--s));padding:0;border:0;background:none;cursor:grab;overflow:visible}
 .pet button:active{cursor:grabbing}
 .pet button:focus-visible{outline:2px solid var(--clay);outline-offset:3px;border-radius:6px}
 .pet canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
@@ -110,7 +110,7 @@ nothing to commit, working tree clean
 ~/my-app $ ▍</div>
   </div>
   <div class="pet" id="pet">
-    <button aria-label="Clawd. Show recent activity"><canvas width="44" height="40"></canvas></button>
+    <button aria-label="Clawd. Show recent activity"><canvas height="40"></canvas></button>
     <svg class="elbow" viewBox="0 0 24 18"><path d="M1 1 V15 H24" stroke-dasharray="40" stroke-dashoffset="40"/></svg>
     <div class="box" role="status"><div class="hist" hidden></div><div class="l1"></div><div class="l2"></div></div>
   </div>
@@ -125,6 +125,7 @@ const NATIVE = !!window.webkit?.messageHandlers?.hookpet
 if (NATIVE) { document.body.classList.add('native'); for (const e of document.querySelectorAll('.win, .menubar')) e.remove() }
 const GW = 44, GH = 40, OX = 4, OY = 20 // room above his head for big hair and high hops
 const LIFT = OY - 8 // effects around him were laid out for 8 rows of headroom
+const PAD = 12 // spare columns each side of his grid, for the page or terminal he works at
 
 // ---- Clawd's palette: Claude Code clay, dark eyes always ----
 // Flat terracotta. SIDE shows only when he turns: the side of him that faces away.
@@ -140,12 +141,89 @@ const sweep = [[-1, 180], [0, 240], [1, 160], [2, 300]].map(([dx, ms]) => [{arms
 const snap = [{arms: THINK, dx: -1}, 90]
 const THINK_INTRO = [...sweep, snap, ...sweep, snap, [{arms: THINK, eyes: 'blink'}, 120], [{arms: THINK}, 400]]
 const THINK_REST = [[{arms: THINK}, 2600], ...sweep, snap, [{arms: THINK, eyes: 'blink'}, 120]]
-const tap = n => Array.from({length: n}, (_, i) => [{eyes: 'down', arms: i % 2 ? ['mid', 'down'] : ['down', 'mid'], dy: i % 2 ? -1 : 0}, 170]) // bounces as he types
-const EDIT_INTRO = [...tap(10), [{eyes: 'side'}, 500]]
-const EDIT_REST = [[{eyes: 'down'}, 1600], ...tap(4), [{eyes: 'blink'}, 120]]
-const RUN = {arms: ['down', 'down'], eyes: 'side'} // watching the command, tapping a foot
-const RUN_INTRO = [0, 1, 0, 1, 0, 1, 0, 1].map(i => [{...RUN, tapLeg: i ? 3 : -1}, 260])
-const RUN_REST = [[RUN, 1800], [{...RUN, tapLeg: 3}, 260], [RUN, 260], [{...RUN, tapLeg: 3}, 260]]
+// ---- what he works at: a page while Claude edits a file, a little terminal while a command runs ----
+// Each is drawn as if he faces right, standing on his ledge just past his front arm (which ends at OX + 32); facing
+// left, it's mirrored along with him. pose(t, side) is his pose t ms into the state, turned toward side; draw(ctx, t)
+// draws the prop; still is the moment shown when motion is reduced.
+const progress = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)))
+const PAPER = '#F6F1E7', PAPER_EDGE = '#B9B0A0', FOLD = '#DCD2C0', OLD_INK = '#9A9386'
+const PENCIL = {body: '#F2C14E', wood: '#E9C9A0', lead: '#2B2B2B', band: '#B9BDC6', eraser: '#EF8FA0'}
+const LINES = [27, 30, 33, 36], MARGIN = 40 // the rows he writes on, and where each starts
+// [row, from ms, to ms, length, cut]: a line written in green, or (cut) an old one scribbled out in red. Then the page clears.
+const STROKES = [[0, 200, 900, 5], [1, 1050, 1600, 4], [2, 1800, 2400, 5, 1], [3, 2600, 3100, 3]], PAGE_MS = 4800
+/** The pencil's point: along a line while he writes it, lifted and gliding between lines. */
+function pencilTip(t){
+  const pts = STROKES.flatMap(([r, from, to, len]) => [[from, MARGIN, LINES[r]], [to, MARGIN + len - 1, LINES[r]]])
+  if (t <= pts[0][0]) return {x: MARGIN, y: LINES[0] - 2}
+  for (let i = 1; i < pts.length; i++) {
+    const [t0, x0, y0] = pts[i - 1], [t1, x1, y1] = pts[i]
+    if (t > t1) continue
+    const p = (t - t0) / (t1 - t0)
+    return {x: x0 + (x1 - x0) * p, y: i % 2 ? y0 : y0 + (y1 - y0) * p - 2 * Math.sin(p * Math.PI)}
+  }
+  return {x: pts.at(-1)[1], y: pts.at(-1)[2] - 2}
+}
+for (const [r, , to, len] of STROKES) console.assert(pencilTip(to).x === MARGIN + len - 1 && pencilTip(to).y === LINES[r] && to < PAGE_MS - 600, 'each stroke must end at its line\'s last pixel, before the page clears')
+const gripY = tip => Math.max(21, Math.min(33, Math.round(tip.y) - 5)) // his hand stays at his side; only its height follows the line
+const PAGE = {
+  still: 3300,
+  pose(t, side){
+    const tt = t % PAGE_MS
+    return {face: side, eyes: tt % 2600 > 2480 ? 'blink' : 'side', look: side, hand: gripY(pencilTip(tt)) - 2 - OY}
+  },
+  draw(ctx, t){
+    const tt = t % PAGE_MS, a = 1 - progress(tt, PAGE_MS - 600, PAGE_MS - 200)
+    const dot = (x, y, c, alpha = 1) => { ctx.globalAlpha = alpha; ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
+    for (let j = 0; j < 17; j++) for (let i = 0; i < 10; i++) { // the status bubble's file icon: top-right corner folded over
+      const f = i - 7
+      if (j < 3 && f > j) continue
+      dot(38 + i, 23 + j, j < 3 && f >= 0 ? (f === j ? PAPER_EDGE : FOLD) : i === 0 || j === 0 || i === 9 || j === 16 ? PAPER_EDGE : PAPER)
+    }
+    for (const [r, from, to, len, cut] of STROKES) {
+      const y = LINES[r], n = Math.round(progress(tt, from, to) * len)
+      for (let i = 0; i < len; i++) {
+        if (!cut) { if (i < n) dot(MARGIN + i, y, C.ok, a); continue }
+        dot(MARGIN + i, y, i < n ? C.err : OLD_INK, a)
+        if (i < n) dot(MARGIN + i, y + (i % 2 ? -1 : 1), C.err, a)
+      }
+    }
+    ctx.globalAlpha = 1
+    // The pencil, from his hand to its point; his body hides the end behind his hand.
+    const tip = pencilTip(tt), gx = OX + 31, gy = gripY(tip), len = Math.hypot(tip.x - gx, tip.y - gy) || 1, ux = (tip.x - gx) / len, uy = (tip.y - gy) / len
+    const seg = (d0, d1, w, c) => thickLine(ctx, gx + ux * d0, gy + uy * d0, gx + ux * d1, gy + uy * d1, w, c)
+    seg(-3, -2, 2, PENCIL.eraser); seg(-1, -1, 2, PENCIL.band); seg(0, len - 3, 2, PENCIL.body); seg(len - 2, len - 1, 1, PENCIL.wood)
+    dot(Math.round(tip.x), Math.round(tip.y), PENCIL.lead)
+  },
+}
+const TERM = {frame: '#5A5853', screen: '#0F0F0E', text: '#B9B7B0'}, ENTER = 1300 // when the output starts, just after he presses Enter
+/** How many lines the terminal has shown by t: the command, then output in bursts of five, 200 ms apart. */
+function linesBy(t){
+  if (t < ENTER) return 1
+  const n = t - ENTER, burst = Math.floor(n / 1500)
+  return 5 * burst + Math.min(4, Math.floor(n % 1500 / 200)) + 1
+}
+const TERMINAL = {
+  still: 3600,
+  pose(t, side){
+    const at = {face: side, eyes: 'side', look: side}
+    if (t < 1000) return {...at, arms: ['mid', 'up']} // winds up
+    if (t < 1150) return {...at, dy: -2, hand: 6, reach: 2} // jabs Enter
+    if (t < ENTER) return {...at, squash: 1}
+    const w = (t - ENTER) % 7000 // then watches, hand on his chin, leaning in now and then
+    return {...at, arms: ['up', 'mid'], eyes: w % 3000 > 2880 ? 'blink' : 'side', ox: w > 3900 && w < 4600 ? side : 0}
+  },
+  draw(ctx, t){
+    const box = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h) }
+    box(40, 20, 15, 15, TERM.frame); box(39, 21, 17, 13, TERM.frame); box(40, 21, 15, 13, TERM.screen) // rounded corners
+    box(46, 35, 3, 3, TERM.frame); box(43, 38, 9, 2, TERM.frame) // its stand
+    const shown = linesBy(t)
+    for (let k = Math.max(0, shown - 6), y = 22; k < shown; k++, y += 2) {
+      if (k) { box(41, y, 3 + (k * 7 + 3) % 10, 1, k % 6 === 5 ? C.ok : TERM.text); continue }
+      box(41, y, 1, 1, BODY); box(43, y, 6, 1, TERM.text) // the prompt and the command
+      if (t < 1000 && Math.floor(t / 400) % 2) box(50, y, 2, 1, TERM.text) // the cursor, until he presses Enter
+    }
+  },
+}
 const WAVE = [[{eyes: 'up', arms: ['mid', 'high']}, 200], [{eyes: 'up', arms: ['mid', 'up']}, 200]]
 const ASK = {eyes: 'up', arms: ['mid', 'high']}
 // Hand up, with a little hop for attention every couple of seconds until you answer.
@@ -163,8 +241,8 @@ const NAP = [[{eyes: 'blink'}, 2400], [{eyes: 'blink', squash: 1}, 2400]]
 const MOODS = {
   idle: {intro: IDLE, loops: Infinity, rest: IDLE},
   thinking: {intro: THINK_INTRO, loops: 3, rest: THINK_REST},
-  editing: {intro: EDIT_INTRO, loops: 3, rest: EDIT_REST},
-  running: {intro: RUN_INTRO, loops: 3, rest: RUN_REST},
+  editing: {prop: PAGE},
+  running: {prop: TERMINAL},
   needs: {intro: WAVE, loops: 3, rest: NEEDS_REST},
   done: {intro: HAPPY, loops: 1, rest: IDLE},
   blocked: {intro: SLUMP, loops: 1, rest: SLUMP},
@@ -227,9 +305,9 @@ function turned(pose, e, rect, px){
   rect(OX + 9, top, 20 + wide, bottom - top, BODY) // the front, angled toward you
   leg(OX + 13, 1, BODY); leg(OX + 24, 3, BODY) // near pair
   const arms = pose.arms || ['mid', 'mid'], front = arms.find(a => a !== 'mid') || 'mid'
-  const fy = OY + ARM[front] + dy + (front === 'mid' || front === 'down' ? Math.ceil(sq / 2) : 0)
-  rect(OX + 29 + wide - (swing < 0 ? 1 : 0), fy, swing > 0 ? 5 : 4, 4, BODY) // reaching forward, or tucked back
-  if (front === 'high') rect(OX + 31 + wide, fy - 2, 2, 2, BODY)
+  const fy = pose.hand != null ? OY + pose.hand + dy : OY + ARM[front] + dy + (front === 'mid' || front === 'down' ? Math.ceil(sq / 2) : 0)
+  rect(OX + 29 + wide - (swing < 0 ? 1 : 0), fy, (swing > 0 ? 5 : 4) + (pose.reach || 0), 4, BODY) // reaching forward, or tucked back
+  if (front === 'high' && pose.hand == null) rect(OX + 31 + wide, fy - 2, 2, 2, BODY)
   // Eyes crowd toward the way he faces; the far one, on the side turning away, is foreshortened to 1 px.
   drawEyes(rect, px, [OX + 13, OX + 24], OY + 4 + dy + sq, pose, e, [2, 1], pose.face)
 }
@@ -268,8 +346,7 @@ function figure(pose, eyeColor){
 
 // ---- glyphs ----
 const GLYPH = {
-  '+': ['.#.', '###', '.#.'], '-': ['###'], '?': ['##.', '..#', '.#.', '...', '.#.'],
-  '$': ['.#.', '###', '#..', '###', '..#', '###', '.#.'], check: ['....#', '...#.', '#.#..', '.#...'],
+  '?': ['##.', '..#', '.#.', '...', '.#.'], check: ['....#', '...#.', '#.#..', '.#...'],
   z: ['####', '..#.', '.#..', '####'], dust: ['##'],
   '!': ['#', '#', '#', '.', '#'], note: ['.##', '.#.', '.#.', '##.', '##.'],
 }
@@ -283,22 +360,9 @@ const STAR = [
 ]
 const STAR_SEQ = [0, 1, 2, 3, 4, 5, 4, 3, 2, 1], SPIN_TXT = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢']
 function glyphs(id, t, m, still){
-  const settled = introDone(m, t)
   switch (id) {
     case 'thinking': { const f = still ? 4 : STAR_SEQ[Math.floor(t / 120) % 10]; return [{bits: STAR[f], x: 37, y: 0, c: f % 2 ? TOP : BODY}] }
-    case 'editing': {
-      if (still) return []
-      const period = settled ? 2400 : 450, life = 1100, base = settled ? sum(m.intro) * m.loops : 0, tt = t - base, k = Math.floor(tt / period), out = []
-      for (let i = Math.max(0, k - 2); i <= k; i++) {
-        const age = tt - i * period
-        if (age < 0 || age > life) continue
-        const plus = i % 2 === 0
-        out.push({g: plus ? '+' : '-', x: plus ? 0 : 40, y: (plus ? 16 : 18) - Math.floor(age / 120), c: plus ? C.ok : C.err, a: age > life - 300 ? .5 : 1})
-      }
-      return out
-    }
-    case 'running': return [{g: '$', x: 39, y: 0, c: BODY}]
-    case 'needs': return [{g: '?', x: 39, y: settled || still ? 0 : Math.floor(t / 400) % 2, c: C.peri}]
+    case 'needs': return [{g: '?', x: 39, y: introDone(m, t) || still ? 0 : Math.floor(t / 400) % 2, c: C.peri}]
     case 'done': return t < 6000 ? [{g: 'check', x: 38, y: 1, c: C.ok}] : []
     case 'nap': {
       if (still) return [{g: 'z', x: 38, y: 2, c: C.dim}]
@@ -354,10 +418,14 @@ function render(segLines, budget, typing){
 
 // ---- the pet ----
 const desk = document.getElementById('desk'), petEl = document.getElementById('pet'), canvas = petEl.querySelector('canvas'), ctx = canvas.getContext('2d')
+// His canvas runs PAD columns past his footprint each side; the footprint, and so where he stands, stays GW wide.
+canvas.width = GW + 2 * PAD; canvas.style.width = (GW + 2 * PAD) / GW * 100 + '%'; canvas.style.marginLeft = -PAD / GW * 100 + '%'
+ctx.translate(PAD, 0) // so x 0 is still the left of his grid
+const WHOLE = [-PAD, 0, GW + 2 * PAD, GH] // the whole canvas, in art pixels
 const path = petEl.querySelector('path'), box = petEl.querySelector('.box'), hist = petEl.querySelector('.hist'), l1 = petEl.querySelector('.l1'), l2 = petEl.querySelector('.l2')
 const live = document.getElementById('live')
 const pet = {id: 'idle', since: 0, open: false, openedAt: 0, closedAt: -1e9, pinned: false, hover: false, hoverTimer: 0, x: 0, y: 0, drag: null, swing: 0,
-  face: 0, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9}
+  face: 0, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0}
 
 // An optional soft two-note chirp when he needs you. Off until you turn it on.
 const sound = {on: false, ctx: null}
@@ -531,13 +599,13 @@ function tripPose(now){
 const PHASE = {[BODY]: '#B1B9F9', [TOP]: '#D4D9FF', [SIDE]: '#8C95E8'}
 /** The part of him that's hidden by a clip (a trick sets it): past x on the side he's heading ({x, dir}: into a portal), or above y ({y}: coming out of one, feet first). */
 function portalClip(){
-  const s = size, left = pet.x + 66 - 66 * s, top = pet.y + PH - 120 * s, c = pet.clip
+  const s = size, pad = PAD * PW / GW * s, left = pet.x + 66 - 66 * s - pad, top = pet.y + PH - 120 * s, c = pet.clip // left: his canvas's left edge
   if (c.y != null) {
     const cut = c.y - top
     if (cut <= 0) { pet.clip = null; return '' } // all the way out
     return `inset(${cut}px 0 0 0)`
   }
-  return c.dir > 0 ? `inset(0 ${Math.max(0, left + 132 * s - c.x)}px 0 0)` : `inset(0 0 0 ${Math.max(0, c.x - left)}px)`
+  return c.dir > 0 ? `inset(0 ${Math.max(0, left + 132 * s + 2 * pad - c.x)}px 0 0)` : `inset(0 0 0 ${Math.max(0, c.x - left)}px)`
 }
 function behave(now, dt){
   if (pet.drag?.moved) { if (ai.mode === 'script') { ai.rot = 0; pet.clip = null; ai.trick?.end?.() } ai.mode = 'dangle'; return }
@@ -673,6 +741,11 @@ function place(x, y){
   if (mid > W * .58) petEl.classList.add('flip')
   else if (mid < W * .42) petEl.classList.remove('flip')
 }
+/** Where his page or terminal goes: away from his bubble, so it never covers it, unless that side runs off the screen. */
+function propSide(){
+  const away = petEl.classList.contains('flip') ? 1 : -1, mid = pet.x + 66, reach = (GW / 2 + PAD) * PW / GW * size
+  return (away > 0 ? mid + reach <= desk.clientWidth : mid - reach >= 0) ? away : -away
+}
 function setState(id, now = performance.now()){
   const before = pet.id, lasted = now - pet.since
   pet.id = id; pet.since = now
@@ -720,9 +793,12 @@ function figureOf(pose, eye){
 }
 function draw(now, dt){
   const still = isStill(), t = Math.max(0, now - pet.since), m = MOODS[pet.id]
-  let pose = still ? m.rest[0][0] : poseAt(m, t)
+  const life = still ? null : lifePose(now) // walking, fidgeting, jumping, falling or dangling beats the mood's own pose
+  const work = !life && m.prop // he works at his page or terminal only while he's standing there for it
+  if (!work) pet.propSide = 0
+  else if (!pet.propSide) pet.propSide = propSide()
+  let pose = life || (work ? work.pose(still ? work.still : t, pet.propSide) : still ? m.rest[0][0] : poseAt(m, t))
   if (!still) {
-    pose = lifePose(now) || pose // walking, fidgeting, jumping, falling or dangling beats the mood's own pose
     // Breathing: a slow rise and fall whenever he's standing still.
     if ((ai.mode === 'stand' || ai.mode === 'pause') && !pose.dy && !pose.squash && !pose.stretch && !pose.tuck && now % 2400 > 1800) pose = {...pose, squash: 1}
     const look = eyeLife(now)
@@ -754,11 +830,11 @@ function draw(now, dt){
   const rumble = !still && pose.shake
   desk.style.transform = rumble ? `translate(${(Math.random() * 4 - 2).toFixed(1)}px,${(Math.random() * 3 - 1.5).toFixed(1)}px)` : ''
 
-  if (still) ctx.clearRect(0, 0, GW, GH)
+  if (still) ctx.clearRect(...WHOLE)
   else {
     ctx.globalCompositeOperation = 'destination-out'
     ctx.fillStyle = `rgba(0,0,0,${1 - Math.pow(.5, dt / 50)})` // phosphor decay
-    ctx.fillRect(0, 0, GW, GH)
+    ctx.fillRect(...WHOLE)
     ctx.globalCompositeOperation = 'source-over'
   }
   const burst = !still && pet.id === 'blocked' && (t < 160 || (t > 300 && t < 380))
@@ -785,6 +861,12 @@ function draw(now, dt){
     ctx.globalAlpha = 1
   }
   for (const k of tricks) run(k, 'behind')
+  if (work) { // behind him, so his body hides the pencil's far end; facing left, mirrored like he is
+    ctx.save()
+    if (pet.propSide < 0) { ctx.translate(GW, 0); ctx.scale(-1, 1) }
+    work.draw(ctx, still ? work.still : t)
+    ctx.restore()
+  }
   for (const [x, y, col] of px) { ctx.fillStyle = col; ctx.fillRect(shift(x, y), y, 1, 1) }
   for (const k of tricks) run(k, 'front')
   for (const gl of glyphs(pet.id, t, m, still)) {
@@ -886,7 +968,9 @@ function syncClaude(now){
   const nowS = Date.now() / 1000, s = cc.shown = chooseSession(nowS)
   cc.checkedAt = now
   const id = !s ? 'idle' : s.mood === 'idle' && nowS - s.ts > 1800 ? 'nap' : s.mood // half an hour without Claude and he dozes off
-  if (id !== pet.id) setState(id, now)
+  // An edit or a quick command is over in a blink; he keeps at it long enough for you to see what he was doing.
+  const held = id === 'thinking' && MOODS[pet.id].prop && now - pet.since < 2500
+  if (id !== pet.id && !held) setState(id, now)
   const step = s?.stepAt || 0
   if (step !== cc.stepSeen) { if (cc.stepSeen) pet.stepAt = now; cc.stepSeen = step } // a new plan step opens the box for a moment
 }
@@ -1046,7 +1130,7 @@ function trickButtons(){
 }
 for (const b of document.querySelectorAll('[data-preset]')) b.onclick = () => usePreset(b.dataset.preset)
 function entrance(){
-  ctx.clearRect(0, 0, GW, GH)
+  ctx.clearRect(...WHOLE)
   if (!isStill()) { petEl.classList.remove('on'); void petEl.offsetWidth; petEl.classList.add('on') }
 }
 document.getElementById('replay').onclick = entrance

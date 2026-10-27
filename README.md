@@ -91,8 +91,8 @@ the command line tools) and starts the pet. Use the plugin **or** `install.sh`, 
 | Claude Code is… | Clawd | Status bubble |
 | --- | --- | --- |
 | Thinking | Hand on chin, a spinning star | Opens for each new plan step |
-| Editing | Typing, + and − floating up | Lines added and removed |
-| Running a command | Tapping a foot | The command and how long it's run |
+| Editing | Writing on a page: new lines in green, an old one scratched out in red | Lines added and removed |
+| Running a command | Presses Enter on a little terminal, then watches the output scroll | The command and how long it's run |
 | Waiting on you | Hand up, hopping, glowing | Stays open until you answer |
 | Done | A happy hop and confetti | Opens briefly: files and commands this turn |
 | Stopped on an error | Arms crossed, glitching | Stays open with the reason |

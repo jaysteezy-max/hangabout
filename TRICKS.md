@@ -66,6 +66,8 @@ comes next. Keep tricks short, a few seconds at most; there's always next time.
 | `look`, `lookX`, `lookY`, `dx` | -1, 0, 1 | Where his eyes point. With open eyes and none of these set, they follow your cursor. |
 | `face` | -1, 1 | Turned three-quarters to his left or right. A half-turned frame is added for you when this changes. |
 | `swing` | -1, 1 | When turned: arms swing back or forward. |
+| `hand` | art pixels | When turned: how far down his body his front hand sits, measured like the `arms` levels (`'up'` is 4, `'mid'` 8). Overrides `arms` for that hand. |
+| `reach` | art pixels | When turned: his front arm sticks out this much further (a jab). |
 | `tilt` | degrees | Rotates him about his feet; past 20° he turns about his middle instead (for flips). |
 | `ox` | art pixels | Slides him sideways within his own canvas (a quick dash). |
 | `sink`, `clip` | art pixels, 1 | Sinks him below the ledge he stands on; with `clip: 1` the sunk part is hidden. |
@@ -110,7 +112,7 @@ Draw hooks run each frame while the pose has a key named after your trick. Put y
 
 | Argument | What it is |
 | --- | --- |
-| `ctx` | The 44 × 40 canvas's 2D context. Draw in art pixels with `fillRect(x, y, w, h)`. |
+| `ctx` | His canvas's 2D context: the 44 × 40 grid, plus 12 spare columns each side (x −12 to 55) for things beside him. Draw in art pixels with `fillRect(x, y, w, h)`. |
 | `d` | The value under your trick's name in this frame's pose. |
 | `px` | His pixels this frame: `[[x, y, color], ...]`, after any `pixels` hooks. Handy for outlines, auras and afterimages. |
 | `pose` | The whole pose, including what the pet added (eyes following the cursor, blinking). |
