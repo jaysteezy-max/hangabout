@@ -1,35 +1,70 @@
+<div align="center">
+
 # hookpet
 
-A desktop pet for macOS that shows what Claude Code is doing.
+**A desktop pet for macOS that shows what Claude Code is doing.**
 
-Clawd, Claude Code's pixel mascot, lives on top of your windows. He walks along the Dock and the top edges of your
-windows, rides a window when you drag it, hangs from a maximized one, climbs the sides of the screen and phases through
-its edges. A small text box beside him says what Claude is up to (thinking, editing a file, running a command, waiting
-on you, done), fed by [Claude Code hooks](https://code.claude.com/docs/en/hooks). When nobody needs him he fidgets,
-naps and now and then does a trick.
+![macOS](https://img.shields.io/badge/macOS-native-111111?style=flat-square&logo=apple)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-hooks%20%2B%20plugin-D77757?style=flat-square)
+![Network](https://img.shields.io/badge/network-none-2C7A39?style=flat-square)
+[![License: MIT](https://img.shields.io/badge/license-MIT-5769F7?style=flat-square)](LICENSE)
+
+[Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hookpet/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
+
+<img src="assets/hero.gif" width="820" alt="Clawd standing on a terminal window. His box beside him reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he types, 'Bash(npm test) Running…' while he taps a foot, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
+
+<sub>Clawd on a window ledge, following one Claude Code turn: thinking, editing, running a command, waiting on you, done.</sub>
+
+</div>
 
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude, Claude Code and Clawd
 > are Anthropic's. The optional fan pack is fan art of other people's characters (see [Fan pack](#fan-pack)).
 
+- **Knows what Claude is doing.** A small box beside him says it in Claude Code's own words: the plan step, the file
+  being edited, the command running, the question waiting on you. It opens by itself only when it matters.
+- **Lives on your real windows.** He walks along the Dock and the tops of your windows, rides a window you drag, hangs
+  from a maximized one, climbs the sides of the screen and phases through its edges.
+- **Read-only and local.** The hook can't approve, block or change anything Claude does, and nothing leaves your Mac.
+- **Native and light.** A small Swift app that builds on your Mac in seconds. The hook takes about 5 ms per event.
+- **Easy to teach new tricks.** Each trick is one JavaScript file, and you can try it in a browser before installing.
+
 ## Install
 
-You need a Mac and [Claude Code](https://code.claude.com). hookpet is built from source on your Mac with Apple's free
-command line tools; the installer offers to install them if they're missing.
+**You need:** a Mac (tested on macOS 27; it should run on macOS 12.3 or later), [Claude Code](https://code.claude.com),
+and Apple's free command line tools, which the installer offers to install if they're missing.
 
 ```bash
 git clone https://github.com/jaysteezy-max/hookpet.git && cd hookpet && ./install.sh
 ```
 
-The installer:
+1. The installer builds hookpet into `~/.claude/hookpet` and starts it: Clawd appears at the bottom right of your screen.
+2. It shows the hooks it wants to add to `~/.claude/settings.json` and **asks first**. If you say yes, it backs that
+   file up as `settings.json.hookpet-backup-<time>` and leaves everything else in it as it was.
+3. **Check it works:** start a new Claude Code session and send a prompt. Clawd puts a hand to his chin and his box
+   says what Claude is doing.
 
-1. builds the app and its hook into `~/.claude/hookpet` and starts the pet;
-2. shows you the hooks it wants to add to `~/.claude/settings.json` and **asks first**. If you say yes, it backs that
-   file up (`settings.json.hookpet-backup-<time>`) and adds one command to ten events, leaving everything else as it was.
+Run `./install.sh` again any time to update.
 
-Run `./install.sh` again any time to update. `./install.sh --add-hooks` adds the hooks without asking, for when you've
-already decided. The hooks work in Claude Code sessions started after they're added.
+<details>
+<summary>Exactly what changes in settings.json</summary>
 
-### Or as a Claude Code plugin
+One command is added to ten [hook events](https://code.claude.com/docs/en/hooks): `SessionStart`,
+`UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`, `Notification`, `Stop`,
+`StopFailure` and `SessionEnd`. Each looks like this:
+
+```json
+"SessionStart": [
+  { "hooks": [{ "type": "command", "command": "/Users/you/.claude/hookpet/hookpet-hook", "timeout": 10 }] }
+]
+```
+
+Hooks you already have stay where they are. `./install.sh --add-hooks` adds them without asking (for when you've
+already decided), and `./uninstall.sh` takes exactly these back out.
+
+</details>
+
+<details>
+<summary>Or install it as a Claude Code plugin</summary>
 
 ```text
 /plugin marketplace add jaysteezy-max/hookpet
@@ -38,11 +73,9 @@ already decided. The hooks work in Claude Code sessions started after they're ad
 
 The plugin brings its own hooks, so hookpet never edits your settings (Claude Code itself records that the plugin is
 on). The first session you start afterwards builds hookpet into the plugin's data folder (a few seconds; it also needs
-the command line tools) and starts the pet.
+the command line tools) and starts the pet. Use the plugin **or** `install.sh`, not both, or you'll get two pets.
 
-Use the plugin **or** `install.sh`, not both: with both you get two pets. If the pet never shows up with the plugin, your
-Claude Code may be set to skip plugin hooks (an organization's `allowManagedHooksOnly` policy, or a host app's own plugin
-security layer). Use `install.sh` instead.
+</details>
 
 ## Using him
 
@@ -54,8 +87,6 @@ security layer). Use `install.sh` instead.
 | Double-click | Hops |
 | Click a window | Notices, with a little "!" |
 | Right-click | Tricks, Behavior, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Quit |
-
-What the box shows:
 
 | Claude Code is… | Clawd | The box |
 | --- | --- | --- |
@@ -70,7 +101,7 @@ What the box shows:
 With several Claude Code sessions open he follows the one that needs you most: waiting on you, then stuck, then busy,
 then the latest.
 
-## Behavior presets
+### Behavior presets
 
 Right-click → **Behavior** sets how busy he is when Claude doesn't need him. Your choice is saved.
 
@@ -80,16 +111,17 @@ Right-click → **Behavior** sets how busy he is when Claude doesn't need him. Y
 | **Normal** | The default mix of wandering, fidgets, jumps to windows and trips to the screen's edges. |
 | **Erratic** | Barely sits still. Fast trots, lots of jumping and hanging, edge trips and rare tricks far more often. |
 
-Each preset is a few numbers in `web/pet.html` (`PRESETS`): the chances of walking, pausing, doing a trick, jumping or
-going on an edge trip; finer odds within those; how long he pauses; and how fast he walks.
-
 ## Tricks
 
-Core tricks, all original: dance, juggle, cartwheel, sneaking through the screen's edge, climbing its side, plus
-everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around) and two he only does on a window ledge (peek over
-it, sit on it with his legs swinging). Pick any trick from right-click → **Tricks**.
+<img src="assets/tricks.gif" width="600" alt="Clawd on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave.">
 
-Every trick is one file in `web/tricks/`. To write your own, see **[TRICKS.md](TRICKS.md)**.
+Core tricks, all original: dance, juggle, cartwheel, sneaking through the screen's edge and climbing its side, plus
+everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around) and two he only does on a window ledge (peeking
+over it, sitting on it with his legs swinging). Pick any of them from right-click → **Tricks**.
+
+**Make your own.** A trick is one file in `web/tricks/`: some poses with timings, and optionally something to draw. Try it
+in the [browser mockup](https://jaysteezy-max.github.io/hookpet/) before you install it. [TRICKS.md](TRICKS.md) walks
+through it, and in this repo you can ask Claude Code to "make a new trick" (there's a `new-trick` skill for it).
 
 ### Fan pack
 
@@ -97,6 +129,58 @@ Off by default. Turn it on with right-click → **Fan pack**. It adds eight fan-
 a Super Saiyan power-up (Dragon Ball), Guts (Berserk), Thorfinn (Vinland Saga), the Silver Surfer (Marvel), Darth Vader
 (Star Wars), a Ghost revive and an Exotic engram (Destiny) and a portal gun (Portal 2). They're original pixel art made as
 homage, not affiliated with or endorsed by any of those rights holders, and they'll be removed on request.
+
+## FAQ
+
+<details>
+<summary><b>He's on screen but his box only says "waiting for Claude Code".</b></summary>
+
+Hooks only reach Claude Code sessions started after they were added, so start a new session. If that doesn't help, run
+`./install.sh` again: it says whether the hooks are in `~/.claude/settings.json`. While Claude works,
+`~/.claude/hookpet/state.json` should keep changing.
+
+</details>
+
+<details>
+<summary><b>I installed the plugin and nothing happens.</b></summary>
+
+The first session after installing builds hookpet; if that failed, the reason is in `build.log` in the plugin's data
+folder (`~/.claude/plugins/data/hookpet-*/`). Some setups skip plugin hooks altogether: an organization's
+`allowManagedHooksOnly` policy, or a host app's own plugin security layer. In that case use `install.sh` instead.
+
+</details>
+
+<details>
+<summary><b>There are two of him.</b></summary>
+
+You have both the plugin and `install.sh` installed. Keep one: `./uninstall.sh`, or `/plugin uninstall hookpet@hookpet`.
+
+</details>
+
+<details>
+<summary><b>Does it slow Claude Code down?</b></summary>
+
+No. The hook is a small native program that takes about 5 ms per event, prints nothing and always exits 0, so it can't
+block or change anything Claude does.
+
+</details>
+
+<details>
+<summary><b>Can he live on my other display?</b></summary>
+
+Not yet: he lives on your main display (the one with the menu bar).
+
+</details>
+
+<details>
+<summary><b>How is this different from Clawd on Desk?</b></summary>
+
+[Clawd on Desk](https://github.com/rullerzhou-afk/clawd-on-desk) is a bigger, cross-platform app (Windows, macOS,
+Linux) that follows many coding agents and can approve permission requests for you. hookpet is deliberately small: a
+native macOS app just for Claude Code that only watches (it never approves or blocks anything), uses no network, roams
+across your actual windows, and is made to be extended one trick file at a time. Both are unofficial fan projects.
+
+</details>
 
 ## Uninstall
 
@@ -116,8 +200,7 @@ Everything stays on your Mac. hookpet makes no network requests: no telemetry, n
 - **The hook** (`hookpet-hook`) reads each event Claude Code sends it and writes a small `state.json` next to itself:
   per session, the mood, the current tool call as Claude Code prints it (for example `Update(page.mts)` or the first
   40 characters of a command), the first line of your prompt (up to 80 characters), the titles of the plan's steps,
-  line counts for edits, and the last 8 tool calls. A session is dropped when it ends, or after 24 hours. The hook prints nothing and
-  always exits 0, so it can't block or change anything Claude does.
+  line counts for edits, and the last 8 tool calls. A session is dropped when it ends, or after 24 hours.
 - **The app** reads that file, the positions of your windows (to walk on them: sizes and positions only, which needs no
   screen recording permission), and where your mouse is (so his eyes can follow it).
 
@@ -144,11 +227,9 @@ Claude Code ── hook events ──▶ hookpet-hook ──▶ state.json ─�
 | `install.sh`, `uninstall.sh`, `build.sh` | Install, remove, build. `scripts/hooks.py` edits `settings.json`. |
 | `.claude-plugin/`, `hooks/` | The Claude Code plugin. |
 
-Limits: macOS only, and he lives on your main display (the one with the menu bar).
-
 ## Contributing
 
-Tricks, fixes and new ideas are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). To try changes, open `web/pet.html` in
+Tricks, fixes and ideas are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). To try changes, open `web/pet.html` in
 a browser (or run `python3 -m http.server -d web` and open <http://localhost:8000/pet.html>).
 
 ## License
