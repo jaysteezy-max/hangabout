@@ -1,6 +1,7 @@
 // Hippo: a pygmy hippo on all fours, drawn three-quarters on, facing left (facing right is the mirror image). Original art.
 // A skin adds itself to SKINS (see "Skins" in TRICKS.md). Rows of his body down to his belly; his eye and legs are added
-// per pose: M is his muzzle, P his pink cheek, Q his lip and toes, U his belly, K his mouth and nostril, R inside his ears.
+// per pose: M is his muzzle, P his pink cheek, D the line of his jaw, Q his lip and toes, U his belly, K his mouth and
+// nostril, R inside his ears.
 {
   const ROWS = [
     '...BB......BB..........',
@@ -49,13 +50,19 @@
 
   SKINS.hippo = {
     name: 'Hippo', colors: COLORS, sideOn: true,
+    /** Where costumes find his face, as drawn facing left: his eye (x, y: the left pixel of its middle row) and the top of his head between his ears. */
+    head(pose){
+      const top = 36 - ROWS.length + (pose.squash || 0) - (pose.stretch || 0) + (pose.dy || 0) // as draw() works it out
+      return {x: 18, y: top + 6, top: top + 3}
+    },
     /** Hippo in a pose: squashed or stretched through the middle, legs stepping or tucked, a front foot up instead of a hand, outlined, then his eye. */
     draw(pose, eyeColor){
       const rows = ROWS.slice(), sq = pose.squash || 0, st = pose.stretch || 0
       rows.splice(16, sq); for (let i = 0; i < st; i++) rows.splice(16, 0, rows[16]) // shorter or taller through the throat, so his face keeps its shape
       const dy = pose.dy || 0, top = 36 - rows.length + dy, px = new Map() // his legs stand on rows 36 to 38
       const put = (x, y, c) => px.set(x + ',' + y, [x, y, c]) // drawn as he faces left; a later pixel covers an earlier one
-      const art = (x0, y0, a, ink) => a.forEach((r, j) => [...r].forEach((ch, i) => { if (ink(ch)) put(x0 + i, y0 + j, ink(ch)) }))
+      const cells = (x0, y0, a, ink) => a.flatMap((r, j) => [...r].flatMap((ch, i) => ink(ch) ? [[x0 + i, y0 + j, ink(ch)]] : []))
+      const art = (...a) => { for (const p of cells(...a)) put(...p) }
       art(10, top, rows, ch => INK[ch])
       const arms = pose.arms || [], paw = pose.hand != null || pose.reach ? 1 : arms.includes('high') ? 3 : arms.includes('up') ? 2 : 0
       LEGS.forEach(([x, c, toe], n) => {
@@ -65,10 +72,9 @@
       })
       for (const [x, y] of [...px.values()]) for (const [ax, ay] of N4) if (!px.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, LINE)
       if (paw) {
-        const [x0, y0, a] = PAW[paw], limb = new Map()
-        a.forEach((r, j) => [...r].forEach((ch, i) => { if (INK[ch]) limb.set(x0 + i + ',' + (y0 + j + dy), [x0 + i, y0 + j + dy, INK[ch]]) }))
-        for (const [x, y] of limb.values()) for (const [ax, ay] of N4) if (!limb.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, LINE)
-        for (const [x, y, c] of limb.values()) put(x, y, c)
+        const [x0, y0, a] = PAW[paw], limb = cells(x0, y0 + dy, a, ch => INK[ch]), mine = new Set(limb.map(([x, y]) => x + ',' + y))
+        for (const [x, y] of limb) for (const [ax, ay] of N4) if (!mine.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, LINE)
+        for (const p of limb) put(...p)
       }
       // His eye, round with a glint: it looks about with the same keys as Clawd's (screen directions), and keeps his expressions.
       const right = pose.face > 0, kind = pose.eyes || 'open'
