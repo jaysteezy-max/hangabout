@@ -301,7 +301,7 @@ function turned(pose, e, rect, px){
   leg(OX + 9, 0, SIDE); leg(OX + 20, 2, SIDE) // far pair
   // Arms swing fore and aft, opposite each other, without ever coming loose from his body.
   rect(OX + 3 - wide - (swing > 0 ? 1 : 0), OY + ARM.mid + dy + Math.ceil(sq / 2), swing > 0 ? 3 : 2, 4, SIDE) // far arm, half hidden
-  rect(OX + 5 - wide, top, 4, bottom - top, SIDE) // the side turned away
+  rect(OX + 5 - wide, top, 4 + wide, bottom - top, SIDE) // the side turned away (wider when he crouches, so it meets the front)
   rect(OX + 9, top, 20 + wide, bottom - top, BODY) // the front, angled toward you
   leg(OX + 13, 1, BODY); leg(OX + 24, 3, BODY) // near pair
   const arms = pose.arms || ['mid', 'mid'], front = arms.find(a => a !== 'mid') || 'mid'
