@@ -60,6 +60,22 @@
   const DANCE = [...[1, -1, 1, -1].flatMap(face => [[{face, squash: 1, tilt: face * 4, notes: 1}, 190], [{face, dy: -2, sword: 'raise', tilt: -face * 4, notes: 1}, 190]]),
     [{squash: 2, notes: 1}, 120], [{dy: -5, tuck: 1, arms: ['high', 'high'], eyes: 'happy', notes: 1}, 200], [{squash: 2, eyes: 'happy', notes: 1}, 140],
     [{sword: 'raise', eyes: 'happy', notes: 1}, 450], [{}, 200]]
+  // Instead of a cartwheel he rolls: crouches, tucks up behind his shield, sword hugged in, somersaults twice and comes up.
+  const ROLL = [[{squash: 2, sword: 'hug'}, 140], [{squash: 2, tuck: 1, sword: 'hug', eyes: 'blink'}, 90],
+    ...[...Array(16)].map((_, i) => [{squash: 2, tuck: 1, sword: 'hug', eyes: 'blink', tilt: (i + 1) * 45, glide: 160}, 70]),
+    [{squash: 2, sword: 'hug'}, 160], [{squash: 1, eyes: 'happy'}, 300], [{}, 200]]
+  // His trip: a toe catches, his sword and shield fly out of his hands, he faceplants and they clatter down on his back;
+  // he pops up, they slide off onto the ground, he checks nobody saw, and they're back in his hands.
+  const STEP = i => [{lift: [[0], [], [1], []][i % 4], dy: i % 2 ? -1 : 0, tilt: 2, glide: 45}, 130]
+  const TRIP = [STEP(0), STEP(1),
+    [{lift: [1], arms: ['high', 'high'], eyes: 'up', sword: 'flung', tilt: 10, glide: 70}, 110],
+    [{tuck: 1, arms: ['high', 'high'], eyes: 'strain', sword: 'flung', tilt: 20, glide: 80}, 90],
+    [{prone: 1, eyes: 'strain', sword: 'flung', glide: 40}, 100], // splat
+    [{prone: 1, eyes: 'blink', sword: 'onBack', glide: 20}, 160], // clang
+    [{prone: 1, eyes: 'blink', sword: 'onBack', glide: 1}, 800],
+    [{dy: -4, stretch: 1, tuck: 1, arms: ['up', 'up'], eyes: 'up', sword: 'dropped'}, 130], [{squash: 2, sword: 'dropped'}, 110],
+    [{eyes: 'side', look: -1, sword: 'dropped'}, 420], [{eyes: 'side', look: 1, sword: 'dropped'}, 420], [{sword: 'poof', eyes: 'happy'}, 220],
+    ...[0, 1, 2, 3].map(STEP), [{}, 200]]
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]], X = 6
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
   const lift = pose => { // how far his upper body moves: hops, crouches and stretches, his helmet never above row 1
@@ -88,14 +104,15 @@
       done: (cheer => ({intro: cheer, loops: 1, rest: BORED}))([[{squash: 2, eyes: 'happy'}, 110],
         [{dy: -3, stretch: 2, arms: ['high', 'high'], tuck: 1, eyes: 'happy'}, 130], [{dy: -5, arms: ['high', 'high'], tuck: 1, eyes: 'happy'}, 170],
         [{dy: -2, stretch: 1, arms: ['high', 'high'], eyes: 'happy'}, 120], [{squash: 2, eyes: 'happy'}, 120], [{sword: 'raise', eyes: 'happy'}, 900]]),
-      blocked: (lean => ({intro: lean, loops: 1, rest: lean}))([[{squash: 1, sword: 'lean', eyes: 'sad'}, 2800], [{squash: 1, sword: 'lean', eyes: 'blink'}, 450]]),
+      blocked: (lean => ({intro: lean, loops: 1, rest: lean}))([[{squash: 1, sword: 'lean', eyes: 'sad', cry: 1}, 2800], [{squash: 1, sword: 'lean', eyes: 'blink'}, 450]]),
     },
-    // His own frames for some tricks: a knight's dance, sword in hand, raising it on the beat; for tricks that need
-    // both hands (juggling, coffee by the fire) he plants his sword in the ground beside him first.
+    // His own frames for some tricks: a knight's dance, sword in hand, raising it on the beat; a roll for the cartwheel;
+    // his own trip. For tricks that need both hands (juggling, coffee by the fire) he drops his sword and shield on the
+    // ground first, and they come back to his hands with a sparkle at the end.
     get tricks(){
       const shared = typeof TRICKS === 'undefined' ? {} : TRICKS // the page's; absent when the skin is read on its own
-      const planted = name => shared[name]?.frames?.map(([p, ms]) => [{...p, sword: 'planted'}, ms])
-      return Object.fromEntries(Object.entries({dance: DANCE, juggle: planted('juggle'), coffee: planted('coffee')}).filter(([, f]) => f))
+      const dropping = name => { const f = shared[name]?.frames; return f && [...f.slice(0, -1).map(([p, ms]) => [{...p, sword: 'dropped'}, ms]), [{sword: 'poof'}, 220], f.at(-1)] }
+      return Object.fromEntries(Object.entries({dance: DANCE, cartwheel: ROLL, trip: TRIP, juggle: dropping('juggle'), coffee: dropping('coffee')}).filter(([, f]) => f))
     },
     /** His march, sword in hand: wide strides, near leg then far, bobbing up between them and leaning into it. */
     walk(now, dir, arms){
@@ -119,11 +136,13 @@
       const arms = pose.arms || [], [near, far] = right ? arms : [arms[1], arms[0]] // arms are [screen left, screen right]
       const up = a => a === 'up' || a === 'high', reaching = pose.hand != null || pose.reach, crossed = near === 'cross' || far === 'cross'
       const hip = 35 + y0, ground = 38 + dy, lifted = pose.lift || []
-      // Who holds his sword: both hands at rest; the near one when the far is busy; the far one when the near is up; raised
-      // when both go up; stuck in the ground beside him when both hands are taken (crossed, or one up and one busy).
-      // A trick can say (sword: 'ready', 'carry', 'raise', 'forward', 'down', 'lean' on it, 'planted' or 'none').
-      const hold = pose.sword ?? (crossed ? 'planted' : up(near) ? (up(far) ? 'raise' : reaching || pose.chin ? 'planted' : 'carry') : 'ready')
-      const farFree = hold === 'ready' && !up(far) && !reaching && !pose.chin
+      // His sword lives in his near hand (his far hand rests on the scabbard), and his shield stands propped at his far side.
+      // Raising his near arm raises the sword; his far hand waves, points or holds things on its own. Crossed arms, or a
+      // trick that needs both hands, put them both down on the ground. A trick can say (sword: 'ready', 'raise', 'forward',
+      // 'down', 'lean' on it, 'planted', 'dropped', 'hug' held tight, 'flung', 'onBack', 'poof' back in his hands, 'none').
+      const hold = pose.sword ?? (crossed ? 'dropped' : up(near) ? 'raise' : 'ready')
+      const holding = hold === 'ready' || hold === 'poof', farFree = holding && !up(far) && !reaching && !pose.chin
+      const shieldUp = holding || ['raise', 'forward', 'down', 'lean', 'planted'].includes(hold)
 
       // His sheathed sword from the grip at (x, y) along (dx, dy): the pommel behind the grip, a small crossguard, then
       // the scabbard, a row fatter than the grip (a diagonal one three wide, to look as thick), with a band near its throat.
@@ -156,20 +175,31 @@
       // beside its upper half; out in front for props (hand, reach).
       const farFist = reaching ? [26 + (pose.reach || 0), clamp(19 + (pose.hand ?? 8), 18, 33) + y0] : far === 'high' ? [27, 15 + y0] : far === 'up' ? [25, 21 + y0] : [20, 30 + y0]
       const nearFist = near === 'high' ? [-3, 14 + y0] : near === 'up' ? [-3, 19 + y0] : [1, 30 + y0]
-      // Where his sword is, and the far fist on it: [sword, far fist] for each way of holding it.
+      // Where his sword is, where his near fist is on it, and his far fist if it's on it too.
       const HELD = {
-        ready: [() => sword(8, 33 + y0, 1, 0, 9, 24), [21, 29 + y0]],
-        carry: [() => sword(16, 33 + y0, 1, 0, 4, 20), [14, 30 + y0]],
-        forward: [() => sword(14, 30 + y0, 1, 0, 9, 22), [11, 27 + y0]],
-        raise: [() => sword(30, 20 + y0, 0, -1, 3, 18 + y0), [28, 18 + y0]], // up through his fist, the pommel below it
-        down: [() => sword(26, 30 + y0, 1, 1, 2, Math.min(7, ground - 30 - y0)), [24, 27 + y0]],
-        lean: [() => sword(4, 33 + y0, 0, 1, 3, ground - 35 - y0), null], // point down close at his side, beside his boot, his near fist on the grip
+        ready: [() => sword(8, 33 + y0, 1, 0, 9, 24), [1, 29 + y0], [21, 29 + y0]],
+        forward: [() => sword(14, 30 + y0, 1, 0, 9, 22), [4, 28 + y0], [11, 27 + y0]], // both hands, thrust ahead
+        raise: [() => sword(-1, 18 + y0, 0, -1, 3, 17 + y0), [-3, 16 + y0]], // straight up through his near fist, the pommel below it
+        down: [() => sword(22, 30 + y0, 1, 1, 2, Math.min(7, ground - 30 - y0)), [19, 27 + y0]], // swung down in front of him
+        lean: [() => sword(4, 33 + y0, 0, 1, 3, ground - 35 - y0), [1, 29 + y0]], // point down close at his side, his fist on the grip
       }
-      const [blade, farGrip] = HELD[hold] || [null, null]
+      HELD.poof = HELD.ready
+      const [blade, nearGrip, farGrip] = HELD[hold] || []
+      const sk = Math.round((pose.sink || 0) / 3) // on the ground means the ledge, even while he sinks below it
+      const gear = { // his sword and shield when they're not in his hands
+        dropped: () => { over(cells(['LLLLLLLLL', 'BBBBBBBBB'], -4, 37 - sk)); over(sword(26, 37 - sk, 1, 0, 3, 10)) }, // lying on the ground beside him
+        flung: () => { over(sword(24, 12, 1, -1, 2, 6)); over(cells(['.DD.', 'DLBD', 'DBBD', '.DD.'], 31, 14)) }, // in the air
+        onBack: () => { over(sword(10, 12, 1, 0, 3, 18)); over(cells(['LLLLLLLL', 'BBBBBBBB'], 14, 9)) }, // clattered down on his back
+        planted: () => over(sword(-2, 22, 0, 1, 2, ground - 23)), // stuck in the ground beside him
+      }
 
-      if (hold === 'planted') over(sword(-2, 22, 0, 1, 2, ground - 23)) // stuck in the ground beside him: it doesn't hop with him
-      over(cells(SHIELD(Math.max(4, ground - 25 - y0)), 27, 23 + y0))
-      const farHolds = farGrip && (hold !== 'ready' || farFree)
+      if (pose.prone) { // face down on the ground: his empty-handed standing self given a quarter turn forward, feet behind him
+        for (const [x, y, c] of this.draw({eyes: pose.eyes, face: 1, sword: 'none'}, eyeColor)) put(42 - y, x - X + 14, c)
+        gear[hold]?.()
+      } else {
+      if (hold === 'planted' || hold === 'dropped') gear[hold]()
+      if (shieldUp) over(cells(SHIELD(Math.max(4, ground - 25 - y0)), 27, 23 + y0))
+      const farHolds = farGrip && farFree
       if (farHolds || pose.chin) shoulder(1) // his far arm comes round in front of him, later
       else arm(1, ...farFist)
       over(cells(TORSO, 9, 28 + y0))
@@ -185,17 +215,23 @@
       over(cells(HELMET, 8, 7 + y0)); for (const [x, y, c] of cells(KNOB, 7, 21 + y0)) put(x, y, c); for (const y of [21, 22, 23]) { put(6, y + y0, LINE); put(9, y + y0, LINE) }
       if (pose.eyes !== 'strain') for (const y of [21, 22, 23]) put(18, y + y0, LINE) // the slit between his eyes (his shocked eyes cover it)
 
-      // His near hand on the sword sits behind it, the sword wrapped in its fingers; raised, it's in front of everything.
-      const nearHolds = hold === 'ready' || hold === 'forward' || hold === 'lean'
-      if (hold === 'ready') over([...limb(0, 1, 29 + y0), ...cells(GRIP, 1, 29 + y0)]) // one bulky limb, shoulder to fist
-      else if (nearHolds) arm(0, ...(hold === 'forward' ? [4, 28 + y0] : [1, 29 + y0]))
+      // His near hand on the sword: level, the sword runs in front of it (wrapped in its fingers); raised or swung, the
+      // fist is over the sword. His far hand rests on the scabbard behind it.
       const farArm = () => over([...limb(1, ...farGrip).slice(0, -cells(PAULDRON[1], 0, 0).length), ...cells(FIST[1], ...farGrip)]) // one piece, arm to fist; its pauldron is already drawn, behind his helmet
-      if (farHolds && hold === 'ready') farArm() // resting on the scabbard: the sword runs on in front of it
+      if (holding) over([...limb(0, ...nearGrip), ...cells(GRIP, ...nearGrip)]) // one bulky limb, shoulder to fist
+      else if (hold === 'forward' || hold === 'lean') arm(0, ...nearGrip)
+      else if (nearGrip) over(limb(0, ...nearGrip))
+      if (farHolds) farArm()
       if (blade) over(blade())
-      if (farHolds && hold !== 'ready') farArm()
-      if (!nearHolds) arm(0, ...nearFist)
+      if (nearGrip && !holding && hold !== 'forward' && hold !== 'lean') fist(0, ...nearGrip)
+      if (hold === 'hug') { // tucked up behind his shield, held in front of him, his sword hugged in behind it
+        over(cells(['.LLLLLLL.', 'LBBBBBBBL', 'LBBBBBBBL', 'LBBBDBBBL', 'LBBBBBBBL', 'LBBBBBBBL', '.LLLLLLL.'], 10, 28 + y0))
+        fist(0, 6, 29 + y0)
+      } else if (!nearGrip) arm(0, ...nearFist)
       if (crossed) over(cells(['.AAAAAAAAAAAAA.', 'aaaaaaaaaaaaaaa', '.aaaaaaaaaaaaa.'], 7, 29 + y0)) // forearms folded across his chest
       if (pose.chin) over([...[29, 28, 27].flatMap(y => [[20, y + y0, INK.a], [21, y + y0, INK.a], [22, y + y0, INK.a]]), ...cells(FIST[1], 18, 25 + y0)]) // fist to his chin, thinking
+      if (hold === 'flung') gear.flung()
+      if (hold === 'poof') for (const [x, y] of [[0, 27], [13, 30], [33, 30], [26, 36]]) for (const [ax, ay] of [[0, 0], ...N4]) put(x + ax, y + ay + y0, ax || ay ? L : '#FFFFFF') // back in his hands, with a sparkle
 
       // His face, in screen directions: his eyes look about with the same keys as Clawd's and keep his expressions.
       const kind = pose.eyes || 'open', ey = 22 + y0
@@ -207,7 +243,8 @@
         for (const [x, y] of a) put(12 + ox + x, ey + oy + y, eyeColor)
         for (const [x, y] of b) put(20 + Math.max(0, ox) + x, ey + oy + y, eyeColor) // never back into the slit
       }
-      if (kind === 'sad') { for (const [x, y] of [[16, 25], [17, 25]]) put(x, y + y0, LINE); put(13, 25 + y0, TEAR); put(13, 26 + y0, TEAR) } // mouth open, a tear
+      if (pose.cry) { for (const [x, y] of [[16, 25], [17, 25]]) put(x, y + y0, LINE); put(13, 25 + y0, TEAR); put(13, 26 + y0, TEAR) } // crying: mouth open, a tear
+      }
 
       const out = [...m.values()].map(([x, y, c]) => [right ? x + X : GW - 1 - x - X, y, c])
       return pose.ox ? out.map(([x, y, c]) => [x + pose.ox, y, c]) : out
