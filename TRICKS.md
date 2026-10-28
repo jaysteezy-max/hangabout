@@ -33,17 +33,35 @@ covers all of it. The core tricks are short and worth reading alongside it: `cor
 | Field | Required | What it does |
 | --- | --- | --- |
 | `name` | yes | Unique id: letters, digits, `-`, `_`. Also the pose key that turns on your draw hooks (see below). |
-| `rarity` | yes | When he picks it on his own: `common` (an everyday fidget), `rare` (now and then), `perched` (only on a window ledge), `edge` (a trip to the screen's edges), `manual` (never on his own; menu and `perform()` only). |
+| `rarity` | yes | When he picks it on his own: `common` (an everyday fidget), `rare` (now and then), `edge` (a trip to the screen's edges), `manual` (never on his own; menu, `perform()` and `on` only). The old `perched` still works and means `common` with `where: 'ledge'`. |
+| `where` | no | `'floor'` (the Dock or the bottom of the screen) or `'ledge'` (the top of a window). He only picks it, or answers with it, while he's there. Leave it out for anywhere. |
+| `on` | no | Things that happen that it answers, each with the chance it does: `{back: 1}` always, `{cleanFinish: .25}` one time in four. See [Moments](#moments). |
 | `frames` | one of these | `[[pose, ms], ...]`, played once on the spot. |
 | `trip` | one of these | `({now, here, x, y, dir}) => steps`, an outing that moves him around. See [Trips](#trips). |
 | `label` | no | Text for the Tricks menu and the mockup's button. Without one the trick still plays on its own, but isn't listed. |
-| `weight` | no | How likely it is next to others of the same rarity. Default 1. |
+| `weight` | no | How likely it is next to others of the same rarity. Default 1. A function returning a number makes it likelier at some times than others, e.g. `() => new Date().getHours() >= 22 ? 3 : 1`. |
 | `pack` | no | `'fan'` for fan art of other people's characters. Fan tricks only play while the Fan pack setting is on. |
 | `pixels`, `behind`, `front`, `glow` | no | Draw hooks. See [Drawing](#drawing). |
 | `end` | no | Called when a trip is cut short (Claude needs him, or you grab him). Tidy up anything you added to the page. |
 
 How often each rarity comes up is set by the behavior presets (`PRESETS` in `web/pet.html`): `chance.move` is how
-often he does a trick at all, and `odds.rare` how many of those are rare.
+often he does a trick at all, and `odds.rare` how many of those are rare. He never picks the same trick twice in a row
+on his own.
+
+### Moments
+
+Picking at random gives him personality; answering what happens gives his moves meaning. A trick with `on` plays when
+one of these moments comes and its chance comes up (if several tricks pass, one of them is picked):
+
+| Moment | When |
+| --- | --- |
+| `back` | You're back at your Mac after five minutes or more without touching it. |
+| `drowsy` | Claude has been idle 27 minutes: three minutes before he dozes off. |
+| `longCommand` | A command Claude ran for more than 4 seconds just finished, and Claude doesn't need you. |
+| `cleanFinish` | Claude finished a turn that edited files or ran commands, with nothing failing. In the mockup, the demo turn. |
+| `doubleClick` | You double-clicked him. |
+
+To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console.
 
 `hangabout.trick()` throws a clear error for a missing name, an unknown rarity, or malformed frames, so check the console.
 

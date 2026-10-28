@@ -185,6 +185,10 @@ case "PostToolUse", "PostToolUseFailure":
     let took = tool == "Bash" ? String(format: "%d:%02d", secs / 60, secs % 60) : ""
     let diff = editTools.contains(tool) && ok ? "+\(state["add"] ?? 0) −\(state["del"] ?? 0)" : ""
     logCall(ok: ok, interrupted ? "interrupted" : ok ? [took, diff].filter { !$0.isEmpty }.joined(separator: " · ") : [took, "failed"].filter { !$0.isEmpty }.joined(separator: " · "))
+    if !ok && !interrupted && !quiet, var turn = state["turn"] as? [String: Any] { // a turn with failures gets no celebration
+        turn["fails"] = (turn["fails"] as? Int ?? 0) + 1
+        state["turn"] = turn
+    }
     // With calls in parallel, another one finishing mustn't hide the permission question still waiting on you.
     if let waitingFor = state["waitingFor"] as? String, waitingFor != call { break }
     if interrupted { set("idle", "interrupted") } else if !quiet { set("thinking") }

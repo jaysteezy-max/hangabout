@@ -9,7 +9,9 @@ Read `TRICKS.md` first: it has the trick object, the pose vocabulary, the art gr
 
 1. **Pin down the idea** in one sentence: what he does, start to finish, in a few seconds. Decide:
    - `name` (camelCase, unused: check `web/tricks/`), a short `label` with a symbol, and a `rarity`
-     (`rare` unless it's an everyday fidget, a ledge-only move, or an edge trip).
+     (`rare` unless it's an everyday fidget or an edge trip).
+   - Where and when: `where` if it only makes sense on the floor or a window ledge, and `on` if it should answer a
+     moment (you coming back, Claude finishing clean...). See TRICKS.md › Moments.
    - Frames only, frames plus drawing, or a trip. Prefer frames only; add a draw hook only for things his body can't
      show (objects, effects); a trip only if he must travel.
    - Original idea → `web/tricks/core/`. Someone else's character → `web/tricks/fan/` with `pack: 'fan'` and the

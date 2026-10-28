@@ -466,23 +466,39 @@ const pick = list => list[Math.floor(Math.random() * list.length)]
 // ---- tricks: every move he makes on his own or on request lives in its own file under tricks/ and registers here ----
 // See TRICKS.md. A trick plays frames on the spot (a fidget) or runs steps that take him places (a trip).
 const TRICKS = {}
-const RARITIES = ['common', 'rare', 'perched', 'edge', 'manual']
+const RARITIES = ['common', 'rare', 'perched', 'edge', 'manual'] // perched: the old name for common with where: 'ledge'
 function registerTrick(t){
   const problem = !/^[A-Za-z][\w-]*$/.test(t?.name || '') ? 'needs a name (letters, digits, - or _)'
     : !RARITIES.includes(t.rarity) ? `needs a rarity: ${RARITIES.join(', ')}`
     : !Array.isArray(t.frames) === !t.trip ? 'needs frames or a trip (one, not both)'
-    : t.frames && !t.frames.every(f => Array.isArray(f) && typeof f[0] === 'object' && f[1] > 0) ? 'frames must be [pose, ms] pairs with ms > 0' : ''
+    : t.frames && !t.frames.every(f => Array.isArray(f) && typeof f[0] === 'object' && f[1] > 0) ? 'frames must be [pose, ms] pairs with ms > 0'
+    : t.where && !['floor', 'ledge'].includes(t.where) ? "where must be 'floor' or 'ledge'" : ''
   if (problem) throw new Error(`hangabout trick "${t?.name}": ${problem}`)
+  if (t.rarity === 'perched') { t.rarity = 'common'; t.where = 'ledge' } // the old way to say ledge only, so tricks written for it still work
   TRICKS[t.name] = t
 }
 let fanPack = false // fan-made tricks of other people's characters: off unless you turn them on
 const usable = t => t.pack !== 'fan' || fanPack
-/** A trick of one of these rarities, picked by weight, or null if there are none. */
+/** Whether he's where a trick can be done: on the floor (the Dock or the screen's bottom) or up on a window's ledge. */
+function fits(t){
+  if (!t.where) return true
+  const here = surfaceUnder(pet.x, pet.y)
+  return !here || (here.y >= surfaces()[0].y - 2 ? 'floor' : 'ledge') === t.where
+}
+const weightOf = t => typeof t.weight === 'function' ? t.weight() : t.weight ?? 1 // a function: likelier at some times than others
+let lastTrick = null
+/** A trick of one of these rarities that fits where he is, picked by weight, never the one he just did; null if there are none. */
 function choose(...rarities){
-  const pool = Object.values(TRICKS).filter(t => rarities.includes(t.rarity) && usable(t))
-  let r = Math.random() * pool.reduce((s, t) => s + (t.weight ?? 1), 0)
-  for (const t of pool) if ((r -= t.weight ?? 1) < 0) return t.name
+  let pool = Object.values(TRICKS).filter(t => rarities.includes(t.rarity) && usable(t) && fits(t))
+  if (pool.length > 1) pool = pool.filter(t => t.name !== lastTrick)
+  let r = Math.random() * pool.reduce((s, t) => s + weightOf(t), 0)
+  for (const t of pool) if ((r -= weightOf(t)) < 0) return t.name
   return null
+}
+/** Something happened that a trick can answer (see `on` in TRICKS.md): each trick listening rolls its chance, and one of those that pass plays. */
+function fire(event){
+  const takers = Object.values(TRICKS).filter(t => t.on?.[event] && usable(t) && fits(t) && Math.random() < t.on[event])
+  if (takers.length) perform(pick(takers).name)
 }
 
 // ---- behavior presets: how busy he is when nobody needs him ----
@@ -644,8 +660,8 @@ function behave(now, dt){
     walkTo(x, Math.abs(x - pet.x) > 400 ? 75 : 40)
   }
   else if (r < c.walk + c.pause) { ai.mode = 'pause'; ai.until = now + rand(900, 2600) * preset.pace }
-  else if (r < c.walk + c.pause + c.move) { // a trick: now and then a rare one; on a window ledge, maybe one only done up there
-    const name = (Math.random() < preset.odds.rare && choose('rare')) || (onFloor ? choose('common') : choose('common', 'perched'))
+  else if (r < c.walk + c.pause + c.move) { // a trick: now and then a rare one; choose keeps to the ones that fit where he is
+    const name = (Math.random() < preset.odds.rare && choose('rare')) || choose('common')
     if (name) startMove(now, name, here)
   }
   else if (r < c.walk + c.pause + c.move + c.jump || !onFloor) jumpFrom(now, here)
@@ -654,6 +670,7 @@ function behave(now, dt){
 /** A trick by name: most are played on the spot; a few are trips that take him places. */
 function startMove(now, name, here){
   const t = ai.trick = TRICKS[name]
+  lastTrick = name
   if (!t.trip) return fidget(now, t.frames)
   const {x, y} = feet()
   trip(now, t.trip({now, here: here || surfaces()[0], x, y, dir: ai.dir || 1}))
@@ -726,7 +743,10 @@ function setState(id, now = performance.now()){
   pet.id = id; pet.since = now
   if (id === 'thinking' && !NATIVE) pet.stepAt = now // the demo's thinking stands for a new plan step
   // After a long command he stretches, unless he's needed right away.
-  if (before === 'running' && lasted > 4000 && id !== 'needs' && id !== 'blocked') perform('stretch')
+  if (before === 'running' && lasted > 4000 && id !== 'needs' && id !== 'blocked') fire('longCommand')
+  // A turn that did real work (edits or commands) with nothing failing: a little celebration, now and then. The demo turn counts.
+  const turn = cc.shown?.turn
+  if (id === 'done' && (NATIVE ? turn && !turn.fails && (turn.files || turn.cmds) : demo.on)) fire('cleanFinish')
   if (id === 'needs' && sound.on) chirp()
   if (ANNOUNCE[id]) live.textContent = ANNOUNCE[id]
   for (const b of document.querySelectorAll('[data-state]')) b.setAttribute('aria-pressed', String(b.dataset.state === id && !demo.on))
@@ -943,6 +963,9 @@ function syncClaude(now){
   const nowS = Date.now() / 1000, s = cc.shown = chooseSession(nowS)
   cc.checkedAt = now
   const id = !s ? 'idle' : s.mood === 'idle' && nowS - s.ts > 1800 ? 'nap' : s.mood // half an hour without Claude and he dozes off
+  const drowsy = s?.mood === 'idle' && nowS - s.ts > 1620 // three minutes before that, he gets sleepy
+  if (drowsy && !cc.drowsy) fire('drowsy')
+  cc.drowsy = drowsy
   // An edit or a quick command is over in a blink; he keeps at it long enough for you to see what he was doing.
   const held = id === 'thinking' && MOODS[pet.id].prop && now - pet.since < 2500
   if (id !== pet.id && !held) setState(id, now)
@@ -1016,7 +1039,7 @@ function drop(){
 button.addEventListener('pointerdown', e => { button.setPointerCapture(e.pointerId); grab(e.clientX, e.clientY) })
 button.addEventListener('pointermove', e => pull(e.clientX, e.clientY))
 button.addEventListener('pointerup', drop)
-button.addEventListener('dblclick', () => perform('hop')) // double-click: a hop
+button.addEventListener('dblclick', () => fire('doubleClick')) // double-click: a hop
 const enter = () => { clearTimeout(pet.hoverTimer); pet.hoverTimer = setTimeout(() => { if (!pet.hover) pet.wiggleAt = performance.now(); pet.hover = true }, 300) } // a happy wiggle as you arrive
 const leave = () => { clearTimeout(pet.hoverTimer); pet.hoverTimer = setTimeout(() => (pet.hover = false), 200) }
 if (!NATIVE) for (const target of [button, box]) { target.addEventListener('mouseenter', enter); target.addEventListener('mouseleave', leave) }
@@ -1054,11 +1077,12 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   cursor(x, y){ eyes.cursor = {x, y} },
   click(x, y){ eyes.attention = {x, y, until: performance.now() + 1800}; pet.pinned = false }, // you clicked something else: he glances at it, and his pinned box closes
   hover(on){ on ? enter() : leave() },
+  back(){ fire('back') }, // you're back at your Mac after five minutes or more away
   pointer(type, x, y){
     if (type === 'down') inBox(x, y) ? (pet.pinned = !pet.pinned) : grab(x, y)
     else if (type === 'move') pull(x, y)
     else if (type === 'up') drop()
-    else perform('hop')
+    else fire('doubleClick')
   },
   claude(state){ cc.sessions = state.sessions || {}; syncClaude(performance.now()) },
   settings(s){ sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); useFanPack(s.fan) },

@@ -1,5 +1,6 @@
 // Everyday moves: the little things he does all day. They have no label, so they stay out of the Tricks menu.
-// The pet plays two of them itself: stretch after a long command, hop on a double-click.
+// Some also answer things that happen (`on`): a stretch after a long command, a hop on a double-click, a wave when you
+// come back to your Mac, a yawn just before he dozes off.
 {
   const WAVE = [[{eyes: 'up', arms: ['mid', 'high']}, 200], [{eyes: 'up', arms: ['mid', 'up']}, 200]]
   const EVERYDAY = {
@@ -11,17 +12,24 @@
     sit: [[{squash: 2, tuck: 1}, 220], [{squash: 2, tuck: 1, eyes: 'blink'}, 1600], [{squash: 2, tuck: 1}, 1100], [{squash: 1}, 220]],
     wave: [...WAVE, ...WAVE, ...WAVE, [{}, 200]],
   }
-  for (const [name, frames] of Object.entries(EVERYDAY)) hangabout.trick({name, rarity: 'common', frames})
+  const night = () => { const h = new Date().getHours(); return h >= 22 || h < 6 }
+  const EXTRA = {
+    stretch: {on: {longCommand: 1}},
+    hop: {on: {doubleClick: 1}},
+    yawn: {on: {drowsy: 1}, weight: () => night() ? 3 : 1}, // late at night he yawns more
+    wave: {on: {back: 1}, weight: .3}, // mostly a hello when you come back, only now and then for no reason
+  }
+  for (const [name, frames] of Object.entries(EVERYDAY)) hangabout.trick({name, rarity: 'common', frames, ...EXTRA[name]})
 
   // On a window: he sinks behind its top edge until only his eyes peek over, looks around, and comes back up.
-  hangabout.trick({name: 'peek', rarity: 'perched', weight: 2, frames: [
+  hangabout.trick({name: 'peek', rarity: 'common', where: 'ledge', weight: 2, frames: [
     [{sink: 12, clip: 1}, 90], [{sink: 24, clip: 1}, 90], [{sink: 36, clip: 1}, 500],
     [{sink: 36, clip: 1, eyes: 'side', look: -1}, 650], [{sink: 36, clip: 1, eyes: 'side', look: 1}, 650],
     [{sink: 36, clip: 1, eyes: 'blink'}, 120], [{sink: 36, clip: 1}, 450],
     [{sink: 24, clip: 1}, 90], [{sink: 12, clip: 1}, 90], [{}, 250],
   ]})
   // On a window: he sits on its edge, legs dangling over the front and swinging.
-  hangabout.trick({name: 'ledgeSit', rarity: 'perched', weight: 2, frames: [
+  hangabout.trick({name: 'ledgeSit', rarity: 'common', where: 'ledge', weight: 2, frames: [
     [{sink: 6}, 120], [{sink: 12, arms: ['down', 'down']}, 300],
     ...[...Array(8)].map((_, i) => [{sink: 12, arms: ['down', 'down'], lift: i % 2 ? [0, 2] : [1, 3], eyes: i === 5 ? 'blink' : 'open'}, 380]),
     [{sink: 6}, 120], [{}, 200],
