@@ -206,15 +206,15 @@ Helpers:
 | `recolor(px, {from: to}, t)` | His pixels with some colors moved toward others by `t` (0 to 1). |
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
-| `head(pose)` | Where his face is in this pose. A side-on skin's is as drawn facing left: `{x, y}` is his eye (Cappy's left pixel, at x 20), `top` the top of his head between his ears, `nose` the front of his snout (x 10 on Cappy and the hippo), and, if his face ends above his feet, `chin` the row below it (the chicken's; Spider-Man's suit is blue all the way across below it). Hatty's is as drawn facing you: `{x, y}` is the top-left pixel of his eye on your left, `top` the top of his head, just under his hat (the 11 rows above it). They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
-| `sideOn` | Whether the skin is drawn side on (Cappy, the hippo, Clay). |
+| `head(pose)` | Where his face is in this pose. A side-on skin's is as drawn facing left: `{x, y}` is his eye (Cappy's left pixel, at x 20), `top` the top of his head between his ears, `nose` the front of his snout (x 10 on Cappy), and, if his face ends above his feet, `chin` the row below it (the chicken's; Spider-Man's suit is blue all the way across below it). Hatty's is as drawn facing you: `{x, y}` is the top-left pixel of his eye on your left, `top` the top of his head, just under his hat (the 11 rows above it). They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
+| `sideOn` | Whether the skin is drawn side on (Cappy, Clay, Pusheen, the chicken). |
 | `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin, or one with a `mirror` like Hatty, faces right (and slid by `ox`), so a costume drawn once on him facing left (Hatty: facing you) turns with him. On Clawd it changes nothing. |
 
 **Costumes on every skin.** Hair, masks and anything else that sits on his face need a spot on each kind of skin. Clawd
 faces you, eyes at x 14 and 28. A side-on skin with a `head` gets his version in profile, so check `hangabout.sideOn &&
 hangabout.head` (not `hangabout.skin`) and draw it facing left inside `facing()`: lay it out on Cappy, then move what
-goes by his eye by `head(pose).x - 20` and what goes by his snout by `head(pose).nose - 10`, so it fits the hippo and any
-skin after him. His rump is his rightmost pixel as drawn facing left, less his outline; his feet are on the row above his
+goes by his eye by `head(pose).x - 20` and what goes by his snout by `head(pose).nose - 10`, so it fits Pusheen, the chicken and any
+skin after them. His rump is his rightmost pixel as drawn facing left, less his outline; his feet are on the row above his
 lowest, which is all outline. Hatty faces you in a top hat: check `hangabout.skin === 'hatty'`, draw his version facing
 you with `head(pose)` inside `facing()`, and put props in his cane hand (x 28 to 31, 7 rows below his eyes). Other skins
 wear Clawd's. Guts, Vader, Thorfinn and the moonwalk in `web/tricks/fan/` show how.
@@ -288,9 +288,9 @@ script, so his colors are known before the tricks load). `web/skins/cappy.js` is
 inside `web/pet.html` and registered there.
 
 ```js
-SKINS.hippo = {
-  name: 'Hippo',               // what the page and the menu call him
-  label: 'Hippo (fan art)',    // optional: the menu's text, when it should say more than the name
+SKINS.owl = {
+  name: 'Owl',                 // what the page and the menu call him
+  label: 'Owl (fan art)',      // optional: the menu's text, when it should say more than the name
   colors: [body, top, side, eye], // become BODY, TOP, SIDE, EYE: tricks recolor exactly these, so use them in your art
   sideOn: true,                // optional: drawn side on, so he keeps facing the way he last went
   pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
