@@ -59,6 +59,25 @@
   /** A nub held out ahead, n long, from row y: thick where it leaves its body, drooping to a round tip, like goo. */
   const goo = (n, y) => [1 - n, y, ['.'.repeat(n - 2) + 'BB', '.'.repeat(n - 4) + 'HBBB', 'B'.repeat(n), 'B'.repeat(n), '.' + 'C'.repeat(n - 1)]]
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+  // Melted (`puddle` 1: a sagging mound, 2: a puddle): its cube gone soft, w wide and h tall, its face peeking out on
+  // the side it faces. Eyes 2x2 here, from their top-left: [x, y].
+  const PUDDLE = {1: [27, 14], 2: [33, 7]}
+  const PEYES = {open: [[0, 0], [1, 0], [0, 1], [1, 1]], blink: [[0, 1], [1, 1]], happy: [[-1, 1], [0, 0], [1, 1]], sad: [[1, 0], [0, 1], [1, 1]]}
+  /** A jelly mound w wide and h tall standing on row 38, outlined, lit on top, its core showing, a glint; then its face. */
+  function puddle(stage, kind, eyeColor){
+    const [w, h] = PUDDLE[stage], cx = X0 + SEAM, px = new Map(), put = (x, y, c) => px.set(x + ',' + y, [x, y, c])
+    const half = j => Math.round(w / 2 * Math.sqrt(1 - (1 - (j + 1) / h) ** 2)) // round on top, widest where it meets the ground
+    for (let j = 0; j < h; j++) for (let x = cx - half(j); x <= cx + half(j); x++) put(x, 38 - h + 1 + j, 'fill')
+    const inside = (x, y) => px.has(x + ',' + y)
+    for (const [x, y] of [...px.values()]) put(x, y, !inside(x, y - 1) ? COLORS[1] : N4.every(([ax, ay]) => inside(x + ax, y + ay)) ? COLORS[2] : COLORS[0])
+    for (const [x, y] of [...px.values()]) for (const [ax, ay] of N4) if (!inside(x + ax, y + ay)) put(x + ax, y + ay, LINE)
+    const top = 39 - h, ex = cx - Math.round(w / 4), ey = top + Math.max(2, Math.round(h / 3))
+    put(cx - 3, top + 1, GLINT); put(cx - 2, top + 1, GLINT); put(cx - 1, top + 1, INK.H) // its glint, on top
+    for (const [x, y] of [[-2, 3], [-1, 3], [5, 3], [6, 3]]) put(ex + x, ey + y, BLUSH)
+    for (const [far, x0] of [[1, ex], [0, ex + 4]]) for (const [x, y] of PEYES[kind] || PEYES.open) put(x0 + (far ? x : 1 - x), ey + y, eyeColor)
+    put(ex + 2, ey + 3, eyeColor) // its mouth
+    return [...px.values()]
+  }
   /** Base indices kept, in order, with some dropped and some doubled: how its rows or columns squash and stretch. */
   const keep = (n, del = [], dup = []) => [...Array(n).keys()].flatMap(i => del.includes(i) ? [] : dup.includes(i) ? [i, i] : [i])
   /** Where base index i lands among the kept ones: its first copy, or the kept one above it if it was dropped. */
@@ -94,9 +113,10 @@
     },
     /**
      * The slime in a pose: its jelly body squashed or stretched, nubs of slime for hands (`arms` up or high, `hand`,
-     * `reach`), outlined, then its face: eyes, mouth and cheeks.
+     * `reach`), outlined, then its face: eyes, mouth and cheeks. Its own keys: `mouth: 'yawn'`, and `puddle` (1, 2: melted).
      */
     draw(pose, eyeColor){
+      if (pose.puddle) return puddle(pose.puddle, pose.eyes || 'open', eyeColor).map(([x, y, c]) => [pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x + (pose.ox || 0), y + (pose.dy || 0), c])
       const b = body(pose), px = new Map(), put = (x, y, c) => px.set(x + ',' + y, [x, y, c])
       b.rows.forEach((r, j) => b.cols.forEach((i, k) => { const c = INK[ROWS[r][i]]; if (c) put(b.x(0) + k, b.top + j, c) }))
       // Nubs: the first from its face side, a second (both arms up) from its other side.
