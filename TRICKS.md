@@ -320,7 +320,30 @@ Every pet moves the way its body would. The shared walk and frames are made for 
 give a trick replace its own, so keep its pose key in them (`juggle: d`) where its draw hooks need it.
 
 Pick one with right-click → Skin in the app (saved, and the page reloads), or `?skin=<key>` in the mockup.
-Before you ship one: play every trick on it in the mockup with no console errors, and look at a sheet of its poses.
+
+### Making a skin
+
+A skin should look and move like the character, not like Clawd in a costume. The project skill
+`.claude/skills/new-skin/` walks a Claude Code session through this, with the commands; its `tools/` folder renders
+poses beside references, sweeps every pose, and plays every trick headlessly. By hand, it goes:
+
+1. **Agree the scope** with the owner: the canonical look and its source, the size, fan pack or not, and what done
+   means: the art, its own walk (`walk`), hands per action, every `eyes` expression, Claude's states (`moods`), every
+   trick checked at 2x against Cappy and tailored (`tricks` frames, or a `hangabout.skin === '<key>'` branch in a trip
+   or a trick that draws props or costumes), props in its hands, every fan costume fitted, its own tricks (pitched
+   first), and a pose sheet and trick sheets. Nothing merges until all of it is approved.
+2. **Research before pixels**: official art, sprite sheets or rigs, gameplay footage for motion, personality. Write a
+   short character bible: parts, proportions as ratios, sampled palette, line style, idle pose, walk and jump physics,
+   hand shapes, expressions, gear. Draw shapes on purpose from it; never shrink a blurry frame, never trust a written
+   description over the art, and never fit the character onto Clawd's or Cappy's body or the shared walk.
+3. **Block out the silhouette** at the target size and compare it to the references at the same height.
+4. **Review before the owner sees it**: render it beside the references at 8x and 3x, and have two or more fresh
+   reviewers (people or agents who haven't seen your reasoning) score it 1 to 10 from the references, the renders and a
+   pixel grid. Iterate until they score it 8 or more.
+5. **Show the owner** the rest pose and a pose sheet together, asking only what's theirs to decide, each question with
+   a recommended, canonical answer.
+6. **Make it move its own way** (step 1's list), then **check**: every pose inside the 44 x 40 grid with its feet on
+   row 39, every trick and state played with no console errors, and the pose and trick sheets looked at.
 
 ## Fan pack rules
 
