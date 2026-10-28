@@ -9,7 +9,7 @@
   function mane(d, px, pose){
     const hair = new Map()
     if (d !== 'on' && d !== 'release') return hair
-    if (hangabout.skin === 'cappy') return cappyMane(hair, d, pose)
+    if (head) return profileMane(hair, d, pose)
     const headTop = Math.min(...px.map(([, y]) => y)), bx = OX + 6, scale = d === 'release' ? .4 : 1
     const put = (x, y, c) => hair.set(x + ',' + y, c)
     for (let x = bx - 1; x <= bx + 24; x++) for (let y = headTop; y < headTop + 2; y++) put(x, y, '#F7CF3A') // the cap
@@ -26,10 +26,10 @@
       for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), headTop + 2 + r, '#F7CF3A')
     return hair
   }
-  /** Cappy's, drawn facing left: a cap over his head and ears, six spikes swept up and back, two bangs over his brow. */
-  function cappyMane(hair, d, pose){
-    const {top: t} = head(pose), scale = d === 'release' ? .4 : 1
-    const put = (x, y, c) => hair.set((pose.face > 0 ? GW - 1 - x : x) + ',' + y, c)
+  /** A side-on skin's, drawn facing left: a cap over his head and ears, six spikes swept up and back, two bangs over his brow. */
+  function profileMane(hair, d, pose){
+    const {x: ex, top: t} = head(pose), scale = d === 'release' ? .4 : 1
+    const put = (x, y, c) => { x += ex - 20; hair.set((pose.face > 0 ? GW - 1 - x : x) + ',' + y, c) } // laid out on Cappy, whose eye is at x 20
     for (let x = 14; x <= 27; x++) for (let y = t - (x > 14 ? 2 : 0); y <= t + 1; y++) put(x, y, '#F7CF3A') // the cap
     for (const [off, bw, h0, lean] of [[0, 4, 7, -.25], [3, 5, 11, .05], [6, 5, 13, .35], [9, 5, 11, .7], [12, 4, 8, 1.1]]) {
       const h = Math.max(2, Math.round(h0 * scale))

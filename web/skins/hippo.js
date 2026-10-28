@@ -1,6 +1,6 @@
 // Hippo: a pygmy hippo on all fours, drawn three-quarters on, facing left (facing right is the mirror image). Original art.
 // A skin adds itself to SKINS (see "Skins" in TRICKS.md). Rows of his body down to his belly; his eye and legs are added
-// per pose: M is his muzzle, P his pink cheek, D the line of his jaw, Q his lip and toes, U his belly, K his mouth and
+// per pose: M is his muzzle, P his pink cheek, D the line of his jaw, Q his lip, T his toes, U his belly, K his mouth and
 // nostril, R inside his ears.
 {
   const ROWS = [
@@ -27,8 +27,8 @@
   ]
   const COLORS = ['#585566', '#726F82', '#433F4F', '#0F0B12'] // BODY, TOP (the top of his head and back), SIDE (his shade), EYE
   const LINE = '#17121B', GLINT = '#FFFFFF'
-  const INK = {B: COLORS[0], L: COLORS[1], S: COLORS[2], M: '#B68797', P: '#E2A4B2', Q: '#EBB0BB', U: '#8A7C92', D: '#C98394', K: LINE, R: '#E2A4B2'}
-  const LEGS = [[15, INK.B, INK.Q], [21, INK.B, INK.Q], [25, INK.S, INK.S], [29, INK.B, INK.Q]] // each leg's left x, color, toes; front leg first
+  const INK = {B: COLORS[0], L: COLORS[1], S: COLORS[2], M: '#B68797', P: '#E2A4B2', Q: '#EBB0BB', U: '#8A7C92', D: '#C98394', T: '#E59BAA', K: LINE, R: '#E2A4B2'}
+  const LEGS = [[15, INK.B, INK.T], [21, INK.B, INK.T], [25, INK.S, INK.S], [29, INK.B, INK.T]] // each leg's left x, color, toes; front leg first
   // His eye, 3 × 3, as he faces left (mirrored when he faces right): e is the eye color, w its glint, s his shade.
   const OPEN = ['wes', 'eee', 'see'], EYES = {
     blink: ['...', '...', 'eee'],
@@ -38,22 +38,22 @@
     strain: ['ee.', '..e', 'ee.'],
     dizzy: ['e.e', '.e.', 'e.e'],
   }
-  // His front leg off the ground, outlined on its own so it reads in front of his face: [left x, top y, art], with Q his
+  // His front leg off the ground, outlined on its own so it reads in front of his face: [left x, top y, art], with T his
   // toes. Pushed out low (a hand or a jab), up (a wave), high.
   const PAW = {
-    1: [11, 34, ['QBBBBBB', 'QBBBBBB', 'QBBB...']],
-    2: [9, 29, ['QQ......', 'QBBB....', 'QBBBB...', '.BBBBB..', '..BBBBB.', '...BBBBB', '....BBBB']],
-    3: [8, 25, ['QQ.......', 'QBBB.....', 'QBBBB....', '.BBBBB...', '..BBBBB..', '...BBBBB.', '....BBBBB', '.....BBBB', '.....BBBB', '......BBB']],
+    1: [11, 34, ['TBBBBBB', 'TBBBBBB', 'TBBB...']],
+    2: [9, 29, ['TT......', 'TBBB....', 'TBBBB...', '.BBBBB..', '..BBBBB.', '...BBBBB', '....BBBB']],
+    3: [8, 25, ['TT.......', 'TBBB.....', 'TBBBB....', '.BBBBB...', '..BBBBB..', '...BBBBB.', '....BBBBB', '.....BBBB', '.....BBBB', '......BBB']],
   }
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
   console.assert(ROWS.every(r => r.length === 23), 'Hippo: every row is 23 wide')
 
   SKINS.hippo = {
     name: 'Hippo', colors: COLORS, sideOn: true,
-    /** Where costumes find his face, as drawn facing left: his eye (x, y: the left pixel of its middle row) and the top of his head between his ears. */
+    /** Where costumes find his face, as drawn facing left: his eye (x, y: the left pixel of its middle row), the top of his head between his ears, and the front of his snout. */
     head(pose){
       const top = 36 - ROWS.length + (pose.squash || 0) - (pose.stretch || 0) + (pose.dy || 0) // as draw() works it out
-      return {x: 18, y: top + 6, top: top + 3}
+      return {x: 18, y: top + 6, top: top + 3, nose: 10}
     },
     /** Hippo in a pose: squashed or stretched through the middle, legs stepping or tucked, a front foot up instead of a hand, outlined, then his eye. */
     draw(pose, eyeColor){

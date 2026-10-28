@@ -138,22 +138,22 @@
   }
 
   /**
-   * Cappy's suit, laid out as if he faces left, like a dog's Spider-Man costume: red over his head and back with the web
-   * spreading from his eye, a blue belly, red boots, and his eye a big white lens rimmed in black. His outline and mouth
-   * stay dark.
+   * A side-on skin's suit, laid out as if he faces left, like a dog's Spider-Man costume: red over his head and back
+   * with the web spreading from his eye, a blue belly, red boots, and his eye a big white lens rimmed in black. His
+   * outline and mouth stay dark. Laid out on Cappy (his eye at x 20, his snout at x 10) and moved to this skin's.
    */
-  function cappySuit(d, px, pose){
+  function profileSuit(d, px, pose){
     const h = head(pose), dy = pose.dy || 0, flip = x => pose.face > 0 ? GW - 1 - x : x // between his art facing left and the screen, either way
     const dark = c => parseInt(c.slice(1, 3), 16) + parseInt(c.slice(3, 5), 16) + parseInt(c.slice(5, 7), 16) < 150
     const web = (x, y) => { const dx = x - h.x - .5, dv = y - h.y - .5, r = Math.hypot(dx / 1.3, dv); return y <= h.y + 9 && (Math.abs(Math.abs(dx) - 2 * Math.abs(dv)) < .7 || Math.abs(Math.abs(dv) - 2 * Math.abs(dx)) < .7 || Math.abs(r - 6) < .5) }
     const out = px.map(([x, y, c]) => {
       if (c === EYE) return [x, y, mix(EYE, '#FFFFFF', d)]
       if (dark(c)) return [x, y, c]
-      const mask = flip(x) <= 18 || y < h.y + 8, pal = mask || y >= 38 + dy ? RED : BLUE // red boots
+      const mask = flip(x) <= h.nose + 8 || y < h.y + 8, pal = mask || y >= 38 + dy ? RED : BLUE // red boots
       return [x, y, mix(c, mask && web(flip(x), y) ? '#7E1219' : pal[c] || pal[BODY], d)]
     })
     if (d < 1) return out
-    const lens = new Set([[20, -2], [21, -2], [19, -1], [20, -1], [21, -1], [22, -1], [19, 0], [20, 0], [21, 0], [22, 0], [20, 1], [21, 1]].map(([x, v]) => x + ',' + (h.y + v)))
+    const lens = new Set([[20, -2], [21, -2], [19, -1], [20, -1], [21, -1], [22, -1], [19, 0], [20, 0], [21, 0], [22, 0], [20, 1], [21, 1]].map(([x, v]) => x + h.x - 20 + ',' + (h.y + v)))
     for (const k of lens) {
       const [x, y] = k.split(',').map(Number)
       out.push([flip(x), y, '#FFFFFF'])
@@ -175,7 +175,7 @@
     end: cut, // cut short mid-swing: no web left hanging
     /** The suit: red up top with a web over it, blue below the waist, red boots, and big white eyes rimmed in black. */
     pixels({d, px, pose}){
-      if (hangabout.skin === 'cappy') return cappySuit(d, px, pose)
+      if (head) return profileSuit(d, px, pose)
       const waist = OY + 12 + (pose.dy || 0), boots = OY + 18 + (pose.dy || 0), eyes = new Set(), eye = px.filter(p => p[2] === EYE)
       const cx = eye.reduce((s, p) => s + p[0], 0) / eye.length + .5, cy = OY + 6 + (pose.dy || 0) // the web spreads from between his eyes
       const web = (x, y) => { const dx = x + .5 - cx, dy = y - cy, r = Math.hypot(dx / 1.6, dy); return Math.abs(dx) < .6 || Math.abs(Math.abs(dx) - 2 * Math.abs(dy)) < .6 || Math.abs(r - 7.5) < .45 }

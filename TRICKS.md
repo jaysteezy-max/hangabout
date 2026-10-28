@@ -199,12 +199,15 @@ Helpers:
 | `recolor(px, {from: to}, t)` | His pixels with some colors moved toward others by `t` (0 to 1). |
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
-| `head(pose)` | Where Cappy's face is in this pose, as drawn facing left: `{x, y}` is his eye's left pixel, `top` the top of his head between his ears. They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
+| `head(pose)` | Where a side-on skin's face is in this pose, as drawn facing left: `{x, y}` is his eye (Cappy's left pixel, at x 20), `top` the top of his head between his ears, `nose` the front of his snout (x 10 on Cappy and the hippo). They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
 | `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin faces right (and slid by `ox`), so a costume drawn once on him facing left turns with him. On Clawd it changes nothing. |
 
-**Costumes on both skins.** Hair, masks and anything else that sits on his face need a spot on each skin. Clawd faces
-you, eyes at x 14 and 28; Cappy is side on, so draw his version facing left with `head(pose)` inside `facing()`, and
-check `hangabout.skin` to pick which. Guts, Vader and Thorfinn in `web/tricks/fan/` show how.
+**Costumes on every skin.** Hair, masks and anything else that sits on his face need a spot on each kind of skin. Clawd
+faces you, eyes at x 14 and 28. A side-on skin has a `head`, so check `hangabout.head` (not `hangabout.skin`) and draw
+his version facing left inside `facing()`: lay it out on Cappy, then move what goes by his eye by `head(pose).x - 20`
+and what goes by his snout by `head(pose).nose - 10`, so it fits the hippo and any skin after him. His rump is his
+rightmost pixel as drawn facing left, less his outline; his feet are on the row above his lowest, which is all outline.
+Guts, Vader, Thorfinn and the moonwalk in `web/tricks/fan/` show how.
 
 ## Trips
 
@@ -281,7 +284,7 @@ SKINS.hippo = {
   colors: [body, top, side, eye], // become BODY, TOP, SIDE, EYE: tricks recolor exactly these, so use them in your art
   sideOn: true,                // optional: drawn side on, so he keeps facing the way he last went
   pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
-  head(pose){ return {x, y, top} }, // optional, side on: his eye's left pixel and the top of his head, as drawn facing left
+  head(pose){ return {x, y, top, nose} }, // side on: his eye, the top of his head and the front of his snout, facing left
   draw(pose, eye){ return [[x, y, color], ...] },
 }
 ```
@@ -292,6 +295,10 @@ should do something sensible (`dy`, `squash`, `stretch`, `tuck`, `lift`, `tapLeg
 in the `eye` color it's given (it flashes while Claude needs you). His lowest pixel must be on row 39, the ground; the
 page checks this. Stay inside about x 6 to 37 and keep the head near y 18 to 24, where tricks put hats and props. The
 pet is outlined with its own dark line, as in the pixel-art reference it was drawn from.
+
+A side-on skin also gives `head(pose)` so costumes fit him (the page checks it finds his eye), stands his feet on row 38
+with only his outline below them, and colors his toes a color used nowhere else on him: the moonwalk's glove and
+Thorfinn's dagger find a front foot he's lifted by it.
 
 Pick one with right-click → Skin in the app (saved, and the page reloads), or `?skin=<key>` in the mockup.
 Before you ship one: play every trick on it in the mockup with no console errors, and look at a sheet of its poses.

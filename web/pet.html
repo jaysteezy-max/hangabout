@@ -362,8 +362,8 @@ function figure(pose, eyeColor){
 
 // Every skin stands on the bottom row, however he bends (a skin's art can't slip off the ground).
 for (const pose of [{}, {squash: 2}, {stretch: 2}]) console.assert(Math.max(...SKINS[SKIN].draw(pose, EYE).map(p => p[1])) === GH - 1, `skin "${SKIN}": its lowest pixel must be on row ${GH - 1}`)
-// Costumes find a side-on skin's face with its head(pose); check it lands on his eye.
-for (const pose of [{}, {squash: 2, dy: -3}, {stretch: 1}]) if (SKINS[SKIN].head) { const h = SKINS[SKIN].head(pose); console.assert(SKINS[SKIN].draw(pose, EYE).some(([x, y, c]) => x === h.x && y === h.y && c === EYE), `skin "${SKIN}": head() must find his eye`) }
+// Costumes find a side-on skin's face with its head(pose); check it lands on his eye and gives the front of his snout.
+for (const pose of [{}, {squash: 2, dy: -3}, {stretch: 1}]) if (SKINS[SKIN].head) { const h = SKINS[SKIN].head(pose); console.assert(SKINS[SKIN].draw(pose, EYE).some(([x, y, c]) => x === h.x && y === h.y && c === EYE), `skin "${SKIN}": head() must find his eye`); console.assert(Number.isInteger(h.nose), `skin "${SKIN}": head() must give his nose`) }
 /** Runs draw() with the canvas mirrored while a side-on skin faces right (and slid with him, by ox), so a costume drawn on him facing left turns with him. On Clawd it changes nothing. */
 function facing(ctx, pose, draw){
   ctx.save()

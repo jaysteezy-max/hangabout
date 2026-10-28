@@ -142,9 +142,9 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 | **Clay** | A faceless clay soldier in grey clay, after the Clay Soldiers Minecraft mod: a cube head, chunky arms and legs, drawn three-quarters. Original art. |
 | **Hatty Hattington** | Fan art of Hatty from BattleBlock Theater, front on, with his top hat, tears and cane. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
 
-Every trick plays with any skin. The fan-pack costumes were drawn for Clawd's front-on body, so on Cappy they sit
-where Clawd's face would be. A skin is one file in `web/skins/` ([how to make one](TRICKS.md#skins)); fan-art skins of
-other people's characters show in the menu only while Fan pack is on.
+Every trick plays with any skin, and the fan-pack costumes fit Clawd front on and every side-on skin in profile. A skin
+is one file in `web/skins/` ([how to make one](TRICKS.md#skins)); fan-art skins of other people's characters show in the
+menu only while Fan pack is on.
 
 ## Tricks
 
