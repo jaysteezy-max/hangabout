@@ -77,6 +77,9 @@ one of these moments comes and its chance comes up (if several tricks pass, one 
 `comeback`, `failStreak` and `forcePush` come from the session's log of Claude's last 8 tool calls, and each call is
 looked at once, when it's logged. Calls already logged when the page loads don't count.
 
+A trick that's a `trip` only answers a moment while he's free to roam (Claude doesn't need him and isn't at work):
+any other time the trip would be cut short as it starts.
+
 To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console. `fire`
 returns `true` if a trick answered. Run `hangabout.left()` first to have `hangabout.away` say you're away, and
 `hangabout.back()` to end it. For the Claude moments, feed it a log, then the same log with a call added:
