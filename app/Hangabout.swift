@@ -299,8 +299,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         alert.addButton(withTitle: "OK")
         alert.addButton(withTitle: "Cancel")
         alert.window.initialFirstResponder = field
-        NSApp.activate(ignoringOtherApps: true) // an accessory app isn't frontmost, so the dialog wouldn't take keys
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let previous = NSWorkspace.shared.frontmostApplication // an accessory app doesn't hand focus back by itself
+        NSApp.activate(ignoringOtherApps: true) // so the dialog takes keys
+        panel.ignoresMouseEvents = true // trackPointer's timer doesn't fire during the modal, so the pet layer would eat the dialog's clicks
+        let answer = alert.runModal()
+        panel.ignoresMouseEvents = !holding // back to what trackPointer last decided; its next tick re-syncs
+        previous?.activate(options: [])
+        guard answer == .alertFirstButtonReturn else { return }
         web.evaluateJavaScript("hangabout.code('\(field.typed.joined())')") { result, _ in
             if result as? Bool == false { NSSound.beep() } // the page does the celebrating; a wrong code just gets a beep
         }
