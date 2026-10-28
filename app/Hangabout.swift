@@ -37,6 +37,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
     /// Each busy session's transcript as of the last time hangabout-hook looked at it.
     var checked: [String: Date] = [:]
+    /// Whether you've left your Mac alone for five minutes or more (no mouse or keys).
+    var away = false
     let sizeLabel = NSTextField(labelWithString: "")
     let prefs = UserDefaults.standard
     /// The tricks the page has, for the menu: (name, label, fan pack).
@@ -81,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.trackPointer() }
         Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.sendWindows() }
         Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in self?.sendState() }
-        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.checkTranscripts() }
+        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.checkTranscripts(); self?.checkAway() }
     }
 
     func applicationWillTerminate(_ note: Notification) { try? FileManager.default.removeItem(at: pidURL) }
@@ -153,6 +155,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
               let json = String(data: data, encoding: .utf8) else { return }
         lastState = stamp
         web.evaluateJavaScript("hangabout.claude(\(json))")
+    }
+
+    /// Back at your Mac after five minutes or more away: he says hello. The page only hears about the mouse near him, so the app watches.
+    func checkAway() {
+        let idle = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!) // ~0: any input
+        if idle >= 300 { away = true }
+        else if away && idle < 2 { away = false; web.evaluateJavaScript("hangabout.back()") }
     }
 
     /// Claude Code sends no hook when you interrupt it, only writes it into the transcript. So when a busy session's

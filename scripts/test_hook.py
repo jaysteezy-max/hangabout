@@ -45,6 +45,15 @@ with tempfile.TemporaryDirectory() as d:
     assert state()['mood'] == 'running'
     send('PostToolUse', tool_name='Bash', tool_input={'command': 'npm test'}, duration_ms=1200); send('Stop')
     assert state()['mood'] == 'done', state()
+    assert not state()['turn'].get('fails') and state()['turn']['cmds'] == 1, state()['turn']
+
+    # A failed command is counted for the turn (no celebration); an interrupt isn't a failure.
+    turn(); send('PreToolUse', tool_name='Bash', tool_input={'command': 'npm test'})
+    send('PostToolUseFailure', tool_name='Bash', tool_input={'command': 'npm test'}, duration_ms=900)
+    send('PreToolUse', tool_name='Bash', tool_input={'command': 'npm test'})
+    send('PostToolUseFailure', tool_name='Bash', tool_input={'command': 'npm test'}, is_interrupt=True)
+    assert state()['turn']['fails'] == 1, state()['turn']
+    turn(); assert not state()['turn'].get('fails'), 'a new turn starts clean'
 
     # Interrupted mid-thought: no hook at all, only the transcript says so.
     turn(); write({'type': 'queue-operation'}); poke()

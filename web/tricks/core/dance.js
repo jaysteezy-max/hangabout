@@ -1,6 +1,7 @@
 // A little dance: side steps turning left and right, a hop, music notes floating up. Frames only, no drawing.
+// Now and then he dances to celebrate a Claude turn that did real work with nothing failing.
 hangabout.trick({
-  name: 'dance', label: 'Dance ♪', rarity: 'rare',
+  name: 'dance', label: 'Dance ♪', rarity: 'rare', on: {cleanFinish: .25},
   frames: [
     ...[-1, 1, -1, 1].flatMap(face => [
       [{face, arms: ['up', 'mid'], lift: [0, 3], swing: 1, tilt: face * 4, notes: 1}, 190],
