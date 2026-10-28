@@ -363,12 +363,13 @@ function figure(pose, eyeColor){
 
 // Every skin stands on the bottom row, however he bends (a skin's art can't slip off the ground).
 for (const pose of [{}, {squash: 2}, {stretch: 2}]) console.assert(Math.max(...SKINS[SKIN].draw(pose, EYE).map(p => p[1])) === GH - 1, `skin "${SKIN}": its lowest pixel must be on row ${GH - 1}`)
-// Costumes find a side-on skin's face with its head(pose); check it lands on his eye and gives the front of his snout.
-for (const pose of [{}, {squash: 2, dy: -3}, {stretch: 1}]) if (SKINS[SKIN].head) { const h = SKINS[SKIN].head(pose); console.assert(SKINS[SKIN].draw(pose, EYE).some(([x, y, c]) => x === h.x && y === h.y && c === EYE), `skin "${SKIN}": head() must find his eye`); console.assert(Number.isInteger(h.nose), `skin "${SKIN}": head() must give his nose`) }
-/** Runs draw() with the canvas mirrored while a side-on skin faces right (and slid with him, by ox), so a costume drawn on him facing left turns with him. On Clawd it changes nothing. */
+// Costumes find a skin's face with its head(pose); check it lands on his eye, and side on gives the front of his snout.
+for (const pose of [{}, {squash: 2, dy: -3}, {stretch: 1}]) if (SKINS[SKIN].head) { const h = SKINS[SKIN].head(pose); console.assert(SKINS[SKIN].draw(pose, EYE).some(([x, y, c]) => x === h.x && y === h.y && c === EYE), `skin "${SKIN}": head() must find his eye`); console.assert(!SKINS[SKIN].sideOn || Number.isInteger(h.nose), `skin "${SKIN}": head() must give his nose`) }
+/** Runs draw() with the canvas mirrored while a side-on skin (or one with a mirror, like Hatty) faces right, and slid with him by ox, so a costume drawn on him facing left (or you) turns with him. On Clawd it changes nothing. */
 function facing(ctx, pose, draw){
   ctx.save()
-  if (SKINS[SKIN].sideOn) { ctx.translate(pose.ox || 0, 0); if (pose.face > 0) { ctx.translate(GW, 0); ctx.scale(-1, 1) } }
+  const m = SKINS[SKIN].sideOn ? GW - 1 : SKINS[SKIN].mirror // turned right, his art's x is drawn at m - x
+  if (m) { ctx.translate(pose.ox || 0, 0); if (pose.face > 0) { ctx.translate(m + 1, 0); ctx.scale(-1, 1) } }
   draw()
   ctx.restore()
 }
@@ -1172,8 +1173,9 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   trick: registerTrick,
   GW, GH, OX, OY, LIFT, PH, BODY, TOP, SIDE, EYE, C,
   skin: SKIN, // 'cappy' (side on, no arms), 'clawd', or another skin's key in SKINS
+  sideOn: !!SKINS[SKIN].sideOn, // drawn side on (Cappy, the hippo, Clay): with a head, costumes dress him in profile
   thickLine, paint, mix, recolor, rand, pick, facing,
-  head: SKINS[SKIN].head, // where a side-on skin's face is, for costumes (Cappy has one; Clawd doesn't need it)
+  head: SKINS[SKIN].head, // where a skin's face is, for costumes (Cappy, the hippo and Hatty have one; Clawd doesn't need it)
   feet, putFeet, surfaces, edges, scr, desk,
   clip(c){ pet.clip = c }, // hides part of him until he lands: {x, dir} or {y} (see portalClip)
   get size(){ return size }, get width(){ return desk.clientWidth },

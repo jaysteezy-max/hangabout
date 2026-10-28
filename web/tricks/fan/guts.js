@@ -4,7 +4,9 @@
   const {GW, OX, OY, GH, BODY, EYE, thickLine, head, facing} = hangabout
   // Side on (Cappy, the hippo): one cloak flap, the scar on the eye he shows, the Brand on his neck. Laid out on Cappy, his
   // snout at x 10, and moved to this skin's snout; the flap and the mantle run to his rump.
+  const PROFILE = hangabout.sideOn && head
   const rump = (px, pose) => Math.max(...px.map(([x]) => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0))) - 1 // his last column, as drawn facing left
+  const HATTY = hangabout.skin === 'hatty' // his hat stays on: the cloak off his shoulders, the sword in his cane hand
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
 
   hangabout.trick({
@@ -32,16 +34,17 @@
         }
         ctx.globalAlpha = 1
       }
-      if (g.cape) facing(ctx, pose, () => { // the cloak's flaps behind his arms (side on: off his rump), fluttering at the hem
+      if (g.cape) facing(ctx, pose, () => { // the cloak's flaps behind his arms (side on: off his rump; Hatty: off his shoulders), fluttering at the hem
         ctx.globalAlpha = g.cape
-        const top = head ? head(pose).top + 5 : OY + 1
-        for (const x0 of head ? [rump(px, pose) + 1] : [OX + 2, OX + 30]) for (let x = x0; x < x0 + 4; x++) {
+        const top = PROFILE ? head(pose).top + 5 : HATTY ? head(pose).y + 5 : OY + 1
+        for (const x0 of PROFILE ? [rump(px, pose) + 1] : HATTY ? [10, 29] : [OX + 2, OX + 30]) for (let x = x0; x < x0 + 4; x++) {
           ctx.fillStyle = x === x0 || x === x0 + 3 ? '#2E2A36' : CLOAK
-          ctx.fillRect(x, top + (head ? x - x0 >> 1 : 0), 1, (head ? 10 : 15) + Math.round(1.5 + 1.5 * Math.sin(x * 1.7 + now / 110)))
+          ctx.fillRect(x, top + (PROFILE ? x - x0 >> 1 : 0), 1, (PROFILE ? 10 : HATTY ? 8 : 15) + Math.round(1.5 + 1.5 * Math.sin(x * 1.7 + now / 110)))
         }
         ctx.globalAlpha = 1
       })
       facing(ctx, pose, () => { // the sword stays behind him whichever way he faces side on
+        if (HATTY) ctx.translate(-6, head(pose).y - 22) // its grip in his cane hand
         if (g.sword) { // drawn up from behind his back: longer than he is tall
           const cut = Math.round((1 - g.sword) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } }
           row(0, 38, 1, EDGE); row(1, 37, 3, IRON)
@@ -60,40 +63,48 @@
     },
     /** In front: the mantle on his shoulders, the Brand, his scarred eye, the slash, and the sword after the swing. */
     front({ctx, d: g, px, now, pose}){
-      const top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + (pose.dy || 0) + (pose.squash || 0), h = head && head(pose), n = h && h.nose - 10
+      const top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + (pose.dy || 0) + (pose.squash || 0), h = head && head(pose), n = PROFILE && h.nose - 10
       if (g.cape) {
         ctx.globalAlpha = g.cape
-        if (h) { // the mantle over his back, behind his ears
+        if (PROFILE) { // the mantle over his back, behind his ears
           const ridge = new Map()
           for (const [x, y] of px) if (!ridge.has(x) || y < ridge.get(x)) ridge.set(x, y)
           for (let i = 25 + n, end = rump(px, pose) + 1; i <= end; i++) { const x = pose.face > 0 ? GW - 1 - i : i, y = ridge.get(x); ctx.fillStyle = CLOAK; ctx.fillRect(x, y, 1, 4); ctx.fillStyle = '#3A3442'; ctx.fillRect(x, y + 4, 1, 1) }
-        } else {
+        } else if (HATTY) facing(ctx, pose, () => { // the mantle over his shoulders, open at his collar
+          for (const [x0, x1] of [[12, 17], [24, 30]]) { ctx.fillStyle = CLOAK; ctx.fillRect(x0, h.y + 6, x1 - x0 + 1, 2); ctx.fillStyle = '#3A3442'; ctx.fillRect(x0, h.y + 8, x1 - x0 + 1, 1) }
+        })
+        else {
           ctx.fillStyle = CLOAK; ctx.fillRect(OX + 4, top, 28, 2)
           ctx.fillStyle = '#3A3442'; ctx.fillRect(OX + 4, top + 2, 28, 1)
         }
         ctx.globalAlpha = 1
       }
       facing(ctx, pose, () => {
-        if (h) { ctx.fillStyle = '#8C3B2E'; for (const y of [-3, -2, -1, 1, 2]) ctx.fillRect(h.x + 1, h.y + y, 1, 1) } // a scar through the eye he shows
+        if (PROFILE) { ctx.fillStyle = '#8C3B2E'; for (const y of [-3, -2, -1, 1, 2]) ctx.fillRect(h.x + 1, h.y + y, 1, 1) } // a scar through the eye he shows
+        else if (HATTY) { // his right eye scarred shut
+          ctx.fillStyle = BODY; ctx.fillRect(h.x + 7, h.y - 1, 3, 3)
+          ctx.fillStyle = EYE; ctx.fillRect(h.x + 7, h.y + 1, 2, 1)
+          ctx.fillStyle = '#8C3B2E'; ctx.fillRect(h.x + 8, h.y - 2, 1, 5)
+        }
         else {
           ctx.fillStyle = BODY; ctx.fillRect(OX + 24, eyeY, 2, 4) // his right eye, scarred shut
           ctx.fillStyle = EYE; ctx.fillRect(OX + 24, eyeY + 2, 2, 1)
           ctx.fillStyle = '#8C3B2E'; ctx.fillRect(OX + 25, eyeY - 1, 1, 6)
         }
         if (g.brand) { // the Brand of Sacrifice, bleeding red on his brow (side on: his neck)
-          const bx = h ? 25 + n : OX + 16, by = h ? h.y : eyeY - 1
+          const bx = PROFILE ? 25 + n : HATTY ? h.x + 3 : OX + 16, by = PROFILE ? h.y : HATTY ? h.y - 5 : eyeY - 1
           if (g.brand > 1) { ctx.globalAlpha = .45; ctx.fillStyle = '#FF4D5E'; ctx.fillRect(bx - 1, by - 1, 5, 6) }
           ctx.globalAlpha = g.brand > 1 ? 1 : .6 + .4 * Math.sin(now / 160); ctx.fillStyle = '#D7263D'
           ;['.#.', '.##', '##.', '.#.'].forEach((r, j) => [...r].forEach((ch, i) => { if (ch === '#') ctx.fillRect(bx + i, by + j, 1, 1) }))
           ctx.globalAlpha = 1
         }
-        if (g.low) { // after the swing: the blade along the ground in front of him (side on: its grip under his chin)
-          const k = h ? n - 21 : 0
-          ctx.fillStyle = EDGE; ctx.fillRect(2 + k, OY + 14, 29, 1)
-          ctx.fillStyle = IRON; ctx.fillRect(1 + k, OY + 15, 30, 3)
-          ctx.fillStyle = DARK; ctx.fillRect(2 + k, OY + 18, 29, 1)
-          ctx.fillStyle = STEELGUARD; ctx.fillRect(31 + k, OY + 12, 2, 8)
-          ctx.fillStyle = LEATHER; ctx.fillRect(33 + k, OY + 15, 5, 2)
+        if (g.low) { // after the swing: the blade along the ground in front of him (side on: its grip under his chin; Hatty: in his cane hand)
+          const k = PROFILE ? n - 21 : HATTY ? -4 : 0, y = HATTY ? h.y - 6 : OY
+          ctx.fillStyle = EDGE; ctx.fillRect(2 + k, y + 14, 29, 1)
+          ctx.fillStyle = IRON; ctx.fillRect(1 + k, y + 15, 30, 3)
+          ctx.fillStyle = DARK; ctx.fillRect(2 + k, y + 18, 29, 1)
+          ctx.fillStyle = STEELGUARD; ctx.fillRect(31 + k, y + 12, 2, 8)
+          ctx.fillStyle = LEATHER; ctx.fillRect(33 + k, y + 15, 5, 2)
         }
       })
       if (g.slash) facing(ctx, pose, () => { // a huge white arc tearing across

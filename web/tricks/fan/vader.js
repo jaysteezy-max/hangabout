@@ -3,7 +3,10 @@
 // the red saber snaps on, a big slash across; then it switches off and it all comes away again.
 {
   const {GW, OX, OY, GH, BODY, TOP, SIDE, EYE, recolor, thickLine, head, facing} = hangabout
+  const PROFILE = hangabout.sideOn && head // side on: the helmet in profile, one lens, the saber at his chin
+  const HATTY = hangabout.skin === 'hatty' // the helmet in place of his top hat, his suit gone black, the saber in his cane hand
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
+  if (HATTY) Object.assign(ARMOR, {'#915544': '#1E1E24', '#4E4E4E': '#111115', '#9B225D': '#2C2D35', '#4BA2CE': '#1E1E24'}) // and his jacket, trousers, tie and tears (web/skins/hatty.js)
   const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid']
   const maythe4th = () => { const d = new Date(); return d.getMonth() === 4 && d.getDate() === 4 ? 1 : 0 } // your local date
 
@@ -53,6 +56,34 @@
     })
   }
 
+  /** Hatty, drawn facing you: the dome over his head where his hat was, flaring out at his neck, the mask on his face, the chest panel on his jacket, and the saber in his cane hand. */
+  function hattyFront(ctx, v, now, pose){
+    const h = head(pose), row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0 + 1, 1) }
+    facing(ctx, pose, () => {
+      if (v.helmet != null) {
+        const t = h.top + v.helmet
+        for (const [dy, x0, x1] of [[-5, 17, 25], [-4, 15, 27], [-3, 14, 28], [-2, 13, 29], [-1, 12, 30], [0, 12, 30], [1, 12, 30], [2, 12, 30], [3, 12, 30], [4, 12, 30], [5, 12, 30]]) row(t + dy, x0, x1, '#111114')
+        for (const [dy, l, r] of [[6, 12, 30], [7, 12, 30], [8, 11, 31], [9, 11, 31], [10, 10, 32], [11, 10, 32], [12, 10, 32]]) { row(t + dy, l, 13, '#111114'); row(t + dy, 29, r, '#111114') } // the flare down to his neck
+        row(t - 5, 19, 23, '#3C3D47'); row(t + 5, 13, 29, '#2C2D35') // light on the crown, and the brow over the mask
+        for (const [dy, l, r] of [[8, 11, 31], [10, 10, 32], [11, 10, 32], [12, 10, 32]]) { row(t + dy, l, l, '#3C3D47'); row(t + dy, r, r, '#3C3D47') } // and on the flare's edges
+        ctx.fillStyle = '#4B4E5C'; for (const [x, y] of [[17, t - 4], [16, t - 3], [15, t - 2], [14, t - 1]]) ctx.fillRect(x, y, 1, 1) // shine
+      }
+      if (v.mask) {
+        for (const [x0, outer] of [[h.x - 1, -1], [h.x + 6, 1]]) { // angled lenses over his eyes, cut away at the outer bottom corner
+          row(h.y - 1, x0, x0 + 3, '#2B0E10'); row(h.y, x0, x0 + 3, '#2B0E10'); row(h.y + 1, x0 + (outer < 0), x0 + 3 - (outer > 0), '#2B0E10')
+          ctx.fillStyle = '#7A3232'; ctx.fillRect(x0 + 1, h.y - 1, 1, 1)
+        }
+        ctx.fillStyle = '#5D606B'; ctx.fillRect(h.x + 4, h.y - 1, 1, 4) // the ridge between them
+        for (let i = 0; i < 3; i++) { ctx.fillRect(h.x - 1 + i, h.y + 2 + i, 1, 1); ctx.fillRect(h.x + 9 - i, h.y + 2 + i, 1, 1) } // the cheeks, down to the grille
+        for (const [y, w] of [[h.y + 3, 1], [h.y + 4, 2], [h.y + 5, 3]]) for (let x = h.x + 4 - w; x <= h.x + 4 + w; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille
+        row(h.y + 8, h.x, h.x + 8, '#4F525C'); row(h.y + 9, h.x, h.x + 8, '#4F525C') // chest panel, its lights blinking
+        const on = Math.floor(now / 350)
+        ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(h.x + 1 + i * 2, h.y + 8 + (i % 2), 1, 1) } })
+      }
+      saber(ctx, v, now, 31, h.y + 7)
+    })
+  }
+
   hangabout.trick({
     name: 'vader', label: 'Darth Vader 🔴', rarity: 'rare', pack: 'fan', on: {forcePush: 1, today: maythe4th}, // a force push, and May the 4th
     frames: [
@@ -74,14 +105,17 @@
       [{vader: {dark: .2, helmet: -8}}, 160],
       [{eyes: 'blink'}, 140], [{}, 200],
     ],
-    pixels: ({d: v, px}) => v.dark ? recolor(px, ARMOR, v.dark) : px,
+    pixels({d: v, px, pose}){
+      if (HATTY && v.helmet != null) { const t = head(pose).top; px = px.filter(([x, y]) => y >= t || x < 13 || x > 29) } // his top hat comes off under the helmet
+      return v.dark ? recolor(px, ARMOR, v.dark) : px
+    },
     /** Behind him: the cape, sweeping to the floor behind his arms. */
     behind({ctx, d: v, px, now, pose}){
       if (!v.cape) return
-      facing(ctx, pose, () => { // side on: one, off his back
+      facing(ctx, pose, () => { // side on: one, off his back; Hatty: from behind his helmet's flare
         ctx.globalAlpha = v.cape
-        const top = head ? head(pose).top + 3 : OY + 2
-        for (const x0 of head ? [rump(px, pose)] : [OX + 1, OX + 31]) for (let x = x0; x < x0 + 4; x++) {
+        const top = PROFILE ? head(pose).top + 3 : HATTY ? head(pose).top + 10 : OY + 2
+        for (const x0 of PROFILE ? [rump(px, pose)] : HATTY ? [10, 29] : [OX + 1, OX + 31]) for (let x = x0; x < x0 + 4; x++) {
           ctx.fillStyle = x === x0 || x === x0 + 3 ? '#2A2A31' : '#0D0D10'
           ctx.fillRect(x, top, 1, GH - top - Math.round(1 + Math.sin(x * 1.3 + now / 260)))
         }
@@ -90,7 +124,8 @@
     },
     /** In front: the helmet coming down, the mask and chest panel, and the red saber (hilt in his right hand). */
     front({ctx, d: v, px, now, pose}){
-      if (head) return profileFront(ctx, v, px, now, pose)
+      if (PROFILE) return profileFront(ctx, v, px, now, pose)
+      if (HATTY) return hattyFront(ctx, v, now, pose)
       const dy = pose.dy || 0, sq = pose.squash || 0, eyeY = OY + 4 + dy + sq, top = Math.min(...px.map(([, y]) => y)) + (v.helmet || 0)
       const row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0, 1) }
       if (v.helmet != null) { // a black dome, flaring out at the sides

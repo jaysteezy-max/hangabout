@@ -3,6 +3,8 @@
 // Then the farmer: the blades go away and a little sprout grows at his feet.
 {
   const {OX, OY, GW, GH, head, facing} = hangabout
+  const PROFILE = hangabout.sideOn && head // side on: the mop on his head, a dagger on each leg
+  const HATTY = hangabout.skin === 'hatty' // the hair under his top hat, a dagger in each hand along his forearm
   const BLADE = '#DCE1E8', STEEL = '#8E96A3', ARM = {down: 12, mid: 8, up: 4, high: -2}
   const DOWN = ['down', 'down']
 
@@ -37,6 +39,29 @@
     })
   }
 
+  /** Hatty, drawn facing you: the scar across his face, the hair coming out from under his hat (tufts at its sides, locks down his head, bangs over his brow), and a dagger in each hand. */
+  function hattyFront(ctx, th, pose){
+    const h = head(pose), t = h.top, strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x, y0, 1, len) }
+    facing(ctx, pose, () => {
+      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 5; i++) ctx.fillRect(h.x + 2 + i, h.y + 2 - (i >> 1), 1, 1) } // scar across his face
+      if (th.hair) {
+        for (const [x, y0, len, c] of [[12, t - 1, 1, MID], [13, t - 2, 2, SHADE], [14, t - 3, 3, MID], [27, t - 3, 3, MID], [28, t - 2, 2, LIGHT], [29, t - 1, 1, MID]]) strand(x, y0, len, c) // poking out from under his hat
+        for (const [x, len, c] of [[11, 5, SHADE], [12, 9, MID], [13, 10, LIGHT], [14, 7, MID], [28, 8, MID], [29, 10, LIGHT], [30, 9, MID], [31, 3, SHADE]]) strand(x, t, len, c) // locks down the sides of his head
+        ;[4, 3, 5, 2, 3, 1, 4, 2, 5, 3, 3, 2, 3].forEach((len, i) => strand(15 + i, t, len, i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID)) // bangs, parted
+        ctx.fillStyle = LIGHT; for (const [x, y] of [[13, t + 2], [17, t + 1], [23, t + 1], [29, t + 3]]) ctx.fillRect(x, y, 1, 1) // shine
+      }
+      if (th.daggers) { // reverse grip, along his forearms: up from his hands as they hang; raised, up from his free hand and down from the one with the cane
+        const arms = pose.arms || []
+        for (const [bx, y0] of [arms[0] === 'up' ? [10, h.y - 4] : [10, h.y + 7], arms[1] === 'up' ? [32, h.y + 3] : [31, h.y + 3]]) {
+          ctx.fillStyle = BLADE; ctx.fillRect(bx, y0, 2, 5)
+          ctx.fillStyle = STEEL; ctx.fillRect(bx + 1, y0, 1, 5)
+          if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, y0 - 1, 1, 1) } // at the tip
+        }
+      }
+      if (th.sheathe) { ctx.fillStyle = '#FFFFFF'; for (const [x, y] of [[10, h.y + 11], [31, h.y + 7]]) ctx.fillRect(x, y, 1, 1) }
+    })
+  }
+
   hangabout.trick({
     name: 'thorfinn', label: 'Thorfinn 🗡', rarity: 'rare', pack: 'fan', on: {dizzyAgain: 1}, // shaken dizzy a third time today
     frames: [
@@ -67,7 +92,8 @@
     /** In front: his scar, shaggy blond hair, the daggers (reverse grip), the X-slash, and the sprout. */
     front({ctx, d: th, px, pose}){
       const dy = pose.dy || 0, sq = pose.squash || 0, ox = pose.ox || 0, top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + dy + sq
-      if (head) profileFront(ctx, th, pose, px)
+      if (PROFILE) profileFront(ctx, th, pose, px)
+      else if (HATTY) hattyFront(ctx, th, pose)
       else if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(OX + 14 + i + ox, eyeY + 5 - (i >> 1), 1, 1) } // scar across his nose
       if (th.hair && !head) { // long, messy blond hair: uneven strands on top, locks hanging past his eyes, parted bangs
         const bx = OX + 4 + ox

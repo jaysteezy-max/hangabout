@@ -6,6 +6,8 @@
 {
   const {GW, OY, PH, BODY, TOP, SIDE, EYE, feet, putFeet, surfaces, edges, scr, desk, rand, pick, mix, head} = hangabout
   const G = 2600 // points per second², the pull he falls with everywhere else
+  const PROFILE = hangabout.sideOn && head // side on: the suit laid out in profile
+  const HATTY = hangabout.skin === 'hatty', UP = arm => HATTY ? [arm, 'mid'] : ['mid', arm] // Hatty reaches up with his free hand, the one in front when he turns
   const RED = {[BODY]: '#D3252E', [TOP]: '#F2615E', [SIDE]: '#951A22'}, BLUE = {[BODY]: '#2659C9', [TOP]: '#5585E8', [SIDE]: '#183B8E'}
   document.head.insertAdjacentHTML('beforeend', `<style>
   .web{position:absolute;height:2px;margin-top:-1px;background:#F2F2F2;box-shadow:0 0 1px rgba(0,0,0,.6);transform-origin:0 50%;pointer-events:none;z-index:9;transition:opacity .3s}
@@ -32,9 +34,9 @@
     line.style.opacity = splat.style.opacity = 0
     setTimeout(() => { line.remove(); splat.remove() }, 300)
   }
-  /** His front hand reaching up (art pixel 36, 17 facing right), with his feet at (x, y) and him turned rot degrees about them. */
+  /** His front hand reaching up (art pixel 36, 17 facing right; Hatty's 33, 20), with his feet at (x, y) and him turned rot degrees about them. */
   function hand(x, y, dir, rot){
-    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * 14 * 3 * s, hy = -23 * 3 * s
+    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : 14) * 3 * s, hy = (HATTY ? -20 : -23) * 3 * s
     return [x + hx * Math.cos(a) - hy * Math.sin(a), y + hx * Math.sin(a) + hy * Math.cos(a)]
   }
   /** Longest web he'll swing on from (x, y): his feet clear the floor at the bottom of the arc, and a few swings fit across the screen. */
@@ -128,10 +130,10 @@
       pose(){
         if (!m) return {spidey: 1}
         const on = {face: m.dir, lookX: 1, spidey: 1}
-        if (m.phase === 'aim') return {...on, squash: 1, arms: ['mid', 'high'], eyes: 'up'}
-        if (m.phase === 'up' || m.phase === 'catch') return {...on, stretch: 1, arms: ['mid', 'high']}
-        if (m.phase === 'swing') return {...on, arms: ['mid', 'high'], tuck: Math.abs(m.th) < .35 ? 1 : 0} // legs up through the bottom of the arc
-        if (m.phase === 'fly') return {...on, stretch: 1, arms: ['mid', 'up']}
+        if (m.phase === 'aim') return {...on, squash: 1, arms: UP('high'), eyes: 'up'}
+        if (m.phase === 'up' || m.phase === 'catch') return {...on, stretch: 1, arms: UP('high')}
+        if (m.phase === 'swing') return {...on, arms: UP('high'), tuck: Math.abs(m.th) < .35 ? 1 : 0} // legs up through the bottom of the arc
+        if (m.phase === 'fly') return {...on, stretch: 1, arms: UP('up')}
         return {...on, squash: 2}
       },
     }
@@ -162,6 +164,35 @@
     return out
   }
 
+  /**
+   * Hatty's suit, worked as he's drawn facing you (mirrored when he faces right): his head red with the web spreading from
+   * between his eyes and two big white lenses rimmed in black, red gloves and jacket, a black spider for his tie, blue
+   * trousers and red boots. His top hat stays on, Spider-Man Noir style, and his outline stays dark.
+   */
+  function hattySuit(d, px, pose){
+    const h = head(pose), L = x => pose.face > 0 ? 42 - x : x, cx = h.x + 4 // the web spreads from between his eyes
+    const web = (x, y) => { const dx = x - cx, dv = y - h.y - .5, r = Math.hypot(dx / 1.2, dv); return Math.abs(dx) < .6 || Math.abs(Math.abs(dx) - 2 * Math.abs(dv)) < .7 || Math.abs(r - 5) < .5 }
+    const SUIT = {[BODY]: RED[BODY], [TOP]: RED[TOP], [SIDE]: RED[SIDE], '#915544': RED[BODY], '#9B225D': '#141414', '#4E4E4E': BLUE[BODY]} // his gloves, collar, jacket, tie and trousers (web/skins/hatty.js)
+    const boots = Math.max(...px.filter(([, y, c]) => c === '#4E4E4E' && y > h.top).map(([, y]) => y))
+    const out = px.map(([x, y, c]) => {
+      const ax = L(x)
+      if (y < h.top) return [x, y, c] // his hat
+      if (c === EYE) return [x, y, mix(EYE, '#FFFFFF', d)]
+      if (y < h.top + 12 && ax >= 14 && ax <= 24 && (c !== '#000000' || y === h.y + 3)) return [x, y, mix(c, web(ax, y) ? '#7E1219' : RED[BODY], d)] // his face, tears and mouth under the mask
+      const to = y === boots && c === '#4E4E4E' ? RED[BODY] : SUIT[c]
+      return to ? [x, y, mix(c, to, d)] : [x, y, c]
+    })
+    if (d < 1) return out
+    const lens = new Set()
+    for (const [i, j] of [[-1, -2], [0, -2], [-1, -1], [0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0], [2, 0], [1, 1], [2, 1]]) { lens.add(h.x + i + ',' + (h.y + j)); lens.add(h.x + 7 - i + ',' + (h.y + j)) } // slanting down to his nose
+    for (const k of lens) {
+      const [x, y] = k.split(',').map(Number)
+      out.push([L(x), y, '#FFFFFF'])
+      for (const [i, j] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) if (!lens.has(x + i + ',' + (y + j))) out.push([L(x + i), y + j, '#141414'])
+    }
+    return out
+  }
+
   hangabout.trick({
     name: 'spidey', label: 'Spider-Man 🕸', rarity: 'rare', pack: 'fan', on: {highUp: .15}, // high up a window, sometimes he swings down
     trip: () => [
@@ -175,7 +206,8 @@
     end: cut, // cut short mid-swing: no web left hanging
     /** The suit: red up top with a web over it, blue below the waist, red boots, and big white eyes rimmed in black. */
     pixels({d, px, pose}){
-      if (head) return profileSuit(d, px, pose)
+      if (PROFILE) return profileSuit(d, px, pose)
+      if (HATTY) return hattySuit(d, px, pose)
       const waist = OY + 12 + (pose.dy || 0), boots = OY + 18 + (pose.dy || 0), eyes = new Set(), eye = px.filter(p => p[2] === EYE)
       const cx = eye.reduce((s, p) => s + p[0], 0) / eye.length + .5, cy = OY + 6 + (pose.dy || 0) // the web spreads from between his eyes
       const web = (x, y) => { const dx = x + .5 - cx, dy = y - cy, r = Math.hypot(dx / 1.6, dy); return Math.abs(dx) < .6 || Math.abs(Math.abs(dx) - 2 * Math.abs(dy)) < .6 || Math.abs(r - 7.5) < .45 }
