@@ -180,7 +180,7 @@
       // Where his sword is, where his near fist is on it, and his far fist if it's on it too.
       const HELD = {
         ready: [() => sword(8, 33 + y0, 1, 0, 9, 24), [1, 29 + y0], [21, 29 + y0]],
-        forward: [() => sword(14, 30 + y0, 1, 0, 9, 22), [4, 28 + y0], [11, 27 + y0]], // both hands, thrust ahead
+        forward: [() => sword(14, 30 + y0, 1, 0, 9, 22), [4, 28 + y0]], // thrust ahead in his near hand, as he swings in the game
         raise: [() => sword(-1, 18 + y0, 0, -1, 3, 17 + y0), [-3, 16 + y0]], // straight up through his near fist, the pommel below it
         down: [() => sword(22, 30 + y0, 1, 1, 2, Math.min(7, ground - 30 - y0)), [19, 27 + y0]], // swung down in front of him
         lean: [() => sword(4, 33 + y0, 0, 1, 3, ground - 35 - y0), [1, 29 + y0]], // point down close at his side, his fist on the grip
