@@ -4,6 +4,7 @@
 {
   const {OX, OY, GW, GH, BODY, head, facing} = hangabout
   const PROFILE = hangabout.sideOn && head // side on: the mop on his head, a dagger on each leg
+  const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the mop square on her head, locks either side of her face, short bangs
   const HATTY = hangabout.skin === 'hatty' // the hair under his top hat, a dagger in each hand along his forearm
   const CHICKEN = hangabout.skin === 'chicken' // the scar by his eye, a dagger in his wing and one tucked in a belt at his side
   const BLADE = '#DCE1E8', STEEL = '#8E96A3', ARM = {down: 12, mid: 8, up: 4, high: -2}
@@ -16,14 +17,14 @@
    * to this skin's eye and snout; the back dagger goes by his rump, and his raised paw is found by his toes' color.
    */
   function profileFront(ctx, th, pose, px){
-    const h = head(pose), t = h.top, k = h.x - 20, dy = pose.dy || 0, strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x + k, y0, 1, len) }
+    const h = head(pose), t = h.top, k = PUSHEEN ? -2 : h.x - 20, dy = pose.dy || 0, strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x + k, y0, 1, len) }
     const L = x => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0), rump = Math.max(...px.map(([x]) => L(x))) - 1 // as drawn facing left
     facing(ctx, pose, () => {
-      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(CHICKEN ? h.x + 5 - i : h.nose + 2 + i, CHICKEN ? h.y - 2 + i : h.y + 5 - (i >> 1), 1, 1) } // scar across his snout (the chicken: down his cheek past his eye; on his beak it reads as a mouth)
+      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < (PUSHEEN ? 5 : 6); i++) ctx.fillRect(CHICKEN ? h.x + 5 - i : PUSHEEN ? h.x - 1 + i : h.nose + 2 + i, CHICKEN ? h.y - 2 + i : h.y + (PUSHEEN ? 3 : 5) - (i >> 1), 1, 1) } // scar across his snout (her cheek; the chicken: down his cheek past his eye; on his beak it reads as a mouth)
       if (th.hair) {
         ;[1, 2, 3, 4, 3, 5, 4, 3, 5, 4, 3, 4, 5, 3, 2, 1].forEach((n, i) => strand(13 + i, (i === 0 ? t + 2 : i === 1 ? t + 1 : t) - n, n + 2, i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID)) // the mop
-        for (const [x, len, c] of [[25, 7, MID], [26, 8, MID], [27, 9, SHADE], [28, 6, SHADE]]) strand(x, t, len, c) // locks down the back of his head
-        for (const [x, len, c] of [[13, 4, SHADE], [14, 5, MID], ...CHICKEN ? [[15, 4, LIGHT]] : [], [16, 3, MID], [17, 2, MID]]) strand(x, t + 1, len, c) // bangs over his brow (the chicken's unparted: his brow shows through the part)
+        for (const [x, len, c] of PUSHEEN ? [[11, 5, SHADE], [12, 6, MID], [27, 6, MID], [28, 5, SHADE]] : [[25, 7, MID], [26, 8, MID], [27, 9, SHADE], [28, 6, SHADE]]) strand(x, t, len, c) // locks down the back of his head (her face's sides)
+        for (const [x, len, c] of PUSHEEN ? [[15, 2, SHADE], [16, 1, MID], [19, 2, MID], [20, 1, MID]] : [[13, 4, SHADE], [14, 5, MID], ...CHICKEN ? [[15, 4, LIGHT]] : [], [16, 3, MID], [17, 2, MID]]) strand(x, t + 1, len, c) // bangs over his brow (the chicken's unparted: his brow shows through the part)
         for (const x of [17, 22, 26]) strand(x, t - 2, 1, LIGHT) // shine
       }
       if (th.daggers && CHICKEN) { // reverse grip in his wing, down from his fist (up when he raises it); the other tucked at his side, darker so it shows on his white

@@ -6,6 +6,7 @@
   // snout at x 10, and moved to this skin's snout; the flap and the mantle run to his rump.
   const PROFILE = hangabout.sideOn && head
   const rump = (px, pose) => Math.max(...px.map(([x]) => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0))) - 1 // his last column, as drawn facing left
+  const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the Brand on the back of her neck, clear of her whiskers
   const HATTY = hangabout.skin === 'hatty' // his hat stays on: the cloak off his shoulders, the sword in his cane hand
   const CHICKEN = hangabout.skin === 'chicken' // the sword in his wing: up in front of him, planted in the ground, then over his head from his raised wing
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
@@ -111,7 +112,7 @@
           ctx.fillStyle = '#8C3B2E'; ctx.fillRect(OX + 25, eyeY - 1, 1, 6)
         }
         if (g.brand) { // the Brand of Sacrifice, bleeding red on his brow (side on: his neck; the chicken: his brow, before his eye)
-          const bx = CHICKEN ? h.x - 3 : PROFILE ? 25 + n : HATTY ? h.x + 3 : OX + 16, by = CHICKEN ? h.y - 3 : PROFILE ? h.y : HATTY ? h.y - 5 : eyeY - 1
+          const bx = CHICKEN ? h.x - 3 : PUSHEEN ? 28 : PROFILE ? 25 + n : HATTY ? h.x + 3 : OX + 16, by = CHICKEN ? h.y - 3 : PROFILE ? h.y : HATTY ? h.y - 5 : eyeY - 1
           if (g.brand > 1 && !CHICKEN) { ctx.globalAlpha = .45; ctx.fillStyle = '#FF4D5E'; ctx.fillRect(bx - 1, by - 1, 5, 6) }
           ctx.globalAlpha = g.brand > 1 ? 1 : .6 + .4 * Math.sin(now / 160); ctx.fillStyle = CHICKEN && g.brand > 1 ? '#FF2E45' : '#D7263D' // the chicken's bleeds brighter instead of glowing
           ;['.#.', '.##', '##.', '.#.'].forEach((r, j) => [...r].forEach((ch, i) => { if (ch === '#') ctx.fillRect(bx + i, by + j, 1, 1) }))
