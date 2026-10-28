@@ -264,6 +264,7 @@ const MOODS = {
   blocked: {intro: SLUMP, loops: 1, rest: SLUMP},
   nap: {intro: NAP, loops: Infinity, rest: NAP},
 }
+for (const [id, m] of Object.entries(SKINS[SKIN].moods || {})) Object.assign(MOODS[id], m) // a skin may move its own way in a state
 const sum = seq => seq.reduce((s, [, ms]) => s + ms, 0)
 function frameAt(seq, t){ let tt = t % sum(seq); for (const [p, ms] of seq) { if (tt < ms) return p; tt -= ms } return seq[0][0] }
 const introDone = (m, t) => t >= sum(m.intro) * m.loops
@@ -554,6 +555,7 @@ for (const [name, p] of Object.entries(PRESETS)) console.assert(Math.abs(Object.
 let preset = PRESETS.normal
 // Walking: turned toward where he's going, legs stepping in diagonal pairs, arms swinging fore and aft, rocking side to side.
 const walkFrame = (now, dir, arms) => {
+  if (SKINS[SKIN].walk) return SKINS[SKIN].walk(now, dir, arms) // a skin with a walk of its own
   const i = Math.floor(now / 130) % 4
   return {face: dir, lift: i === 0 ? [0, 3] : i === 2 ? [1, 2] : [], dy: i % 2 ? -1 : 0, arms: arms || ['mid', 'mid'], swing: i < 2 ? 1 : -1, lookX: 1, tilt: i < 2 ? -3.5 : 3.5}
 }
@@ -734,7 +736,7 @@ function startMove(now, name, here){
   const t = ai.trick = TRICKS[name]
   lastTrick = name
   if (t.pack === 'fan' && !found.has(name)) { found.add(name); if (NATIVE) webkit.messageHandlers.hangabout.postMessage({found: [name]}) } // a secret, found
-  if (!t.trip) return fidget(now, t.frames)
+  if (!t.trip) return fidget(now, SKINS[SKIN].tricks?.[name] || t.frames) // a skin may do a trick its own way
   const {x, y} = feet()
   trip(now, t.trip({now, here: here || surfaces()[0], x, y, dir: ai.dir || 1}))
 }
