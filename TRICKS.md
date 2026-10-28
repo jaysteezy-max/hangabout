@@ -115,8 +115,9 @@ comes next. Keep tricks short, a few seconds at most; there's always next time.
 | `phase` | 1 | Dithered and violet, as if halfway through a wall. |
 | `<your trick's name>` | anything but `null` | Turns on your trick's draw hooks for this frame and hands them the value. |
 
-**Two skins.** Tricks play on whichever pet is on screen: Cappy, the default, or the Clawd skin (right-click → Skin, or
-the mockup's **Clawd skin** button). Cappy is a capybara drawn side on, facing the way he last went. He has no arms:
+**Skins.** Tricks play on whichever pet is on screen: Cappy, the default, the Clawd skin, or any other in
+[Skins](#skins) (right-click → Skin, or the mockup's **Skin** picker). Cappy is a capybara drawn side on, facing the way
+he last went. He has no arms:
 `arms` `'up'` lifts his front paw in a wave, `'high'` lifts it higher, `hand` and `reach` push it forward, and `'cross'`
 does nothing. `face` turns him left or right, and his one eye takes the same `eyes` and `look` values as Clawd's.
 Everything else above works the same on both.
@@ -145,7 +146,7 @@ x:  0    4   6  10  14       28  33 34  37   43
 | `OX`, `OY` | 4, 20 | Clawd's offset in the grid: his front-facing body spans x `OX + 6` to `OX + 29`, y `OY` to `OY + 15`. Cappy fills about the same box side on, x 9 to 34, with his eye on y 24 and his feet on y 38. |
 | `LIFT` | 12 | `OY - 8`. Add it to a y you worked out as if he had only 8 rows of headroom above him. |
 | `BODY`, `TOP`, `SIDE`, `EYE` | hex colors | The skin's colors: its body, the lit top, the shaded side, the eyes. Cappy's brown or Clawd's terracotta, so read them from here; never hard-code them. |
-| `skin` | `'cappy'` or `'clawd'` | Which skin is on, for a trick that needs to draw differently on each. The page reloads when it changes. |
+| `skin` | `'cappy'`, `'clawd'`, … | The key of the skin that's on (see [Skins](#skins)), for a trick that needs to draw differently on each. The page reloads when it changes. |
 | `C` | `{clay, peri, ok, err, dim}` | Claude Code's theme colors, light or dark to match the screen. |
 | `PH` | 120 | His footprint's height in screen points at normal size (for trips). |
 
@@ -246,15 +247,44 @@ A trip is cut short when Claude needs him or you grab him. If yours added anythi
   ```
 
   (Tilts are CSS rotations of the whole canvas, so they don't show on the sheet.)
-- **Both skins:** check it on Cappy and on Clawd (the mockup's **Clawd skin** button).
+- **Every skin:** check it on Cappy, on Clawd and on any other skin (the mockup's **Skin** picker, or `?skin=<name>`).
 - **Reduce motion** on (mockup button or right-click menu): he should still look right standing still.
 - **The real thing:** `./install.sh`, then right-click → Tricks.
 
+## Skins
+
+A skin is who the pet is. Each is one file in `web/skins/` that adds itself to `SKINS`, loaded with a
+`<script src="skins/<name>.js">` line next to `skins/cappy.js` near the top of `web/pet.html` (before the page's own
+script, so his colors are known before the tricks load). `web/skins/cappy.js` is the worked example; Clawd is drawn
+inside `web/pet.html` and registered there.
+
+```js
+SKINS.hippo = {
+  name: 'Hippo',               // what the page and the menu call him
+  label: 'Hippo (fan art)',    // optional: the menu's text, when it should say more than the name
+  colors: [body, top, side, eye], // become BODY, TOP, SIDE, EYE: tricks recolor exactly these, so use them in your art
+  sideOn: true,                // optional: drawn side on, so he keeps facing the way he last went
+  pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
+  draw(pose, eye){ return [[x, y, color], ...] },
+}
+```
+
+`draw` turns a [pose](#frames-and-poses) into pixels on the [art grid](#the-art-grid): every key in the pose table
+should do something sensible (`dy`, `squash`, `stretch`, `tuck`, `lift`, `tapLeg`, `arms`, `hand`, `reach`, `eyes`,
+`look`, `lookX`, `lookY`, `dx`, `face`, `half`, `swing`, `ox`), or nothing where the pet has no such part. Draw his eyes
+in the `eye` color it's given (it flashes while Claude needs you). His lowest pixel must be on row 39, the ground; the
+page checks this. Stay inside about x 6 to 37 and keep the head near y 18 to 24, where tricks put hats and props. The
+pet is outlined with its own dark line, as in the pixel-art reference it was drawn from.
+
+Pick one with right-click → Skin in the app (saved, and the page reloads), or `?skin=<key>` in the mockup.
+Before you ship one: play every trick on it in the mockup with no console errors, and look at a sheet of its poses.
+
 ## Fan pack rules
 
-Tricks that depict other people's characters go in `web/tricks/fan/` with `pack: 'fan'`, and start with a comment
-naming the source and saying it's fan-made and unofficial. Draw original pixel art: no traced or copied sprites, logos
-or sounds. If a rights holder asks for a trick to be removed, it will be.
+Tricks and skins that depict other people's characters are fan art: tricks go in `web/tricks/fan/` with `pack: 'fan'`,
+skins in `web/skins/` with `pack: 'fan'`, and each starts with a comment naming the source and saying it's fan-made and
+unofficial. Draw original pixel art: no traced or copied sprites, logos or sounds. If a rights holder asks for a trick or
+skin to be removed, it will be.
 
 ### Secrets
 

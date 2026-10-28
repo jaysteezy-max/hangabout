@@ -6,6 +6,24 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8417", "--bind", "127.0.0.1", "--directory", "web"],
       "port": 8417
+    },
+    {
+      "name": "mockup-2",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8418", "--bind", "127.0.0.1", "--directory", "web"],
+      "port": 8418
+    },
+    {
+      "name": "mockup-3",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8419", "--bind", "127.0.0.1", "--directory", "web"],
+      "port": 8419
+    },
+    {
+      "name": "mockup-4",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8420", "--bind", "127.0.0.1", "--directory", "web"],
+      "port": 8420
     }
   ]
 }

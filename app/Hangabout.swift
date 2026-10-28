@@ -8,7 +8,6 @@ let dir = Bundle.main.bundleURL.deletingLastPathComponent() // the install folde
 let stateURL = dir.appendingPathComponent("state.json")
 let pidURL = dir.appendingPathComponent("hangabout.pid")
 let presets = [("calm", "Calm"), ("normal", "Normal"), ("erratic", "Erratic")]
-let skins = [("cappy", "Cappy"), ("clawd", "Clawd (fan art)")]
 
 /// Catches the mouse while it's over the pet (the window ignores it everywhere else) and hands it to the page.
 final class Handle: NSView {
@@ -72,6 +71,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     let prefs = UserDefaults.standard
     /// The tricks the page has, for the menu: (name, label, fan pack).
     var tricks: [(String, String, Bool)] = []
+    /// The skins the page has, for the menu: (name, label, fan pack). The page sends them once it loads.
+    var skins: [(String, String, Bool)] = [("cappy", "Cappy", false)]
 
     func applicationDidFinishLaunching(_ note: Notification) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -215,7 +216,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     var scale: Double { prefs.object(forKey: "scale") as? Double ?? 1 }
     var preset: String { prefs.string(forKey: "preset").flatMap { p in presets.contains { $0.0 == p } ? p : nil } ?? "normal" }
-    var skin: String { prefs.string(forKey: "skin") == "clawd" ? "clawd" : "cappy" }
+    /// A skin's name: letters, digits and dashes only, since it goes into the page's JavaScript. The page falls back to Cappy for one it doesn't have.
+    var skin: String { String((prefs.string(forKey: "skin") ?? "cappy").filter { $0.isLetter || $0.isNumber || $0 == "-" }) }
 
     /// Tells the page who to draw before it loads: tricks read his colors as they load, so a new skin means a reload.
     func skinScript() -> WKUserScript {
@@ -281,7 +283,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
         menu.addItem(withTitle: "Behavior", action: nil, keyEquivalent: "").submenu = behavior
         let skinMenu = NSMenu()
-        for (key, title) in skins {
+        for (key, title, fanMade) in skins where !fanMade || fan || key == skin {
             let item = skinMenu.addItem(withTitle: title, action: #selector(chooseSkin(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = key
@@ -360,6 +362,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let body = message.body as? [String: Any]
         if let list = body?["tricks"] as? [[String: Any]] {
             tricks = list.compactMap { t in (t["name"] as? String).map { ($0, t["label"] as? String ?? $0, t["fan"] as? Bool ?? false) } }
+            let sent = (body?["skins"] as? [[String: Any]] ?? []).compactMap { t in (t["name"] as? String).map { ($0, t["label"] as? String ?? $0, t["fan"] as? Bool ?? false) } }
+            if !sent.isEmpty { skins = sent }
             return
         }
         if let names = body?["found"] as? [String] { // a secret turned up, or the cheat code unlocked them all
