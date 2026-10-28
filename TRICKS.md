@@ -330,8 +330,8 @@ poses beside references, sweeps every pose, and plays every trick headlessly. By
 1. **Agree the scope** with the owner: the canonical look and its source, the size, fan pack or not, and what done
    means: the art, its own walk (`walk`), hands per action, every `eyes` expression, Claude's states (`moods`), every
    trick checked at 2x against Cappy and tailored (`tricks` frames, or a `hangabout.skin === '<key>'` branch in a trip
-   or a trick that draws props or costumes), props in its hands, every fan costume fitted, its own tricks (pitched first), and a
-   pose sheet and trick sheets. Nothing merges until all of it is approved.
+   or a trick that draws props or costumes), props in its hands, every fan costume fitted, its own tricks (pitched
+   first), and a pose sheet and trick sheets. Nothing merges until all of it is approved.
 2. **Research before pixels**: official art, sprite sheets or rigs, gameplay footage for motion, personality. Write a
    short character bible: parts, proportions as ratios, sampled palette, line style, idle pose, walk and jump physics,
    hand shapes, expressions, gear. Draw shapes on purpose from it; never shrink a blurry frame, never trust a written

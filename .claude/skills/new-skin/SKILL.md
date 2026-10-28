@@ -6,7 +6,7 @@ description: Make a new Hangabout skin (a character the pet can be) from real re
 # Make a new skin
 
 Read `TRICKS.md` › Skins and › Making a skin first, then `web/skins/cappy.js` (the worked example) and the skin closest
-to yours: an animal side on or three-quarters `hippo.js` or `chicken.js`, front on `hatty.js`, a figure with arms
+to yours: an animal side on or three-quarters `chicken.js` or `pusheen.js`, front on `hatty.js`, a figure with arms
 `clay.js`.
 
 The owner (Jay) is not a pixel artist or an expert on the character, and this is a side project. You are the
