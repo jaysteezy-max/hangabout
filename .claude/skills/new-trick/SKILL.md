@@ -1,6 +1,6 @@
 ---
 name: new-trick
-description: Scaffold a new Hangabout trick (a move Clawd does) from an idea, wire it into web/pet.html, and check it in the browser mockup. Use when someone in this repo asks to make, add or prototype a trick, move, animation or fidget for the pet.
+description: Scaffold a new Hangabout trick (a move the pet does) from an idea, wire it into web/pet.html, and check it in the browser mockup. Use when someone in this repo asks to make, add or prototype a trick, move, animation or fidget for the pet.
 ---
 
 # Make a new trick
