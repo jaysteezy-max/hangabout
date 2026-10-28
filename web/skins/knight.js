@@ -93,8 +93,9 @@
     // His own frames for some tricks: a knight's dance, sword in hand, raising it on the beat; for tricks that need
     // both hands (juggling, coffee by the fire) he plants his sword in the ground beside him first.
     get tricks(){
-      const planted = name => TRICKS[name]?.frames?.map(([p, ms]) => [{...p, sword: 'planted'}, ms])
-      return {dance: DANCE, juggle: planted('juggle'), coffee: planted('coffee')}
+      const shared = typeof TRICKS === 'undefined' ? {} : TRICKS // the page's; absent when the skin is read on its own
+      const planted = name => shared[name]?.frames?.map(([p, ms]) => [{...p, sword: 'planted'}, ms])
+      return Object.fromEntries(Object.entries({dance: DANCE, juggle: planted('juggle'), coffee: planted('coffee')}).filter(([, f]) => f))
     },
     /** His march, sword in hand: wide strides, near leg then far, bobbing up between them and leaning into it. */
     walk(now, dir, arms){
