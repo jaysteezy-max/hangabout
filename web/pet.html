@@ -1022,7 +1022,7 @@ function watchLogs(){
   const was = cc.seen
   cc.seen = {}
   for (const [id, s] of Object.entries(cc.sessions)) {
-    const log = s.log || [], seen = cc.seen[id] = log.map(e => JSON.stringify(e)), old = was?.[id] || []
+    const log = s.log || [], seen = cc.seen[id] = log.map(e => JSON.stringify([e.ok, e.call, e.out])), old = was?.[id] || [] // by value: the hook's key order changes from one save to the next
     if (!was) continue // when the page loads, what's in the logs already happened
     // Calls have no ids: the new ones follow the longest run that ends the log as we last saw it.
     // shortcut: a full log that repeats itself (one call failing the same way 9 times running) hides the newest; ids from the hook would fix it.
@@ -1078,15 +1078,15 @@ function runDemo(now){
 
 // ---- input: drag him anywhere, hover to show the bubble, click to pin ----
 const button = petEl.querySelector('button')
-const grab = (x, y) => { pet.drag = {sx: x, sy: y, x: pet.x, y: pet.y, moved: false} }
+const grab = (x, y) => { pet.drag = {sx: x, sy: y, x: pet.x, y: pet.y, moved: false, trail: [[performance.now(), x]]} }
 function pull(x, y){
   if (!pet.drag) return
   const dx = x - pet.drag.sx, dy = y - pet.drag.sy
   if (Math.hypot(dx, dy) > 4) pet.drag.moved = true
   if (pet.drag.moved) {
     const nx = pet.drag.x + dx, now = performance.now(), ms = Math.max(1, now - (pet.drag.t || now - 16)), vx = (nx - pet.x) / ms * 1000
-    pet.drag.fling = (x - (pet.drag.px ?? x)) / ms * 1000 // the pointer's own speed: his stops at the screen's edges
-    pet.drag.t = now; pet.drag.px = x
+    pet.drag.t = now
+    pet.drag.trail = [...pet.drag.trail.filter(([t]) => now - t < 300), [now, x]] // the pointer's recent path, for a throw: his own x stops at the screen's edges
     pet.swing += (Math.max(-16, Math.min(16, -vx * .02)) - pet.swing) * .35 // swings opposite to the way you pull him
     // Shaken: four fast changes of direction within ~a second leave him dizzy.
     const sign = Math.sign(vx)
@@ -1101,7 +1101,10 @@ function drop(){
   if (d && !d.moved) { pet.pinned = !pet.pinned; beat(now) }
   if (d?.dizzy) pet.pendingDizzy = true
   if (d?.moved) {
-    const thrown = now - d.t < 100 && Math.abs(d.fling) > 2000 // let go mid-fling, hard to the side
+    // Let go mid-fling, hard to the side: over 2,000 points a second across at least the last 50 ms, so moves that
+    // arrive bunched together can't fake one, and he has to have been moving in the last 150.
+    const from = d.trail.findLast(([t]) => now - t >= 50), to = d.trail.at(-1)
+    const thrown = from && now - from[0] < 150 && Math.abs(to[1] - from[1]) / (now - from[0]) > 2
     pet.droppedAt = thrown && fire('thrown') ? null : pet.y // if not, how far he falls may count when he lands (bigDrop)
   }
   pet.drag = null
