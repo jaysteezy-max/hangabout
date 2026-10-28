@@ -2,7 +2,7 @@
 // It drops in on a loot beam; he catches it overhead, it decrypts in rolling gold rings, bursts, and he's holding up
 // a Gjallarhorn, glowing; then it goes to his inventory and he hops for joy.
 {
-  const {GW, GH, BODY, TOP, SIDE, recolor} = hangabout
+  const {GW, GH, BODY, TOP, SIDE, recolor, facing} = hangabout
   const LIT = {[BODY]: '#FFFFFF', [TOP]: '#FFFFFF', [SIDE]: '#FFFFFF'}
   const ENGRAM = ['..###..', '.#####.', '###*###', '#######', '###*###', '.#####.', '..###..']
   const HIGH = ['high', 'high']
@@ -43,8 +43,9 @@
         }
       }
       if (l.flash) { ctx.globalAlpha = .85; ctx.fillStyle = '#FFFFFF'; for (let k = -7; k <= 7; k++) { const w = 7 - Math.abs(k); ctx.fillRect(22 - w, 12 + k, w * 2 + 1, 1) } ctx.globalAlpha = 1 }
-      if (l.gun) { // held up in both hands, after the real one: thin rear tube, gunmetal body with bronze trim and a red
-        // mark, a fat ribbed barrel at the front, and the carved bronze wolf crouched on top of it
+      if (l.gun) facing(ctx, {...pose, face: -pose.face}, () => { // held up in both hands, after the real one: thin rear tube, gunmetal body with
+        // bronze trim and a red mark, a fat ribbed barrel at the front, and the carved bronze wolf crouched on top of it.
+        // It's drawn pointing right, so Cappy's turn is flipped for it: then it points the way he faces.
         const y = 13 + dy, r = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, yy, w, h) }
         ctx.globalAlpha = l.gun
         const t = y - 8 // it's huge, even on a Guardian: nearly as wide as he is, its top well above his head
@@ -60,7 +61,7 @@
         r(38, t + 2, 4, 2, '#D4A94E'); r(41, t + 3, 1, 1, '#4A2E10') // snout, nose
         r(29, t, 1, 1, '#E8C56E'); r(32, t, 1, 1, '#E8C56E'); r(35, t + 3, 1, 1, '#4A2E10') // ears, eye
         ctx.globalAlpha = 1
-      }
+      })
       if (l.sparkle) for (let i = 0; i < 9; i++) { // Exotic gold twinkling round him
         const seed = Math.floor(now / 110) + i * 13
         ctx.globalAlpha = .5 + .1 * (seed % 5); ctx.fillStyle = i % 3 ? '#FFD84D' : '#FFFFFF'

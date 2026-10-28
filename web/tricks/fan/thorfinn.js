@@ -2,9 +2,34 @@
 // Shaggy blond hair and a scar; twin daggers in reverse grip, dashes with afterimages, an aerial flip into an X-slash.
 // Then the farmer: the blades go away and a little sprout grows at his feet.
 {
-  const {OX, OY, GH} = hangabout
+  const {OX, OY, GH, head, facing} = hangabout
+  const CAPPY = hangabout.skin === 'cappy' // side on: the mop on his head, a dagger on each leg
   const BLADE = '#DCE1E8', STEEL = '#8E96A3', ARM = {down: 12, mid: 8, up: 4, high: -2}
   const DOWN = ['down', 'down']
+
+  const LIGHT = '#F7DD8E', MID = '#E8C25A', SHADE = '#B8892E'
+  /** Cappy, drawn facing left: the scar across his snout, the mop over his head and ears, and a dagger on each leg (the front one up in his paw when he lifts it). */
+  function cappyFront(ctx, th, pose){
+    const h = head(pose), t = h.top, dy = pose.dy || 0, strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x, y0, 1, len) }
+    facing(ctx, pose, () => {
+      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(12 + i, h.y + 5 - (i >> 1), 1, 1) } // scar across his snout
+      if (th.hair) {
+        ;[1, 2, 3, 4, 3, 5, 4, 3, 5, 4, 3, 4, 5, 3, 2, 1].forEach((n, i) => { const x = 13 + i, top = x === 13 ? t + 2 : x === 14 ? t + 1 : t; strand(x, top - n, n + 2, i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID) }) // the mop
+        for (const [x, len, c] of [[25, 7, MID], [26, 8, MID], [27, 9, SHADE], [28, 6, SHADE]]) strand(x, t, len, c) // locks down the back of his head
+        for (const [x, len, c] of [[13, 4, SHADE], [14, 5, MID], [16, 3, MID], [17, 2, MID]]) strand(x, t + 1, len, c) // bangs over his brow
+        ctx.fillStyle = LIGHT; for (const x of [17, 22, 26]) ctx.fillRect(x, t - 2, 1, 1) // shine
+      }
+      if (th.daggers) { // reverse grip: down along his legs, or up from his front paw when he lifts it
+        const arms = pose.arms || [], paw = arms.includes('high') ? [9, 30] : arms.includes('up') ? [11, 32] : null
+        for (const [bx, y0, up] of [paw ? [paw[0], paw[1] - 5 + dy, 1] : [16, 33 + dy, 0], [31, 33 + dy, 0]]) {
+          ctx.fillStyle = BLADE; ctx.fillRect(bx, y0, 2, 5)
+          ctx.fillStyle = STEEL; ctx.fillRect(bx + 1, y0, 1, 5)
+          if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, up ? y0 - 1 : y0 + 5, 1, 1) }
+        }
+      }
+      if (th.sheathe) { ctx.fillStyle = '#FFFFFF'; for (const x of [17, 32]) ctx.fillRect(x, 34 + dy, 1, 1) }
+    })
+  }
 
   hangabout.trick({
     name: 'thorfinn', label: 'Thorfinn 🗡', rarity: 'rare', pack: 'fan', on: {dizzyAgain: 1}, // shaken dizzy a third time today
@@ -36,9 +61,10 @@
     /** In front: his scar, shaggy blond hair, the daggers (reverse grip), the X-slash, and the sprout. */
     front({ctx, d: th, px, pose}){
       const dy = pose.dy || 0, sq = pose.squash || 0, ox = pose.ox || 0, top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + dy + sq
-      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(OX + 14 + i + ox, eyeY + 5 - (i >> 1), 1, 1) } // scar across his nose
-      if (th.hair) { // long, messy blond hair: uneven strands on top, locks hanging past his eyes, parted bangs
-        const bx = OX + 4 + ox, LIGHT = '#F7DD8E', MID = '#E8C25A', SHADE = '#B8892E'
+      if (CAPPY) cappyFront(ctx, th, pose)
+      else if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(OX + 14 + i + ox, eyeY + 5 - (i >> 1), 1, 1) } // scar across his nose
+      if (th.hair && !CAPPY) { // long, messy blond hair: uneven strands on top, locks hanging past his eyes, parted bangs
+        const bx = OX + 4 + ox
         const strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x, y0, 1, len) }
         const TOP_H = [2, 3, 4, 3, 2, 4, 5, 3, 4, 2, 3, 5, 4, 3, 2, 4, 3, 5, 3, 2, 4, 3, 2, 3, 2, 2, 1, 1]
         TOP_H.forEach((h, i) => strand(bx + i, top - h, h + 2, i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID)) // the mop on top
@@ -46,7 +72,7 @@
         for (const [x, len] of [[bx + 6, 4], [bx + 7, 3], [bx + 10, 2], [bx + 16, 3], [bx + 19, 4], [bx + 20, 3]]) strand(x, top + 2, len, MID) // bangs, parted
         ctx.fillStyle = LIGHT; for (const x of [bx + 8, bx + 13, bx + 18]) ctx.fillRect(x, top - 1, 1, 1) // shine
       }
-      if (th.daggers) { // one in each hand, reverse grip: the blade points away from the way his arm is raised
+      if (th.daggers && !CAPPY) { // one in each hand, reverse grip: the blade points away from the way his arm is raised
         const arms = pose.arms || ['mid', 'mid']
         for (const [i, side] of [[0, -1], [1, 1]]) {
           const a = arms[i], ax = (side < 0 ? OX + 2 : OX + 30) + ox, ay = OY + ARM[a] + dy + (a === 'mid' || a === 'down' ? Math.ceil(sq / 2) : 0)
@@ -61,7 +87,7 @@
         for (let i = 0; i <= 30; i++) { ctx.fillRect(OX + 2 + i, OY - 2 + Math.round(i * .6), 1, 1); ctx.fillRect(OX + 32 - i, OY - 2 + Math.round(i * .6), 1, 1) }
         ctx.globalAlpha = 1
       }
-      if (th.sheathe) { ctx.fillStyle = '#FFFFFF'; for (const x of [OX + 3, OX + 31]) ctx.fillRect(x, OY + 13, 1, 1) }
+      if (th.sheathe && !CAPPY) { ctx.fillStyle = '#FFFFFF'; for (const x of [OX + 3, OX + 31]) ctx.fillRect(x, OY + 13, 1, 1) }
       if (th.sprout) { // a little sprout comes up beside him
         const sx = OX + 35, base = GH - 1, stem = [1, 3, 5][th.sprout - 1]
         ctx.fillStyle = '#6B4A2B'; ctx.fillRect(sx - 1, base, 4, 1)

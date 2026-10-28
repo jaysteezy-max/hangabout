@@ -192,6 +192,12 @@ Helpers:
 | `recolor(px, {from: to}, t)` | His pixels with some colors moved toward others by `t` (0 to 1). |
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
+| `head(pose)` | Where Cappy's face is in this pose, as drawn facing left: `{x, y}` is his eye's left pixel, `top` the top of his head between his ears. They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
+| `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin faces right (and slid by `ox`), so a costume drawn once on him facing left turns with him. On Clawd it changes nothing. |
+
+**Costumes on both skins.** Hair, masks and anything else that sits on his face need a spot on each skin. Clawd faces
+you, eyes at x 14 and 28; Cappy is side on, so draw his version facing left with `head(pose)` inside `facing()`, and
+check `hangabout.skin` to pick which. Guts, Vader and Thorfinn in `web/tricks/fan/` show how.
 
 ## Trips
 
@@ -268,6 +274,7 @@ SKINS.hippo = {
   colors: [body, top, side, eye], // become BODY, TOP, SIDE, EYE: tricks recolor exactly these, so use them in your art
   sideOn: true,                // optional: drawn side on, so he keeps facing the way he last went
   pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
+  head(pose){ return {x, y, top} }, // optional, side on: his eye's left pixel and the top of his head, as drawn facing left
   draw(pose, eye){ return [[x, y, color], ...] },
 }
 ```
