@@ -18,6 +18,8 @@ h1{font-size:20px;margin:0}
 .t{font:inherit;font-size:13px;padding:5px 11px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink)}
 button.t[aria-pressed=true]{background:var(--ink);color:var(--page)}
 #codeIn{width:9em;border-color:var(--clay)}
+label.t{display:inline-flex;align-items:center;gap:6px;padding:0 4px 0 11px}
+label.t select{font:inherit;background:transparent;color:inherit;border:0;padding:4px 0}
 .sep{width:1px;background:var(--line);margin:0 4px}
 
 /* A pretend desktop: ordinary app windows, with Clawd floating above all of them. */
@@ -75,7 +77,7 @@ body.native .desk{position:fixed;inset:0;height:auto;min-height:0;border-radius:
     <span class="sep"></span>
     <button class="t" id="fan" aria-pressed="false">Fan pack</button>
     <button class="t" id="code">Enter a code…</button><input class="t" id="codeIn" hidden readonly aria-label="Code: arrow keys and letters, Enter to try it, Esc to cancel">
-    <button class="t" id="skin" aria-pressed="false">Clawd skin</button>
+    <label class="t">Skin <select id="skin"></select></label>
     <button class="t" id="replay">Replay entrance</button>
     <button class="t" id="reduced" aria-pressed="false">Reduced motion</button>
     <button class="t" id="sound" aria-pressed="false">Sound</button>
@@ -122,6 +124,9 @@ nothing to commit, working tree clean
 <p class="notes">Pick a state above, or watch the demo run through a real turn: thinking, editing, running a command, asking you, done. Needs you and Blocked keep the bubble open; Done and a new plan step open it briefly; tool calls never do. The trick buttons play any trick on demand; Calm, Normal and Erratic set how busy he is on his own.</p>
 <p class="notes">Put him on your real desktop: <a href="https://github.com/jaysteezy-max/hangabout" style="color:var(--clay)">github.com/jaysteezy-max/hangabout</a>. Hangabout is an unofficial fan project, not affiliated with or endorsed by Anthropic. The Clawd skin is fan art of Anthropic's Clawd; Clawd and Claude are Anthropic's. Fan-pack tricks are fan art of other people's characters.</p>
 </main>
+<!-- Skins: who the pet is. Each file adds one to SKINS (see "Skins" in TRICKS.md); they load first so his colors are known. -->
+<script>const SKINS = {}</script>
+<script src="skins/cappy.js"></script>
 <script>
 // In the Hangabout app this page is a transparent layer over your whole screen; in a browser it's the mockup desktop.
 const NATIVE = !!window.webkit?.messageHandlers?.hangabout
@@ -130,14 +135,14 @@ const GW = 44, GH = 40, OX = 4, OY = 20 // room above his head for big hair and 
 const LIFT = OY - 8 // effects around him were laid out for 8 rows of headroom
 const PAD = 12 // spare columns each side of his grid, for the page or terminal he works at
 
-// ---- who he is: Cappy the capybara, or the Clawd skin (fan art of Anthropic's Clawd) if you pick it ----
-// The app sets window.hangaboutSkin before the page loads; the mockup takes ?skin=clawd. Tricks read his colors once,
+// ---- who he is: a skin from skins/ (Cappy unless you pick another), or Clawd, drawn below (fan art of Anthropic's Clawd) ----
+// The app sets window.hangaboutSkin before the page loads; the mockup takes ?skin=<name>. Tricks read his colors once,
 // as they load, so changing skin reloads the page.
-const SKIN = (window.hangaboutSkin ?? new URLSearchParams(location.search).get('skin')) === 'clawd' ? 'clawd' : 'cappy'
-const NAME = SKIN === 'clawd' ? 'Clawd' : 'Cappy'
 // Clawd: flat Claude Code terracotta; SIDE shows only when he turns, the side of him that faces away.
-// Cappy: capybara brown; TOP is the top of his head, SIDE his shaded rump.
-const [BODY, TOP, SIDE, EYE] = SKIN === 'clawd' ? ['#D77757', '#EB9F7F', '#B5603F', '#1F1410'] : ['#C27A55', '#C9825C', '#9C5644', '#0E0809']
+SKINS.clawd = {name: 'Clawd', label: 'Clawd (fan art)', colors: ['#D77757', '#EB9F7F', '#B5603F', '#1F1410'], draw: (pose, eye) => figure(pose, eye)}
+const askedSkin = window.hangaboutSkin ?? new URLSearchParams(location.search).get('skin')
+const SKIN = SKINS[askedSkin] ? askedSkin : 'cappy', NAME = SKINS[SKIN].name
+const [BODY, TOP, SIDE, EYE] = SKINS[SKIN].colors
 let C = {}
 const readTheme = () => { const s = getComputedStyle(document.body); for (const k of ['clay', 'peri', 'ok', 'err', 'dim']) C[k] = s.getPropertyValue('--' + k).trim() }
 
@@ -352,63 +357,8 @@ function figure(pose, eyeColor){
   return pose.ox ? px.map(([x, y, c]) => [x + pose.ox, y, c]) : px // ox: slid sideways within his canvas (a dash)
 }
 
-// ---- Cappy: a capybara loaf, side on, drawn facing left (facing right is the mirror image) ----
-// Rows of his body; his eye and feet are added per pose. F is his snout, K the line of his mouth, R inside his ears.
-const CAPPY = [
-  '.........BB....BB.........',
-  '.........RB....RB.........',
-  '......LLLLLLLLBBBBB.......',
-  '.....GLLLLLLLBBBBBBB......',
-  '....GGGLLLLLBBBBBBBBB.....',
-  '...FGGGGBBBBBBBBBBBBBB....',
-  '..FFGGGGGBBBBBBBBBBBBBB...',
-  '.FKFFFFFFBBBBBBBBBBBBBBB..',
-  '.FFFFFFFFBBBBBBBBBBBBBBB..',
-  '.FKFFFFFFBBBBBBBBBBBBBBS..',
-  '.FKFFFFFFBBBBBBBBBBBBBBS..',
-  '.FKFFFFFFBBBBBBBBBBBBBBS..',
-  '.FKFFFFFFBBBBBBBBBBBBBBS..',
-  '.FKFFFFFFBBBBBBBBBBBBBBS..',
-  '..KFFFFFFBBBBBBBBBBBBBBS..',
-  '....FFFFFBBBBBBBBBBBBBBS..',
-  '........SBBBBBBBBBBBBBBS..',
-  '........SBBBBBBBBBBBBBSS..',
-  '........SSBBBBBBBBBBBSS...',
-]
-const CAPPY_LINE = '#1C1214', CAPPY_FOOT = '#7A3A3E'
-const CAPPY_INK = {B: BODY, L: TOP, S: SIDE, F: '#86655F', G: '#8F6F69', K: CAPPY_LINE, R: '#8C463E'}
-const CAPPY_FEET = [18, 22, 26, 30] // each foot's left x, front foot first
-const PAW_LIMB = [[16, 36], [15, 36], [15, 35], [14, 35], [14, 34], [13, 34], [13, 33], [12, 33], [12, 32], [11, 32], [11, 31], [10, 31]]
-// His front leg off the ground, from his chest forward: [how much of PAW_LIMB, where his toes are]. Reaching out low, up (a wave), high.
-const CAPPY_PAW = {1: [0, [[16, 37], [15, 37], [14, 37], [13, 37], [12, 37], [12, 36]]], 2: [8, [[12, 32], [11, 32]]], 3: [12, [[9, 30], [10, 30]]]}
-/** Cappy in a pose: squashed or stretched through the middle, feet stepping or tucked, a front paw up instead of a hand, outlined, then his eye. */
-function cappy(pose, eyeColor){
-  const rows = CAPPY.slice(), sq = pose.squash || 0, st = pose.stretch || 0
-  rows.splice(10, sq); for (let i = 0; i < st; i++) rows.splice(10, 0, rows[10]) // shorter or taller through the middle, so his face keeps its shape
-  const dy = pose.dy || 0, top = 38 - rows.length + dy, px = [], seen = new Set() // his feet are on row 38
-  const put = (x, y, c) => { px.push([x, y, c]); seen.add(x + ',' + y) }
-  rows.forEach((r, j) => [...r].forEach((ch, i) => { if (CAPPY_INK[ch]) put(9 + i, top + j, CAPPY_INK[ch]) }))
-  const arms = pose.arms || [], paw = pose.hand != null || pose.reach ? 1 : arms.includes('high') ? 3 : arms.includes('up') ? 2 : 0
-  CAPPY_FEET.forEach((x, n) => {
-    if (n === 0 && paw) { const [reach, toes] = CAPPY_PAW[paw]; for (const [x, y] of PAW_LIMB.slice(0, reach)) put(x, y + dy, BODY); for (const [x, y] of toes) put(x, y + dy, CAPPY_FOOT) }
-    else if (!pose.tuck && !pose.lift?.includes(n) && pose.tapLeg !== n) { put(x, 38 + dy, CAPPY_FOOT); put(x + 1, 38 + dy, CAPPY_FOOT) }
-  })
-  for (const [x, y] of px.slice()) for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!seen.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, CAPPY_LINE)
-  const right = pose.face > 0, out = right ? px.map(([x, y, c]) => [GW - 1 - x, y, c]) : px
-  // His eye, a dash: it looks about with the same keys as Clawd's (screen directions), and keeps his expressions.
-  const kind = pose.eyes || 'open', ex = right ? 22 : 20, ey = top + 5
-  const lx = Math.max(-1, Math.min(1, kind === 'side' ? pose.look ?? 1 : pose.dx ?? pose.lookX ?? 0)), ly = kind === 'up' ? -1 : kind === 'down' ? 1 : pose.lookY || 0
-  const eye = (pts, c = eyeColor) => { for (const [x, y] of pts) out.push([ex + x, ey + y, c]) }
-  if (kind === 'blink') eye([[0, 0], [1, 0]], SIDE)
-  else if (kind === 'happy') eye([[0, 0], [1, -1], [2, 0]])
-  else if (kind === 'sad') eye([[0, 1], [1, 1]])
-  else if (kind === 'dizzy') eye([[0, -1], [2, -1], [1, 0], [0, 1], [2, 1]])
-  else if (kind === 'strain') eye([[0, -1], [1, 0], [0, 1]])
-  else if (kind === 'angry') eye([[0, 0], [1, 0], [right ? 0 : 1, -1]])
-  else eye([[lx, ly], [lx + 1, ly]])
-  return pose.ox ? out.map(([x, y, c]) => [x + pose.ox, y, c]) : out
-}
-for (const pose of [{}, {squash: 2}, {stretch: 2}]) console.assert(CAPPY.every(r => r.length === 26) && Math.max(...cappy(pose, EYE).map(p => p[1])) === 39, 'Cappy stands on row 38 (his outline on 39) however he bends')
+// Every skin stands on the bottom row, however he bends (a skin's art can't slip off the ground).
+for (const pose of [{}, {squash: 2}, {stretch: 2}]) console.assert(Math.max(...SKINS[SKIN].draw(pose, EYE).map(p => p[1])) === GH - 1, `skin "${SKIN}": its lowest pixel must be on row ${GH - 1}`)
 
 // ---- glyphs ----
 const GLYPH = {
@@ -890,7 +840,7 @@ const FIGURES = new Map(), RINGS = new WeakMap()
 function figureOf(pose, eye){
   const key = JSON.stringify(pose) + eye
   let px = FIGURES.get(key)
-  if (!px) { if (FIGURES.size > 500) FIGURES.clear(); FIGURES.set(key, px = (SKIN === 'cappy' ? cappy : figure)(pose, eye)) } // figure draws Clawd
+  if (!px) { if (FIGURES.size > 500) FIGURES.clear(); FIGURES.set(key, px = SKINS[SKIN].draw(pose, eye)) }
   return px
 }
 function draw(now, dt){
@@ -908,9 +858,9 @@ function draw(now, dt){
     // Reacting to you: a happy wiggle when you hover him, dizzy after a good shake.
     if (now - pet.wiggleAt < 500) pose = {...pose, tilt: Math.sin((now - pet.wiggleAt) / 500 * Math.PI * 3) * 6, eyes: 'happy'}
     if (now < pet.dizzyUntil || pet.drag?.dizzy) pose = {...pose, eyes: 'dizzy', tilt: (pose.tilt || 0) + Math.sin(now / 130) * 5}
-    // Cappy is side on, so he keeps facing the way he last turned; Clawd turns back to face you.
+    // A side-on skin like Cappy keeps facing the way he last turned; Clawd turns back to face you.
     if (pose.face) pet.heading = pose.face
-    else if (SKIN === 'cappy') pose = {...pose, face: pet.heading}
+    else if (SKINS[SKIN].sideOn) pose = {...pose, face: pet.heading}
     // Turning: one half-turned frame between facing you and facing sideways.
     const faceNow = pose.face || 0
     if (faceNow !== pet.face) { pet.turnFrom = pet.face; pet.face = faceNow; pet.turnAt = now }
@@ -1207,7 +1157,7 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   // For tricks: register, the art grid and his colors, drawing helpers, and what trips need to move him about.
   trick: registerTrick,
   GW, GH, OX, OY, LIFT, PH, BODY, TOP, SIDE, EYE, C,
-  skin: SKIN, // 'cappy' (side on, no arms) or 'clawd'
+  skin: SKIN, // 'cappy' (side on, no arms), 'clawd', or another skin's key in SKINS
   thickLine, paint, mix, recolor, rand, pick,
   feet, putFeet, surfaces, edges, scr, desk,
   clip(c){ pet.clip = c }, // hides part of him until he lands: {x, dir} or {y} (see portalClip)
@@ -1313,10 +1263,10 @@ codeIn.onkeydown = e => {
   else return
   e.preventDefault()
 }
-// The other skin: a reload, since tricks read his colors as they load. In the app it's right-click → Skin.
-const skinButton = document.getElementById('skin')
-skinButton.setAttribute('aria-pressed', String(SKIN === 'clawd'))
-skinButton.onclick = () => { location.search = SKIN === 'clawd' ? '' : '?skin=clawd' }
+// Another skin: a reload, since tricks read his colors as they load. In the app it's right-click → Skin.
+const skinPicker = document.getElementById('skin')
+for (const [key, s] of Object.entries(SKINS)) skinPicker.add(new Option(s.label ?? s.name, key, false, key === SKIN))
+skinPicker.onchange = () => { location.search = skinPicker.value === 'cappy' ? '' : '?skin=' + skinPicker.value }
 for (const e of document.querySelectorAll('.name')) e.textContent = NAME
 button.setAttribute('aria-label', NAME + '. Show recent activity')
 toggle('light', () => { const on = document.body.classList.toggle('light'); readTheme(); return on })
@@ -1329,7 +1279,10 @@ addEventListener('DOMContentLoaded', () => {
   if (NATIVE) { // his status bubble follows your system's light or dark appearance
     const q = matchMedia('(prefers-color-scheme: light)'), sync = () => { document.body.classList.toggle('light', q.matches); readTheme() }
     q.addEventListener('change', sync); sync()
-    webkit.messageHandlers.hangabout.postMessage({tricks: Object.values(TRICKS).filter(t => t.label).map(t => ({name: t.name, label: t.label, fan: t.pack === 'fan'}))}) // for the Tricks menu
+    webkit.messageHandlers.hangabout.postMessage({ // for the Tricks and Skin menus
+      tricks: Object.values(TRICKS).filter(t => t.label).map(t => ({name: t.name, label: t.label, fan: t.pack === 'fan'})),
+      skins: Object.entries(SKINS).map(([name, s]) => ({name, label: s.label ?? s.name, fan: s.pack === 'fan'})),
+    })
   }
   usePreset('normal'); trickButtons()
   place(desk.clientWidth - PW - 40, surfaces()[0].y) // on the floor, bottom-right, like Codex's pet

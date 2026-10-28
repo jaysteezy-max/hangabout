@@ -140,7 +140,8 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 | **Clawd** | Fan art of Anthropic's Clawd, Claude Code's mascot. Not affiliated with or endorsed by Anthropic. |
 
 Every trick plays with either skin. The fan-pack costumes were drawn for Clawd's front-on body, so on Cappy they sit
-where Clawd's face would be.
+where Clawd's face would be. A skin is one file in `web/skins/` ([how to make one](TRICKS.md#skins)); fan-art skins of
+other people's characters show in the menu only while Fan pack is on.
 
 ## Tricks
 
