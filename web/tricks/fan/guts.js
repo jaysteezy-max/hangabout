@@ -2,7 +2,7 @@
 // Cloak, the Brand, one scarred eye; he draws a sword taller than he is, slashes, and shoulders it.
 {
   const {GW, OX, OY, GH, BODY, EYE, thickLine, head, facing} = hangabout
-  // Side on (Cappy, the hippo): one cloak flap, the scar on the eye he shows, the Brand on his neck. Laid out on Cappy, his
+  // Side on (Cappy, Pusheen): one cloak flap, the scar on the eye he shows, the Brand on his neck. Laid out on Cappy, his
   // snout at x 10, and moved to this skin's snout; the flap and the mantle run to his rump.
   const PROFILE = hangabout.sideOn && head
   const rump = (px, pose) => Math.max(...px.map(([x]) => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0))) - 1 // his last column, as drawn facing left
