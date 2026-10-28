@@ -286,6 +286,10 @@ SKINS.hippo = {
   pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
   head(pose){ return {x, y, top, nose} }, // side on: his eye, the top of his head and the front of his snout, facing left
   draw(pose, eye){ return [[x, y, color], ...] },
+  // optional, so he moves his own way, not the shared way:
+  walk(now, dir, arms){ return pose },     // his walking pose at time now, heading dir (also used to climb)
+  tricks: {stretch: [[pose, ms], ...]},    // his own frames for a frames-only trick, in place of its own
+  moods: {nap: {intro, loops, rest}},      // his own poses for one of Claude's states (see MOODS in pet.html)
 }
 ```
 
@@ -299,6 +303,10 @@ pet is outlined with its own dark line, as in the pixel-art reference it was dra
 A side-on skin also gives `head(pose)` so costumes fit him (the page checks it finds his eye), stands his feet on row 38
 with only his outline below them, and colors his toes a color used nowhere else on him: the moonwalk's glove and
 Thorfinn's dagger find a front foot he's lifted by it.
+
+Every pet moves the way its body would. The shared walk and frames are made for a small four-legged body; give `walk`,
+`tricks` and `moods` whatever your character needs (a cat's stretch, a knight's stride, a chicken's flap). Frames you
+give a trick replace its own, so keep its pose key in them (`juggle: d`) where its draw hooks need it.
 
 Pick one with right-click → Skin in the app (saved, and the page reloads), or `?skin=<key>` in the mockup.
 Before you ship one: play every trick on it in the mockup with no console errors, and look at a sheet of its poses.
