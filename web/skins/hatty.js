@@ -62,6 +62,13 @@
       const sq = pose.squash || 0, st = pose.stretch || 0, y0 = Math.max(pose.dy || 0, st - sq - 7) + sq - st // as draw() works it out
       return {x: pose.face && !pose.half ? 14 : 15, y: 25 + y0, top: 18 + y0}
     },
+    /** His walk: a gentleman's stroll. Short steps for his short legs, the cane swinging ahead to plant on every other
+     * step and trailing as he passes it, his heavy head and hat rising over each straight leg (his feet stay down), and
+     * hardly any sway. */
+    walk(now, dir, arms){
+      const i = Math.floor(now / 160) % 4
+      return {face: dir, lift: [[0], [], [2], []][i], stretch: i % 2, cane: [1, 0, -1, 0][i], swing: i < 2 ? -1 : 1, arms: arms || ['mid', 'mid'], lookX: 1, tilt: [-1.5, 0, 1.5, 0][i]}
+    },
     /** Hatty in a pose: his legs bend, step and tuck, his free arm waves and reaches, his cane hand raises it, then his face. */
     draw(pose, eyeColor){
       const sq = pose.squash || 0, st = pose.stretch || 0
@@ -111,12 +118,17 @@
 
       // His other hand rests on his cane, or raises it up beside his head.
       if (level[arms[1]]) { const [x, y] = raise(...level[arms[1]], 1); for (let j = 1; j <= 5; j++) { put(x, y - j, CANE); put(x - 1, y - j, CANE) } }
-      else { art(CANE_HAND, 28, 32 + y0); for (let y = 36 + y0; y <= ground; y++) { put(29, y, CANE); put(30, y, CANE) } }
+      else { // cane: 1 swings its tip ahead of him to plant it, -1 trails it behind, just off the ground
+        const c = pose.cane || 0
+        art(CANE_HAND, 28, 32 + y0)
+        for (let y = 36 + y0, k = 0; y <= ground - (c < 0 ? 1 : 0); y++, k++) { const x = 29 - c * (k + 1 >> 1); put(x, y, CANE); put(x + 1, y, CANE) }
+      }
 
       // Turned to his left he's drawn as is; to his right, mirrored. Then his eyes, in screen directions.
       const out = [...g].map(([k, c]) => { const [x, y] = k.split(',').map(Number); return [pose.face > 0 ? M - x : x, y, c] })
       const kind = pose.eyes || 'open', ey = 25 + y0
-      const lx = Math.max(-1, Math.min(1, kind === 'side' ? pose.look ?? 1 : pose.dx ?? pose.lookX ?? 0)), ly = kind === 'up' ? -1 : kind === 'down' ? 1 : pose.lookY || 0
+      // As on Clawd, look is a screen direction, while dx and lookX look ahead once he's turned (1: the way he faces).
+      const lx = Math.max(-1, Math.min(1, kind === 'side' ? pose.look ?? 1 : (pose.dx ?? pose.lookX ?? 0) * (pose.face || 1))), ly = kind === 'up' ? -1 : kind === 'down' ? 1 : pose.lookY || 0
       const xs = pose.face > 0 ? [M - 1 - tr, M - 1 - tl] : [tl, tr] // each eye's left pixel, screen left first
       const [lo, hi] = pose.face > 0 ? [M - 24, M - 14] : [14, 24] // the white of his face
       const shape = EYES[kind] || [[lx, ly], [lx + 1, ly], [lx, ly + 1], [lx + 1, ly + 1]]
