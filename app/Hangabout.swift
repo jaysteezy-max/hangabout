@@ -160,7 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     /// Back at your Mac after five minutes or more away: he says hello. The page only hears about the mouse near him, so the app watches.
     func checkAway() {
         let idle = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!) // ~0: any input
-        if idle >= 300 { away = true }
+        if idle >= 300 && !away { away = true; web.evaluateJavaScript("hangabout.left()") }
         else if away && idle < 2 { away = false; web.evaluateJavaScript("hangabout.back()") }
     }
 

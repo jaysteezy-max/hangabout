@@ -60,8 +60,12 @@ one of these moments comes and its chance comes up (if several tricks pass, one 
 | `longCommand` | A command Claude ran for more than 4 seconds just finished, and Claude doesn't need you. |
 | `cleanFinish` | Claude finished a turn that edited files or ran commands, with nothing failing. In the mockup, the demo turn. |
 | `doubleClick` | You double-clicked him. |
+| `midWalk` | He's halfway through a walk of more than 120 points, while he's free to roam. |
+| `longFinish` | Claude finished a turn that took 15 minutes or more, while you're here. |
+| `finishedWhileAway` | Claude finished a turn while you were away from your Mac. `hangabout.away` says whether you still are. |
 
-To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console.
+To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console. Run
+`hangabout.left()` first to have `hangabout.away` say you're away, and `hangabout.back()` to end it.
 
 `hangabout.trick()` throws a clear error for a missing name, an unknown rarity, or malformed frames, so check the console.
 
