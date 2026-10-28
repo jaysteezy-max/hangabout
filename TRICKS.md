@@ -301,6 +301,7 @@ SKINS.owl = {
   walk(now, dir, arms){ return pose },     // his walking pose at time now, heading dir (also used to climb)
   tricks: {stretch: [[pose, ms], ...]},    // his own frames for a frames-only trick, in place of its own
   moods: {nap: {intro, loops, rest}},      // his own poses for one of Claude's states (see MOODS in pet.html)
+  wiggle(t){ return pose },                // his own happy wiggle as you hover him, t ms into its half second
 }
 ```
 

@@ -142,6 +142,7 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 | **Hatty Hattington** | Fan art of Hatty from BattleBlock Theater, front on, with his top hat, tears and cane. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
 | **Behemoth chicken** | Fan art of The Behemoth's chicken mascot, three-quarters on: a white egg with a blue crest and wattle, who flaps a wing instead of a hand. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
 | **Pusheen** | Fan art of Pusheen the cat as her classic loaf, side on, with her striped tail tucked in. She moves like a cat: pattering on little legs, stretching, washing, napping with z's, blushing when happy, and every fan costume fitted to her face. Not affiliated with or endorsed by Pusheen Corp. In the menu while Fan pack is on. |
+| **Minecraft slime** | Fan art of Minecraft's slime as a cute jelly cube, three-quarters on, with tall eyes and blush. It has no legs, so it hops everywhere, squashing and stretching like jelly, and pushes out little nubs of slime for hands. Not affiliated with or endorsed by Mojang or Microsoft. In the menu while Fan pack is on. |
 
 Every trick plays with any skin, and the fan-pack costumes fit Clawd front on and every side-on skin in profile. A skin
 is one file in `web/skins/` ([how to make one](TRICKS.md#skins)); fan-art skins of other people's characters show in the
