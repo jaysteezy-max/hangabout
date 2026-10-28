@@ -11,10 +11,10 @@
 
 [Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hangabout/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
 
-<img src="assets/hero.gif" width="820" alt="The pet in its Clawd skin, standing on a terminal window. His status bubble reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he writes on a page, 'Bash(npm test) Running…' while he presses Enter on a little terminal and watches it, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
+<img src="assets/hero.gif" width="820" alt="Cappy the capybara standing on a terminal window. His status bubble reads 'Noodling… Step 2/5' while he thinks, then 'Update(page.mts) +12 −3' while he writes on a page with a pencil, 'Bash(npm test) Running…' while he starts a little terminal and watches its output scroll, 'Do you want to proceed?' while he lifts a front paw and glows for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
 
-<sub>The pet in its Clawd skin on a window ledge, following one Claude Code turn: thinking, editing, running a command,
-waiting on you, done. The default pet is Cappy, a capybara.</sub>
+<sub>Cappy, the default pet, on a window ledge, following one Claude Code turn: thinking, editing, running a command,
+waiting on you, done.</sub>
 
 </div>
 
@@ -144,7 +144,7 @@ where Clawd's face would be.
 
 ## Tricks
 
-<img src="assets/tricks.gif" width="600" alt="The pet in its Clawd skin on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave.">
+<img src="assets/tricks.gif" width="600" alt="Cappy on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave of his front paw.">
 
 Core tricks, all original: dance, juggle, cartwheel, a sneeze, a paper plane, sneaking through the screen's edge and
 climbing its side, plus everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around, peeking over the Dock).
