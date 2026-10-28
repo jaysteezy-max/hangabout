@@ -3,14 +3,37 @@
 // a little wiggle and scans him back and forth with a beam of light; he's revived in a flash, the Light rising off him,
 // and the Ghost transmats away.
 {
-  const {GH, BODY, TOP, SIDE, recolor, paint} = hangabout
+  const {GW, GH, BODY, TOP, SIDE, EYE, recolor, paint} = hangabout
   const DEAD = {[BODY]: '#8A8A8A', [TOP]: '#A8A8A8', [SIDE]: '#6C6C6C'}, HURT = {[BODY]: '#FF6A6A', [TOP]: '#FF9C9C', [SIDE]: '#C83C3C'}
   const LIT = {[BODY]: '#FFFFFF', [TOP]: '#FFFFFF', [SIDE]: '#FFFFFF'}
+  const CHICKEN = hangabout.skin === 'chicken' // rolled belly-up onto his back, not flipped (he'd stand on his crest), his blue and yellow gone faint too
+  const LINE = '#16161A' // the chicken's outline
+  if (CHICKEN) { // his crest, wattle and tail, beak and wing, toes and mouth (web/skins/chicken.js)
+    Object.assign(DEAD, {'#44AEF6': '#68819A', '#0060A0': '#46586B', '#FFF050': '#CBC49A', '#B8960F': '#7B7150', '#F2BE2E': '#BDB08A', '#6B2020': '#4A3A3A'}) // just a hint of color left, so his beak and wattle still read
+    for (const c of ['#44AEF6', '#0060A0', '#FFF050', '#B8960F', '#F2BE2E', '#6B2020']) LIT[c] = '#FFFFFF' // he's white already: the flash shows in them
+  }
   const SHELL = ['..X.X..', '.XXXXX.', 'XXGEGXX', '.XEWEX.', 'XXGEGXX', '.XXXXX.', '..X.X..'] // spiky shell, glowing eye
   const SHELL_INK = {X: '#E4E7EE', G: '#3A3F4D', E: '#6FE3FF', W: '#FFFFFF'}
   const BANG = ['#', '#', '#', '.', '#']
   const DOWN = {squash: 2, eyes: 'dizzy'}, UP = [29, 3] // where his Ghost waits while he gets up
   const R = Math.round
+  /** Him turned deg toward his back (clockwise as he faces left) about his middle and set down on the ground with his tail under him, his outline drawn fresh (turned, it would break up) and his eye moved unturned, so its X stays an X. */
+  function rolled(px, deg, face){
+    const a = (face > 0 ? -deg : deg) * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a), at = new Map(px.filter(p => p[2] !== LINE).map(([x, y, c]) => [x + ',' + y, c]))
+    const xs = px.map(p => p[0]), ys = px.map(p => p[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2
+    const eye = px.filter(p => p[2] === EYE), ex = eye.reduce((s, p) => s + p[0], 0) / eye.length, ey = eye.reduce((s, p) => s + p[1], 0) / eye.length
+    for (const [x, y] of eye) at.set(x + ',' + y, at.get(R(ex) + ',' + R(ey - 2))) // his face over it, from just above
+    const out = new Map(), put = (x, y, c) => out.set(x + ',' + y, [x, y, c])
+    let low = 0 // his lowest pixel that isn't tail: his tail goes into the ground under him
+    for (let y = -GH; y < 2 * GH; y++) for (let x = -10; x < GW + 10; x++) { // each cell takes the color of the one turned onto it, so no holes
+      const sx = R(cx + (x - cx) * cos + (y - cy) * sin), c = at.get(sx + ',' + R(cy - (x - cx) * sin + (y - cy) * cos))
+      if (c) { put(x, y, c); if ((face > 0 ? GW - 1 - sx : sx) < 34) low = Math.max(low, y) }
+    }
+    for (const [x, y] of [...out.values()]) for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!out.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, LINE)
+    const nx = R(cx + (ex - cx) * cos - (ey - cy) * sin - ex), ny = R(cy + (ex - cx) * sin + (ey - cy) * cos - ey)
+    for (const [x, y, c] of eye) put(x + nx, y + ny, c)
+    return [...out.values()].map(([x, y, c]) => [x, y + GH - 2 - low, c]) // his outline under him on the bottom row
+  }
   // A frame of him lying on his back with his Ghost out at `at`.
   const lying = (ghost, ms, pose = DOWN) => [{...pose, ghost: {dead: 1, down: 1, shell: 1, ...ghost}}, ms]
   const orbit = Array.from({length: 29}, (_, i) => { const a = i / 22.4 * 2 * Math.PI; return [R(18 + 15 * Math.cos(a)), R(14 - 8 * Math.sin(a))] }) // 1¼ laps round him, ending above him
@@ -20,9 +43,11 @@
     name: 'ghost', label: 'Ghost revive ✦', rarity: 'rare', pack: 'fan', on: {bigDrop: 1}, // dropped from way up
     frames: [
       [{squash: 1, eyes: 'strain', ghost: {hit: 1}}, 120],
-      [{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], // keels over
-      [{...DOWN, tilt: -70, ghost: {dead: .7}}, 80],
-      [{...DOWN, tilt: -130, ghost: {dead: .9}}, 80],
+      ...CHICKEN ? [[25, .4, 140], [65, .7, 80], [100, .9, 80]].map(([roll, dead, ms]) => [{...DOWN, ghost: {dead, roll}}, ms]) : [
+        [{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], // keels over
+        [{...DOWN, tilt: -70, ghost: {dead: .7}}, 80],
+        [{...DOWN, tilt: -130, ghost: {dead: .9}}, 80],
+      ],
       lying({shell: 0}, 450),
       lying({shell: 0}, 90, {...DOWN, lift: [2]}), // a last twitch
       lying({shell: 0}, 300),
@@ -41,11 +66,12 @@
       [{eyes: 'happy', ghost: {vanish: 1, light: .3}}, 220],
       [{}, 200],
     ],
-    pixels({d: g, px}){
+    pixels({d: g, px, pose}){
       if (g.dead) px = recolor(px, DEAD, g.dead)
       if (g.hit) px = recolor(px, HURT, 1)
       if (g.flash) px = recolor(px, LIT, 1)
-      if (g.down) { const top = Math.min(...px.map(p => p[1])); px = px.map(([x, y, c]) => [x, top + GH - 1 - y, c]) } // on his back, legs in the air
+      if (CHICKEN && (g.down || g.roll)) px = rolled(px, g.roll || 90, pose.face)
+      else if (g.down) { const top = Math.min(...px.map(p => p[1])); px = px.map(([x, y, c]) => [x, top + GH - 1 - y, c]) } // on his back, legs in the air
       return px
     },
     /** His Ghost bobbing where it is, the scan beam it sweeps over him, and the Light rising off him as he comes back. */

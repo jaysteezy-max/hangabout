@@ -73,7 +73,8 @@
     el.style.opacity = 0; setTimeout(() => el.remove(), 800)
   }
 
-  const at = (pose, ms, d = {stuck: 1}) => [{face: 1, eyes: 'side', look: 1, ...pose, stickyNote: d}, ms] // turned to the note
+  const CHICKEN = hangabout.skin === 'chicken', RAISE = CHICKEN ? 4 : 0 // the chicken's wing held out higher, by his beak, clear of his wattle
+  const at = (pose, ms, d = {stuck: 1}) => [{face: 1, eyes: 'side', look: 1, ...pose, ...pose.hand != null && {hand: pose.hand - RAISE}, stickyNote: d}, ms] // turned to the note
   hangabout.trick({
     name: 'stickyNote', label: 'Sticky note ✓', rarity: 'manual', on: {finishedWhileAway: 1},
     frames: [
@@ -99,6 +100,7 @@
     front({ctx, d, pose}){
       if (d.marks == null) return
       const x = side > 0 ? NX : GW - NX - N, y = NY - (d.up ? 4 : 0)
+      if (CHICKEN) { ctx.fillStyle = '#16161A'; ctx.fillRect(x - 1, y - 1, N + 2, N + 2) } // outlined like him, so it doesn't run into his yellow wing
       paint(ctx, NOTE, x, y, ink(d.marks))
       if (!d.pen) return
       const [tx, ty] = TIP[d.marks - 1], hy = OY + pose.hand + 1

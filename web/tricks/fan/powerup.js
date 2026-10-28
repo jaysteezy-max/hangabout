@@ -10,6 +10,7 @@
   function mane(d, px, pose){
     const hair = new Map()
     if (d !== 'on' && d !== 'release') return hair
+    if (hangabout.skin === 'chicken') return chickenMane(hair, d, pose)
     if (PROFILE) return profileMane(hair, d, pose)
     if (hangabout.skin === 'hatty') return hattyMane(hair, d, px, pose)
     const headTop = Math.min(...px.map(([, y]) => y)), bx = OX + 6, scale = d === 'release' ? .4 : 1
@@ -41,6 +42,20 @@
       }
     }
     for (const [x0, len] of [[12, 3], [15, 4]]) for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), t + 1 + r, '#F7CF3A') // bangs
+    return hair
+  }
+  /** The chicken's, drawn facing left: a cap hugging his head over his crest, ragged at his brow, and five solid gold spikes rising off it about as wide as his crown. */
+  function chickenMane(hair, d, pose){
+    const t = head(pose).top, scale = d === 'release' ? .4 : 1, put = (x, y, c) => hair.set((pose.face > 0 ? GW - 1 - x : x) + ',' + y, c)
+    const CAP = [[15, 1, 2], [16, 0, 3], [17, 0, 2], [18, -1, 1], [19, -1, 2], [20, -3, 2], [21, -3, 2], [22, -3, 1], [23, -4, 2], [24, -4, 2], [25, -3, 3], [26, -2, 3], [27, 0, 2], [28, 1, 2]] // [x, top, bottom] from the top of his head
+    for (const [x, a, b] of CAP) for (let y = t + a; y <= t + b; y++) put(x, y, '#F2BE22')
+    for (const [x0, bw, h0, lean] of [[16, 4, 5, -.7], [19, 5, 8, -.25], [22, 5, 9, .1], [25, 5, 8, .45], [28, 3, 5, .9]]) { // [base x, base width, height, lean per row]
+      const h = Math.max(2, Math.round(h0 * scale)), base = t + CAP.find(([x]) => x === x0)[1]
+      for (let r = 0; r < h; r++) {
+        const w = Math.max(1, Math.round(bw * (1 - r / h))), x1 = Math.round(x0 + lean * r - w / 2)
+        for (let i = 0; i < w; i++) put(x1 + i, base - r, i < w / 2 ? '#FFE04A' : '#F2BE22') // solid gold, lit down one side: paler reads as flame
+      }
+    }
     return hair
   }
   /** Hatty's, drawn facing you: his hat stays on, so the spikes flare out from behind it, with gold at its sides and two bangs over his brow. */

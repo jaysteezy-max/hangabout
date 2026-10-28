@@ -18,16 +18,43 @@
   /** fillRect for the scene, drawn as if the fire is on his right and mirrored when it's on his left. */
   const scene = ctx => { const s = side(); return (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(s > 0 ? x : GW - x - w, y, w, h) } }
 
-  const SIT = {dy: -4, arms: ['mid', 'down']} // up on the seat, the mug in his lap
-  const LAP = [29, 27], LOW = [29, 28], SIP = [30, 21, 1] // where the mug is: [x, y, tilted to his lips]
-  const FIRE = {eyes: 'side', look: 1}, SIPPING = {arms: ['mid', 'up'], eyes: 'blink'}
+  // The chicken has no lap or crossed legs: he settles in like a hen on eggs, turned to the fire, and holds the mug in his
+  // wing, at his breast or tipped up to his beak. His robe is his own (see hen()).
+  const CHICKEN = hangabout.skin === 'chicken', HOLD = CHICKEN ? {hand: 12} : {}
+  const SIT = {dy: -4, ...CHICKEN ? {tuck: 1, ...HOLD} : {arms: ['mid', 'down']}} // up on the seat, the mug in his lap
+  // Where the mug is: [x, y, tilted to his lips]; on the chicken, from the top-left of his wing (x 5) and with its handle in it.
+  const [LAP, LOW, SIP] = CHICKEN ? [[2, -3], [2, -3], [6, -3, 1]] : [[29, 27], [29, 28], [30, 21, 1]]
+  const FIRE = CHICKEN ? {dx: 0, lookY: 1} : {eyes: 'side', look: 1}, SIPPING = {...CHICKEN ? {hand: 9} : {arms: ['mid', 'up']}, eyes: 'blink'}
+  const wing = pose => Math.max(18, Math.min(30, 17 + pose.hand)) + (pose.dy || 0) // the top of the chicken's wing held out (web/skins/chicken.js)
+  const WING = ['#FFF050', '#B8960F'], WATTLE = ['#44AEF6', '#0060A0'], TOES = '#F2BE2E', LINE = '#16161A' // the chicken's own colors, which recolor leaves alone
+  const toLeft = ([x, y, c]) => [GW - 1 - x, y, c]
+  /** The chicken, turned to the fire, in a robe that fits an egg: velvet from under his beak down, its satin collar rising over his back and edging the opening round his wattle, a sash with its knot at his side. Laid out on him facing left. */
+  function hen(d, px, pose){
+    if (pose.face > 0) px = px.map(toLeft)
+    const {chin} = hangabout.head(pose), sash = chin + 6, held = wing(pose)
+    if (pose.tuck) { // the tucked foot that peeks out at the front goes under the robe, and the outline only it needed
+      const low = (x, y) => y > sash && x < 13
+      px = px.filter(([x, y, c]) => !low(x, y) || !(c === TOES || WING.includes(c) && !(y >= held && y < held + 7)))
+      const solid = new Set(px.filter(p => p[2] !== LINE).map(([x, y]) => x + ',' + y))
+      px = px.filter(([x, y, c]) => c !== LINE || !low(x, y) || [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([i, j]) => solid.has(x + i + ',' + (y + j))))
+    }
+    const at = new Map(px.map(([x, y, c]) => [x + ',' + y, c])), wattle = (x, y) => WATTLE.includes(at.get(x + ',' + y))
+    const robe = (x, y, c) => {
+      const top = chin + 1 - Math.max(0, x - 16 >> 2) // higher toward his back
+      if (c !== BODY || y < top) return c
+      return y === top || y === sash || y < sash && (wattle(x - 1, y) || wattle(x + 1, y)) ? SATIN : ROBE
+    }
+    const out = px.map(([x, y, c]) => [x, y, mix(c, robe(x, y, c), d.k)])
+    if (d.k === 1) for (const [x, y, h] of [[21, sash + 1, 2], [22, sash + 1, 4], [24, sash + 1, 3]]) for (let j = 0; j < h; j++) out.push([x, y + j, SATIN]) // the sash's knot and ends
+    return side() > 0 ? out.map(toLeft) : out
+  }
   const sit = (pose, mug = LAP) => ({...SIT, ...pose, coffee: {k: 1, mug, cross: 1}})
   hangabout.trick({
     name: 'coffee', label: 'Coffee by the fire ♨', rarity: 'manual', on: {longFinish: 1},
     frames: [
       [{squash: 2, coffee: {k: .25}}, 150],
       [{dy: -8, tuck: 1, arms: ['up', 'up'], coffee: {k: .5}}, 170], // hops up into the chair as the room fades in
-      [{dy: -4, squash: 1, coffee: {k: .75, mug: LOW}}, 150],
+      [{dy: -4, squash: 1, ...HOLD, coffee: {k: .75, mug: LOW}}, 150],
       [{...SIT, coffee: {k: 1, mug: LAP}}, 600],
       [sit({}), 800], // crosses his legs
       [sit(FIRE), 1100], // gazes into the fire
@@ -45,6 +72,7 @@
     ],
     /** The robe: velvet sleeves with satin cuffs, a satin shawl collar opening in a V, a sash; his legs crossed under the hem. */
     pixels({d, px, pose}){
+      if (CHICKEN) return hen(d, px, pose)
       const dy = pose.dy || 0, sq = pose.squash || 0, wide = sq >= 2 ? 1 : 0
       const x0 = OX + 6 - wide, x1 = OX + 29 + wide, bottom = OY + 16 + dy, collar = OY + 8 + dy + sq
       const look = pose.eyes === 'side' ? side() - pose.look : 0 // the frames say right; he looks whichever way the fire is
@@ -92,9 +120,15 @@
       ctx.globalAlpha = 1
     },
     /** In front: the mug and its steam; then the firelight, warm on the fire's side and dim on the far side. */
-    front({ctx, d, now}){
+    front({ctx, d, now, px, pose}){
       if (d.mug) {
-        const [mx, my, tilt] = d.mug, dot = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(mx + x, my + y - (tilt && x > 1 ? 1 : 0), 1, 1) }
+        let [mx, my, tilt] = d.mug
+        const f = side(), wy = CHICKEN && wing(pose), dot = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(mx + x, my + y - (tilt && x > 1 ? 1 : 0), 1, 1) }
+        ctx.save()
+        if (CHICKEN) { // in his wing, its handle away from his beak: mirrored while he faces left, so its steam drifts off ahead of him
+          mx = GW - 9 - mx; my += wy
+          if (f < 0) { ctx.translate(GW, 0); ctx.scale(-1, 1) }
+        }
         ctx.globalAlpha = d.k
         for (let y = 0; y < 5; y++) for (let x = 0; x < 4; x++) dot(x, y, y === 4 ? '#C8BEA9' : y === 0 && !tilt && x % 3 ? '#5A3420' : '#F3EEE2')
         for (const [x, y] of [[4, 1], [5, 1], [5, 2], [4, 3], [5, 3]]) dot(x, y, '#E2DACA') // the handle
@@ -103,6 +137,8 @@
           ctx.globalAlpha = d.k * .75 * (1 - j / 8)
           ctx.fillRect(mx + 2 + w + Math.round(j / 3 + Math.sin(j * .9 - now / 280 + w * 2.5)), my - 1 - j - w, 1, 1)
         }
+        ctx.restore()
+        if (CHICKEN) for (const [x, y, c] of px) if (WING.includes(c) && y >= wy && y < wy + 7 && Math.abs(x - (f > 0 ? 33.5 : 9.5)) < 5) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) } // his wing wrapped round it
       }
       // Firelight over what's drawn (source-atop leaves the empty canvas clear), flickering slowly.
       const r = scene(ctx), flick = .8 + .2 * Math.sin(now / 310) * Math.sin(now / 530)

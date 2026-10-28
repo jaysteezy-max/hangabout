@@ -6,6 +6,7 @@
   const LIT = {[BODY]: '#FFFFFF', [TOP]: '#FFFFFF', [SIDE]: '#FFFFFF'}
   const ENGRAM = ['..###..', '.#####.', '###*###', '#######', '###*###', '.#####.', '..###..']
   const HIGH = ['high', 'high']
+  const CHICKEN = hangabout.skin === 'chicken' // the engram up in his raised wing, clear of his crest; the gun at his chest in his forward wing
 
   hangabout.trick({
     name: 'engram', label: 'Exotic engram ◆', rarity: 'rare', pack: 'fan',
@@ -19,11 +20,11 @@
       [{arms: HIGH, eyes: 'happy', aura: 1, engram: {gun: 1, sparkle: 1}}, 500],
       [{arms: ['up', 'up'], eyes: 'happy', engram: {gun: .4, sparkle: 1}}, 160], // into his inventory
       [{squash: 2, eyes: 'happy'}, 110], [{dy: -4, tuck: 1, arms: ['up', 'up'], eyes: 'happy'}, 160], [{squash: 1, eyes: 'happy'}, 120], [{}, 200],
-    ],
+    ].map(([p, ms]) => [CHICKEN && p.engram?.gun ? {...p, hand: 10} : p, ms]), // the chicken's wing on its grip
     pixels: ({d: l, px}) => l.flash ? recolor(px, LIT, 1) : px,
     /** The engram dropping in on its loot beam and decrypting in his hands; then the Exotic, a Gjallarhorn hoisted overhead. */
-    front({ctx, d: l, now, pose}){
-      const dy = pose.dy || 0, ex = 19, ey = l.y
+    front({ctx, d: l, px, now, pose}){
+      const dy = pose.dy || 0, ex = !CHICKEN ? 19 : pose.face > 0 ? 9 : 28, ey = CHICKEN && l.y > 8 ? 8 : l.y // the chicken's raised wing is over his back
       if (l.beam) { ctx.fillStyle = '#FFD84D'; ctx.globalAlpha = .22; ctx.fillRect(ex + 1, 0, 5, Math.max(0, ey + 4)); ctx.globalAlpha = .45; ctx.fillRect(ex + 3, 0, 1, Math.max(0, ey + 4)) }
       if (ey != null) {
         const spin = Math.floor(now / 120) % 2, white = l.decrypt % 2 === 1
@@ -42,11 +43,12 @@
           ctx.globalAlpha = 1
         }
       }
-      if (l.flash) { ctx.globalAlpha = .85; ctx.fillStyle = '#FFFFFF'; for (let k = -7; k <= 7; k++) { const w = 7 - Math.abs(k); ctx.fillRect(22 - w, 12 + k, w * 2 + 1, 1) } ctx.globalAlpha = 1 }
-      if (l.gun) facing(ctx, {...pose, face: -pose.face}, () => { // held up in both hands, after the real one: thin rear tube, gunmetal body with
+      if (l.flash) { ctx.globalAlpha = .85; ctx.fillStyle = '#FFFFFF'; for (let k = -7; k <= 7; k++) { const w = 7 - Math.abs(k); ctx.fillRect(ex + 3 - w, (CHICKEN ? 11 : 12) + k, w * 2 + 1, 1) } ctx.globalAlpha = 1 }
+      if (l.gun) facing(ctx, CHICKEN ? pose : {...pose, face: -pose.face}, () => { // held up in both hands, after the real one: thin rear tube, gunmetal body with
         // bronze trim and a red mark, a fat ribbed barrel at the front, and the carved bronze wolf crouched on top of it.
-        // It's drawn pointing right, so Cappy's turn is flipped for it: then it points the way he faces.
-        const y = 13 + dy, r = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, yy, w, h) }
+        // It's drawn pointing right, so Cappy's turn is flipped for it: then it points the way he faces. The chicken holds it at
+        // his chest, its grip in his forward wing and its long tube out ahead of him (with the fat end ahead it reads backward).
+        const y = (CHICKEN ? 26 : 13) + dy, r = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, yy, w, h) }
         ctx.globalAlpha = l.gun
         const t = y - 8 // it's huge, even on a Guardian: nearly as wide as he is, its top well above his head
         r(0, t + 8, 14, 2, '#C9CDD3'); r(0, t + 9, 14, 1, '#7E838C') // rear rod
@@ -62,6 +64,7 @@
         r(29, t, 1, 1, '#E8C56E'); r(32, t, 1, 1, '#E8C56E'); r(35, t + 3, 1, 1, '#4A2E10') // ears, eye
         ctx.globalAlpha = 1
       })
+      if (l.gun && CHICKEN) for (const [x, y, c] of px) if (c === '#FFF050' || c === '#B8960F') { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) } // his wing round the grip (his beak and foot are the same colors, clear of it)
       if (l.sparkle) for (let i = 0; i < 9; i++) { // Exotic gold twinkling round him
         const seed = Math.floor(now / 110) + i * 13
         ctx.globalAlpha = .5 + .1 * (seed % 5); ctx.fillStyle = i % 3 ? '#FFD84D' : '#FFFFFF'

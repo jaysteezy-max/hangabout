@@ -4,6 +4,8 @@
 {
   const {GW, GH, BODY, TOP, SIDE, EYE, mix} = hangabout
   const CHROME = {[BODY]: '#C3CCD6', [TOP]: '#EEF3F8', [SIDE]: '#8793A1', [EYE]: '#3B4654'}
+  const CHICKEN = hangabout.skin === 'chicken' // his crest, wattle and tail, beak and wing, toes and mouth chromed too (web/skins/chicken.js); the glint only on his body, inside his outline
+  if (CHICKEN) Object.assign(CHROME, {'#44AEF6': '#A4AFBC', '#0060A0': '#626E7D', '#FFF050': '#E2E8EF', '#B8960F': '#7D8896', '#F2BE2E': '#B8C2CE', '#6B2020': '#3B4654'})
   const ON = {cosmic: 1, chrome: 1, board: 1}
 
   hangabout.trick({
@@ -25,7 +27,7 @@
     pixels({d: s, px, now}){
       if (!s.chrome) return px
       const band = Math.floor(now / 40) % 60, shine = s.chrome >= 1
-      return px.map(([x, y, c]) => [x, y, shine && c !== EYE && ((x + y - band) % 60 + 60) % 60 < 3 ? '#FFFFFF' : CHROME[c] ? mix(c, CHROME[c], s.chrome) : c])
+      return px.map(([x, y, c]) => [x, y, shine && (CHICKEN ? c === BODY : c !== EYE) && ((x + y - band) % 60 + 60) % 60 < 3 ? '#FFFFFF' : CHROME[c] ? mix(c, CHROME[c], s.chrome) : c])
     },
     /** Behind him: afterimages and a streaming trail of power cosmic while he rides, and the board under his feet. */
     behind({ctx, d: s, px, now, pose}){

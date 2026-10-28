@@ -141,6 +141,7 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 | **Clawd** | Fan art of Anthropic's Clawd, Claude Code's mascot. Not affiliated with or endorsed by Anthropic. |
 | **Clay** | A faceless clay soldier in grey clay, after the Clay Soldiers Minecraft mod: a cube head, chunky arms and legs, drawn three-quarters. Original art. |
 | **Hatty Hattington** | Fan art of Hatty from BattleBlock Theater, front on, with his top hat, tears and cane. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
+| **Behemoth chicken** | Fan art of The Behemoth's chicken mascot, three-quarters on: a white egg with a blue crest and wattle, who flaps a wing instead of a hand. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
 
 Every trick plays with any skin, and the fan-pack costumes fit Clawd front on and every side-on skin in profile. A skin
 is one file in `web/skins/` ([how to make one](TRICKS.md#skins)); fan-art skins of other people's characters show in the
