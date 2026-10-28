@@ -173,6 +173,12 @@ Helpers:
 | `recolor(px, {from: to}, t)` | His pixels with some colors moved toward others by `t` (0 to 1). |
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
+| `head(pose)` | Where Cappy's face is in this pose, as drawn facing left: `{x, y}` is his eye's left pixel, `top` the top of his head between his ears. They move with `dy`, `squash` and `stretch`. |
+| `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while Cappy faces right (and slid by `ox`), so a costume drawn once on him facing left turns with him. On Clawd it changes nothing. |
+
+**Costumes on both skins.** Hair, masks and anything else that sits on his face need a spot on each skin. Clawd faces
+you, eyes at x 14 and 28; Cappy is side on, so draw his version facing left with `head(pose)` inside `facing()`, and
+check `hangabout.skin` to pick which. Guts, Vader and Thorfinn in `web/tricks/fan/` show how.
 
 ## Trips
 

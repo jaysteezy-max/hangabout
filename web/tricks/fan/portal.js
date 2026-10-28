@@ -2,7 +2,8 @@
 // Blue portal on the floor ahead, orange one up high; in one, and out of the other. A trip, with its own page elements
 // (the two portals and the shots that open them) and a front hook for the gun in his hand.
 {
-  const {GW, OY, PH, feet, putFeet, surfaces, rand, scr, desk, clip} = hangabout
+  const {GW, OY, PH, feet, putFeet, surfaces, rand, scr, desk, clip, head} = hangabout
+  const CAPPY = hangabout.skin === 'cappy' // side on: he turns to aim, the gun at his chin
   document.head.insertAdjacentHTML('beforeend', `<style>
   .portal{position:absolute;border-radius:50%;pointer-events:none;z-index:9;transform:scale(0);transition:transform .22s cubic-bezier(.2,1.4,.4,1)}
   .portal.open{transform:scale(1)}
@@ -30,7 +31,7 @@
   function shoot(color, dir, x, y){
     const s = hangabout.size, f = feet(), left = f.x - 66 * s, top = f.y - 120 * s, shot = document.createElement('div')
     shot.className = 'shot ' + color
-    Object.assign(shot.style, {left: left + (dir > 0 ? 43 : 0) * 3 * s + 'px', top: top + 28 * 3 * s + 'px'})
+    Object.assign(shot.style, {left: left + (dir > 0 ? 43 : 0) * 3 * s + 'px', top: top + (CAPPY ? 32 : 28) * 3 * s + 'px'})
     desk.append(shot)
     void shot.offsetWidth; Object.assign(shot.style, {left: x + 'px', top: y + 'px'}) // laid out at the gun first, so it flies
     setTimeout(() => { shot.remove(); if (live) openPortal(color, x, y) }, 200)
@@ -50,14 +51,15 @@
         if (!below || below.y + PH - by >= 140 * s) break
       }
       clearTimeout(closer); live = true
+      const turn = CAPPY ? {face: dir} : {} // Clawd aims with the hand on that side; Cappy turns to it
       return [
-        {go: 'hold', T: 380, pose: {arms: ['mid', 'mid'], portal: {tip: 'blue', dir}}},
+        {go: 'hold', T: 380, pose: {...turn, arms: ['mid', 'mid'], portal: {tip: 'blue', dir}}},
         {go: 'do', fn: () => shoot('blue', dir, ax, y - 39 * s)},
-        {go: 'hold', T: 420, pose: {arms: ['mid', 'mid'], squash: 1, portal: {tip: 'blue', dir, fire: 1}}},
-        {go: 'hold', T: 260, pose: {arms: ['mid', 'up'], eyes: 'up', portal: {tip: 'orange', dir}}},
+        {go: 'hold', T: 420, pose: {...turn, arms: ['mid', 'mid'], squash: 1, portal: {tip: 'blue', dir, fire: 1}}},
+        {go: 'hold', T: 260, pose: {...turn, arms: ['mid', 'up'], eyes: 'up', portal: {tip: 'orange', dir}}},
         {go: 'do', fn: () => shoot('orange', dir, bx, by)},
-        {go: 'hold', T: 520, pose: {arms: ['mid', 'up'], eyes: 'up', squash: 1, portal: {tip: 'orange', dir, fire: 1}}},
-        {go: 'hold', T: 300, pose: {eyes: 'happy'}},
+        {go: 'hold', T: 520, pose: {...turn, arms: ['mid', 'up'], eyes: 'up', squash: 1, portal: {tip: 'orange', dir, fire: 1}}},
+        {go: 'hold', T: 300, pose: {...turn, eyes: 'happy'}},
         {go: 'do', fn: () => clip({x: ax, dir})}, // he disappears into it as he walks through
         {go: 'walk', to: ax + dir * 70 * s, speed: 55},
         {go: 'do', fn: () => { putFeet(bx, by); clip({y: by}); closer = setTimeout(closePortals, 1600) }}, // and comes out the other one, feet first
@@ -67,8 +69,8 @@
     end: closePortals, // the trip was cut short: no portals left hanging about
     /** The portal gun in his hand: white body, black prongs, its core glowing the color it's about to fire. */
     front({ctx, d: g, pose}){
-      const d = g.dir || 1, y = OY + 7 + (pose.dy || 0) + Math.ceil((pose.squash || 0) / 2), core = g.tip === 'orange' ? '#FF9A1F' : '#3FA9FF'
-      const at = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(d > 0 ? x : GW - x - w, yy, w, h) } // drawn for his right hand, mirrored for his left
+      const d = g.dir || 1, y = CAPPY ? head(pose).y + 7 : OY + 7 + (pose.dy || 0) + Math.ceil((pose.squash || 0) / 2), core = g.tip === 'orange' ? '#FF9A1F' : '#3FA9FF'
+      const at = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(d > 0 ? x : GW - x - w, yy, w, h) } // drawn for his right hand (Cappy: at his chin, facing right), mirrored for the left
       at(34, y, 7, 3, '#E9EDF0'); at(34, y + 2, 7, 1, '#B9C0C8'); at(36, y, 1, 3, '#2E3238')
       at(41, y - 1, 2, 1, '#1C1F24'); at(41, y + 3, 2, 1, '#1C1F24') // the prongs
       at(41, y, 2, 3, core)

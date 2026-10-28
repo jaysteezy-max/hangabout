@@ -407,6 +407,19 @@ function cappy(pose, eyeColor){
   return pose.ox ? out.map(([x, y, c]) => [x + pose.ox, y, c]) : out
 }
 for (const pose of [{}, {squash: 2}, {stretch: 2}]) console.assert(CAPPY.every(r => r.length === 26) && Math.max(...cappy(pose, EYE).map(p => p[1])) === 39, 'Cappy stands on row 38 (his outline on 39) however he bends')
+/** For costumes on Cappy: his eye (x, y: its left pixel) and the top of his head between his ears, as drawn facing left. */
+function head(pose){
+  const top = 19 + (pose.squash || 0) - (pose.stretch || 0) + (pose.dy || 0)
+  return {x: 20, y: top + 5, top: top + 2}
+}
+/** Runs draw() with the canvas mirrored while Cappy faces right (and slid with him, by ox), so a costume drawn on him facing left turns with him. On Clawd it changes nothing. */
+function facing(ctx, pose, draw){
+  ctx.save()
+  if (SKIN === 'cappy') { ctx.translate(pose.ox || 0, 0); if (pose.face > 0) { ctx.translate(GW, 0); ctx.scale(-1, 1) } }
+  draw()
+  ctx.restore()
+}
+for (const pose of [{}, {squash: 2, dy: -3}, {stretch: 1}]) console.assert(cappy(pose, EYE).some(([x, y, c]) => x === head(pose).x && y === head(pose).y && c === EYE), 'head() finds Cappy\'s eye')
 
 // ---- glyphs ----
 const GLYPH = {
@@ -1145,7 +1158,7 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   trick: registerTrick,
   GW, GH, OX, OY, LIFT, PH, BODY, TOP, SIDE, EYE, C,
   skin: SKIN, // 'cappy' (side on, no arms) or 'clawd'
-  thickLine, paint, mix, recolor, rand, pick,
+  thickLine, paint, mix, recolor, rand, pick, head, facing,
   feet, putFeet, surfaces, edges, scr, desk,
   clip(c){ pet.clip = c }, // hides part of him until he lands: {x, dir} or {y} (see portalClip)
   get size(){ return size }, get width(){ return desk.clientWidth },
