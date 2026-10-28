@@ -534,12 +534,20 @@ function perform(name){
   if (!TRICKS[name]) return console.warn(`hangabout: no trick named "${name}"`)
   if (ai.mode === 'script') endTrip(now) // a move asked for on a trip: back on screen first
   if (['jump', 'fall', 'dangle'].includes(ai.mode)) { ai.next = name; return }
+  if (!fits(TRICKS[name])) { // a ledge move asked for on the floor, or the other way round: he leaps there first
+    const there = TRICKS[name].where === 'floor' ? surfaces().slice(0, 1) : surfaces().slice(1)
+    if (!there.length) return console.warn(`hangabout: "${name}" needs a window ledge to stand on`)
+    leapTo(now, pick(there)); ai.next = name; return
+  }
   startMove(now, name, surfaceUnder(pet.x, pet.y))
 }
 function jumpFrom(now, here){
   const others = surfaces().filter(o => Math.abs(o.y - here.y) > 4) // any ledge on screen: a real desktop is far taller than a hop
   if (!others.length) return walkTo(Math.max(here.x0, Math.min(here.x1, pet.x + rand(-200, 200))), 40)
-  const to = pick(others), x1 = Math.max(to.x0, Math.min(to.x1, pet.x + rand(-170, 170))), rise = Math.abs(pet.y - to.y)
+  leapTo(now, pick(others))
+}
+function leapTo(now, to){
+  const x1 = Math.max(to.x0, Math.min(to.x1, pet.x + rand(-170, 170))), rise = Math.abs(pet.y - to.y)
   ai.mode = 'jump'; ai.dir = x1 < pet.x ? -1 : 1
   ai.jump = {x0: pet.x, y0: pet.y, x1, y1: to.y, t0: now, T: 620 + rise * .45, h: rise / 2 + 45} // a higher ledge takes a bigger, slower leap
 }
