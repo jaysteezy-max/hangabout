@@ -174,7 +174,7 @@
       // Where each fist goes when it isn't on the sword: stubby arms, so up is beside his helmet's lower half and high
       // beside its upper half; out in front for props (hand, reach).
       const farFist = reaching ? [26 + (pose.reach || 0), clamp(19 + (pose.hand ?? 8), 18, 33) + y0] : far === 'high' ? [27, 15 + y0] : far === 'up' ? [25, 21 + y0] : [20, 30 + y0]
-      const nearFist = near === 'high' ? [-3, 14 + y0] : near === 'up' ? [-3, 19 + y0] : [1, 30 + y0]
+      const nearFist = pose.pull ? [19, 26 + y0] : near === 'high' ? [-3, 14 + y0] : near === 'up' ? [-3, 19 + y0] : [1, 30 + y0] // pull: drawing a bowstring in front of him
       // Where his sword is, where his near fist is on it, and his far fist if it's on it too.
       const HELD = {
         ready: [() => sword(8, 33 + y0, 1, 0, 9, 24), [1, 29 + y0], [21, 29 + y0]],
