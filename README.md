@@ -154,7 +154,13 @@ folder (`~/.claude/plugins/data/hookpet-*/`). Some setups skip plugin hooks alto
 <details>
 <summary><b>There are two of him.</b></summary>
 
-You have both the plugin and `install.sh` installed. Keep one: `./uninstall.sh`, or `/plugin uninstall hookpet@hookpet`.
+Two copies are each getting Claude Code's hooks, and every new session starts any that isn't running.
+
+- **The plugin and `install.sh` are both installed.** Keep one: `./uninstall.sh`, or `/plugin uninstall hookpet@hookpet`.
+- **An older copy left its hooks behind**, such as one from before a rename or installed in another folder. In the
+  `"hooks"` section of `~/.claude/settings.json`, look for a command other than `~/.claude/hookpet/hookpet-hook`.
+  Back the file up, delete those entries (there's one per event), quit that copy and remove its folder.
+  `./uninstall.sh` only removes hooks that run `hookpet-hook`, so it won't catch these.
 
 </details>
 
