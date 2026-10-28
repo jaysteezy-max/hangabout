@@ -681,7 +681,7 @@ function behave(now, dt){
   }
   if (now < pet.dizzyUntil) { ai.mode = 'pause'; ai.until = pet.dizzyUntil; return } // stays put until his head clears
   if (pet.dizzyAgain) { pet.dizzyAgain = false; if (fire('dizzyAgain')) return }
-  if (ai.next) { startMove(now, ai.next, here); ai.next = null; return } // a move asked for while he was in the air
+  if (ai.next) { const t = TRICKS[ai.next]; if (t && (!t.trip || roam(now) === 'free')) startMove(now, ai.next, here); ai.next = null; return } // a move asked for while he was in the air; a trip only if he's still free, or it'd be cut as it starts
   const kind = roam(now)
   if (!kind) { ai.mode = 'stand'; ai.anchorX = null; return }
   if (kind === 'pace' && ai.anchorX == null) ai.anchorX = pet.x
@@ -700,7 +700,7 @@ function behave(now, dt){
     return
   }
   const day = new Date().toDateString()
-  if (!pet.away && pet.day !== day) { pet.day = day; if (fire('today')) return } // the first time he's free each day, for date-based secrets
+  if (!pet.away && pet.day !== day) { pet.day = day; if ((pet.dayPlayed = fire('today'))) return } // the first time he's free each day, for date-based secrets
   const onFloor = here.y >= surfaces()[0].y - 2, c = preset.chance
   if (r < c.walk) { // a stroll nearby, or now and then a trot to anywhere along the ledge
     const far = Math.random() < preset.odds.farWalk, x = clampX(far ? rand(here.x0, here.x1) : pet.x + pick([-1, 1]) * rand(60, 260))
@@ -1145,7 +1145,7 @@ function usePreset(name){
   for (const b of document.querySelectorAll('[data-preset]')) b.setAttribute('aria-pressed', String(PRESETS[b.dataset.preset] === preset))
 }
 function useFanPack(on){
-  if (on && !fanPack) pet.day = null // today's date secrets get another look now that something can take them
+  if (on && !fanPack && !pet.dayPlayed) pet.day = null // today's date secret gets another look now that something can take it, unless it already played
   fanPack = !!on
   document.getElementById('fan').setAttribute('aria-pressed', String(fanPack))
   trickButtons()
