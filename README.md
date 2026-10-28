@@ -130,9 +130,12 @@ Right-click → **Behavior** sets how busy he is when Claude doesn't need him. Y
 
 <img src="assets/tricks.gif" width="600" alt="Clawd on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave.">
 
-Core tricks, all original: dance, juggle, cartwheel, sneaking through the screen's edge and climbing its side, plus
-everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around) and two he only does on a window ledge (peeking
-over it, sitting on it with his legs swinging). Pick any of them from right-click → **Tricks**.
+Core tricks, all original: dance, juggle, cartwheel, a sneeze, a paper plane, sneaking through the screen's edge and
+climbing its side, plus everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around, peeking over the Dock).
+On a window ledge he peeks over it, sits with his legs swinging, or goes fishing. Some moves answer what's happening: he
+waves when you come back to your Mac, yawns before he dozes off, trips now and then mid-walk, sometimes dances when
+Claude finishes clean, settles in by the fire with a coffee after a long turn, and leaves you a sticky note if Claude
+finishes while you're away. Pick any of them from right-click → **Tricks**.
 
 **Make your own.** A trick is one file in `web/tricks/`: some poses with timings, and optionally something to draw. Try it
 in the [browser mockup](https://jaysteezy-max.github.io/hangabout/) before you install it. [TRICKS.md](TRICKS.md) walks
