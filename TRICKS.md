@@ -34,7 +34,7 @@ covers all of it. The core tricks are short and worth reading alongside it: `cor
 | --- | --- | --- |
 | `name` | yes | Unique id: letters, digits, `-`, `_`. Also the pose key that turns on your draw hooks (see below). |
 | `rarity` | yes | When he picks it on his own: `common` (an everyday fidget), `rare` (now and then), `edge` (a trip to the screen's edges), `manual` (never on his own; menu, `perform()` and `on` only). The old `perched` still works and means `common` with `where: 'ledge'`. |
-| `where` | no | `'floor'` (the Dock or the bottom of the screen) or `'ledge'` (the top of a window). He only picks it, or answers with it, while he's there. Leave it out for anywhere. |
+| `where` | no | `'floor'` (the Dock or the bottom of the screen) or `'ledge'` (the top of a window). He only picks it, or answers with it, while he's there; asked for from the menu somewhere else, he leaps there first. Leave it out for anywhere. |
 | `on` | no | Things that happen that it answers, each with the chance it does: `{back: 1}` always, `{cleanFinish: .25}` one time in four. See [Moments](#moments). |
 | `frames` | one of these | `[[pose, ms], ...]`, played once on the spot. |
 | `trip` | one of these | `({now, here, x, y, dir}) => steps`, an outing that moves him around. See [Trips](#trips). |
@@ -60,8 +60,12 @@ one of these moments comes and its chance comes up (if several tricks pass, one 
 | `longCommand` | A command Claude ran for more than 4 seconds just finished, and Claude doesn't need you. |
 | `cleanFinish` | Claude finished a turn that edited files or ran commands, with nothing failing. In the mockup, the demo turn. |
 | `doubleClick` | You double-clicked him. |
+| `midWalk` | He's halfway through a walk of more than 120 points, while he's free to roam. |
+| `longFinish` | Claude finished a turn that took 15 minutes or more, while you're here. |
+| `finishedWhileAway` | Claude finished a turn while you were away from your Mac. `hangabout.away` says whether you still are. |
 
-To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console.
+To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console. Run
+`hangabout.left()` first to have `hangabout.away` say you're away, and `hangabout.back()` to end it.
 
 `hangabout.trick()` throws a clear error for a missing name, an unknown rarity, or malformed frames, so check the console.
 
@@ -88,7 +92,7 @@ comes next. Keep tricks short, a few seconds at most; there's always next time.
 | `reach` | art pixels | When turned: his front arm sticks out this much further (a jab). |
 | `tilt` | degrees | Rotates him about his feet; past 20° he turns about his middle instead (for flips). |
 | `ox` | art pixels | Slides him sideways within his own canvas (a quick dash). |
-| `sink`, `clip` | art pixels, 1 | Sinks him below the ledge he stands on; with `clip: 1` the sunk part is hidden. |
+| `sink`, `clip` | screen points at normal size (3 per art pixel), 1 | Sinks him below the ledge he stands on; with `clip: 1` the sunk part is hidden. |
 | `glide` | pixels per second | Carries him along the ledge while the frame plays (a ride, a cartwheel); he turns round at the end of it. While gliding, `face` and `tilt` follow his direction. |
 | `aura` | 1 | A white outline around him. |
 | `notes` | 1 | Music notes float up. |

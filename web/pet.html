@@ -301,7 +301,7 @@ function turned(pose, e, rect, px){
   leg(OX + 9, 0, SIDE); leg(OX + 20, 2, SIDE) // far pair
   // Arms swing fore and aft, opposite each other, without ever coming loose from his body.
   rect(OX + 3 - wide - (swing > 0 ? 1 : 0), OY + ARM.mid + dy + Math.ceil(sq / 2), swing > 0 ? 3 : 2, 4, SIDE) // far arm, half hidden
-  rect(OX + 5 - wide, top, 4, bottom - top, SIDE) // the side turned away
+  rect(OX + 5 - wide, top, 4 + wide, bottom - top, SIDE) // the side turned away (wider when he crouches, so it meets the front)
   rect(OX + 9, top, 20 + wide, bottom - top, BODY) // the front, angled toward you
   leg(OX + 13, 1, BODY); leg(OX + 24, 3, BODY) // near pair
   const arms = pose.arms || ['mid', 'mid'], front = arms.find(a => a !== 'mid') || 'mid'
@@ -521,7 +521,7 @@ const walkFrame = (now, dir, arms) => {
 const ai = {mode: 'stand', until: 0, dir: -1, targetX: 0, speed: 40, seq: null, seqStart: 0, jump: null, vy: 0, landAt: -1e9, anchorX: null}
 /** Which states let him roam: idle and a finished turn freely, thinking only to pace. */
 const roam = now => pet.id === 'idle' || (pet.id === 'done' && now - pet.since > 2600) ? 'free' : pet.id === 'thinking' ? 'pace' : null
-function walkTo(x, speed){ ai.mode = 'walk'; ai.targetX = x; ai.dir = x < pet.x ? -1 : 1; ai.speed = speed * preset.speed }
+function walkTo(x, speed){ ai.mode = 'walk'; ai.targetX = x; ai.walkFrom = pet.x; ai.halfway = false; ai.dir = x < pet.x ? -1 : 1; ai.speed = speed * preset.speed }
 function fidget(now, frames){ ai.mode = 'fidget'; ai.seq = frames; ai.seqStart = now; ai.until = now + sum(frames) }
 function land(now){
   ai.mode = 'land'; ai.landAt = now; ai.until = now + 260; ai.vy = 0
@@ -534,12 +534,20 @@ function perform(name){
   if (!TRICKS[name]) return console.warn(`hangabout: no trick named "${name}"`)
   if (ai.mode === 'script') endTrip(now) // a move asked for on a trip: back on screen first
   if (['jump', 'fall', 'dangle'].includes(ai.mode)) { ai.next = name; return }
+  if (!fits(TRICKS[name])) { // a ledge move asked for on the floor, or the other way round: he leaps there first
+    const there = TRICKS[name].where === 'floor' ? surfaces().slice(0, 1) : surfaces().slice(1)
+    if (!there.length) return console.warn(`hangabout: "${name}" needs a window ledge to stand on`)
+    leapTo(now, pick(there)); ai.next = name; return
+  }
   startMove(now, name, surfaceUnder(pet.x, pet.y))
 }
 function jumpFrom(now, here){
   const others = surfaces().filter(o => Math.abs(o.y - here.y) > 4) // any ledge on screen: a real desktop is far taller than a hop
   if (!others.length) return walkTo(Math.max(here.x0, Math.min(here.x1, pet.x + rand(-200, 200))), 40)
-  const to = pick(others), x1 = Math.max(to.x0, Math.min(to.x1, pet.x + rand(-170, 170))), rise = Math.abs(pet.y - to.y)
+  leapTo(now, pick(others))
+}
+function leapTo(now, to){
+  const x1 = Math.max(to.x0, Math.min(to.x1, pet.x + rand(-170, 170))), rise = Math.abs(pet.y - to.y)
   ai.mode = 'jump'; ai.dir = x1 < pet.x ? -1 : 1
   ai.jump = {x0: pet.x, y0: pet.y, x1, y1: to.y, t0: now, T: 620 + rise * .45, h: rise / 2 + 45} // a higher ledge takes a bigger, slower leap
 }
@@ -645,6 +653,8 @@ function behave(now, dt){
   if (ai.mode === 'walk') {
     let x = pet.x + ai.dir * ai.speed * dt / 1000
     if ((ai.dir > 0 && x >= ai.targetX) || (ai.dir < 0 && x <= ai.targetX)) { x = ai.targetX; ai.mode = 'pause'; ai.until = now + rand(600, 1800) * preset.pace }
+    const span = Math.abs(ai.targetX - ai.walkFrom)
+    if (!ai.halfway && kind === 'free' && span > 120 && Math.abs(x - ai.walkFrom) >= span / 2) { ai.halfway = true; place(x, pet.y); return fire('midWalk') } // a stumble, now and then
     return place(x, pet.y)
   }
   if (ai.mode === 'pause' && now < ai.until) return
@@ -745,8 +755,14 @@ function setState(id, now = performance.now()){
   // After a long command he stretches, unless he's needed right away.
   if (before === 'running' && lasted > 4000 && id !== 'needs' && id !== 'blocked') fire('longCommand')
   // A turn that did real work (edits or commands) with nothing failing: a little celebration, now and then. The demo turn counts.
+  // Claude finished: a note left for you if you're away, a sit by the fire after a long turn (15 minutes or more), or a
+  // little celebration, now and then, for a turn that did real work (edits or commands) with nothing failing. The demo turn counts.
   const turn = cc.shown?.turn
-  if (id === 'done' && (NATIVE ? turn && !turn.fails && (turn.files || turn.cmds) : demo.on)) fire('cleanFinish')
+  if (id === 'done') {
+    if (pet.away) fire('finishedWhileAway')
+    else if (turn && cc.shown.since - turn.start >= 900) fire('longFinish')
+    else if (NATIVE ? turn && !turn.fails && (turn.files || turn.cmds) : demo.on) fire('cleanFinish')
+  }
   if (id === 'needs' && sound.on) chirp()
   if (ANNOUNCE[id]) live.textContent = ANNOUNCE[id]
   for (const b of document.querySelectorAll('[data-state]')) b.setAttribute('aria-pressed', String(b.dataset.state === id && !demo.on))
@@ -1065,6 +1081,7 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   feet, putFeet, surfaces, edges, scr, desk,
   clip(c){ pet.clip = c }, // hides part of him until he lands: {x, dir} or {y} (see portalClip)
   get size(){ return size }, get width(){ return desk.clientWidth },
+  get away(){ return !!pet.away }, // you've left your Mac alone for five minutes or more
   perform,
   // From the app: the menu bar and Dock, your windows, the mouse, Claude Code's state, and your settings.
   screen(top, bottom){ scr.top = top; scr.bottom = bottom; place(pet.x, pet.y) },
@@ -1077,7 +1094,8 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   cursor(x, y){ eyes.cursor = {x, y} },
   click(x, y){ eyes.attention = {x, y, until: performance.now() + 1800}; pet.pinned = false }, // you clicked something else: he glances at it, and his pinned box closes
   hover(on){ on ? enter() : leave() },
-  back(){ fire('back') }, // you're back at your Mac after five minutes or more away
+  left(){ pet.away = true }, // five minutes or more without the mouse or keys
+  back(){ pet.away = false; fire('back') }, // and you're back
   pointer(type, x, y){
     if (type === 'down') inBox(x, y) ? (pet.pinned = !pet.pinned) : grab(x, y)
     else if (type === 'move') pull(x, y)
@@ -1166,6 +1184,13 @@ function frame(now){
 <script src="tricks/core/cartwheel.js"></script>
 <script src="tricks/core/sneak.js"></script>
 <script src="tricks/core/climb.js"></script>
+<script src="tricks/core/sneeze.js"></script>
+<script src="tricks/core/trip.js"></script>
+<script src="tricks/core/fishing.js"></script>
+<script src="tricks/core/dockPeek.js"></script>
+<script src="tricks/core/stickyNote.js"></script>
+<script src="tricks/core/paperPlane.js"></script>
+<script src="tricks/core/coffee.js"></script>
 <!-- The fan pack: fan art of other people's characters. Loaded always, played only while the Fan pack setting is on. -->
 <script src="tricks/fan/powerup.js"></script>
 <script src="tricks/fan/guts.js"></script>
