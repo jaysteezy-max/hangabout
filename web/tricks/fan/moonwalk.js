@@ -13,7 +13,7 @@
   const HALF = 420, STEPS = 6, D = 6, SLIDE = HALF * STEPS, SPIN = 480 // each step's ms, how many, how far (art px) one foot slides past the other; the spin's ms
   const ON = {fit: 1, hat: 0, tilt: 1}
   const at = (T, pose, d) => ({go: 'hold', T, pose: {...pose, moonwalk: {...ON, ...d}}})
-  // A side-on skin (Cappy, the hippo) has no hands: the glove goes on his front foot, socks and loafers on his own four,
+  // A side-on skin (Cappy, Pusheen) has no hands: the glove goes on his front foot, socks and loafers on his own four,
   // a smaller fedora over his ears, and in the slide his legs are redrawn sliding. The hat is laid out on Cappy (his eye at
   // x 20) and moved to this skin's eye; his feet are found in his pixels.
   const PROFILE = hangabout.sideOn && head

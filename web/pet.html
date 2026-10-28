@@ -127,7 +127,6 @@ nothing to commit, working tree clean
 <!-- Skins: who the pet is. Each file adds one to SKINS (see "Skins" in TRICKS.md); they load first so his colors are known. -->
 <script>const SKINS = {}</script>
 <script src="skins/cappy.js"></script>
-<script src="skins/hippo.js"></script>
 <script src="skins/clay.js"></script>
 <script src="skins/hatty.js"></script>
 <script src="skins/chicken.js"></script>
@@ -1175,9 +1174,9 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   trick: registerTrick,
   GW, GH, OX, OY, LIFT, PH, BODY, TOP, SIDE, EYE, C,
   skin: SKIN, // 'cappy' (side on, no arms), 'clawd', or another skin's key in SKINS
-  sideOn: !!SKINS[SKIN].sideOn, // drawn side on (Cappy, the hippo, Clay): with a head, costumes dress him in profile
+  sideOn: !!SKINS[SKIN].sideOn, // drawn side on (Cappy, Clay, Pusheen, the chicken): with a head, costumes dress him in profile
   thickLine, paint, mix, recolor, rand, pick, facing,
-  head: SKINS[SKIN].head, // where a skin's face is, for costumes (Cappy, the hippo and Hatty have one; Clawd doesn't need it)
+  head: SKINS[SKIN].head, // where a skin's face is, for costumes (Cappy, Pusheen, the chicken and Hatty have one; Clawd doesn't need it)
   feet, putFeet, surfaces, edges, scr, desk,
   clip(c){ pet.clip = c }, // hides part of him until he lands: {x, dir} or {y} (see portalClip)
   get size(){ return size }, get width(){ return desk.clientWidth },

@@ -137,7 +137,6 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 | Skin | Who |
 | --- | --- |
 | **Cappy** | The default: a capybara, side on, who waves a front paw instead of a hand. |
-| **Hippo** | A pygmy hippo on all fours, three-quarters on, who lifts a front foot instead of a hand. |
 | **Clawd** | Fan art of Anthropic's Clawd, Claude Code's mascot. Not affiliated with or endorsed by Anthropic. |
 | **Clay** | A faceless clay soldier in grey clay, after the Clay Soldiers Minecraft mod: a cube head, chunky arms and legs, drawn three-quarters. Original art. |
 | **Hatty Hattington** | Fan art of Hatty from BattleBlock Theater, front on, with his top hat, tears and cane. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
