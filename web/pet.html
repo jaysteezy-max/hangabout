@@ -15,8 +15,9 @@ header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:s
 h1{font-size:20px;margin:0}
 .intro{color:var(--dim);font-size:13px;margin:0 0 10px}
 .bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-button.t{font:inherit;font-size:13px;padding:5px 11px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink)}
+.t{font:inherit;font-size:13px;padding:5px 11px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink)}
 button.t[aria-pressed=true]{background:var(--ink);color:var(--page)}
+#codeIn{width:9em;border-color:var(--clay)}
 .sep{width:1px;background:var(--line);margin:0 4px}
 
 /* A pretend desktop: ordinary app windows, with Clawd floating above all of them. */
@@ -73,6 +74,7 @@ body.native .desk{position:fixed;inset:0;height:auto;min-height:0;border-radius:
     <button class="t" data-preset="calm">Calm</button><button class="t" data-preset="normal">Normal</button><button class="t" data-preset="erratic">Erratic</button>
     <span class="sep"></span>
     <button class="t" id="fan" aria-pressed="false">Fan pack</button>
+    <button class="t" id="code">Enter a code…</button><input class="t" id="codeIn" hidden readonly aria-label="Code: arrow keys and letters, Enter to try it, Esc to cancel">
     <button class="t" id="replay">Replay entrance</button>
     <button class="t" id="reduced" aria-pressed="false">Reduced motion</button>
     <button class="t" id="sound" aria-pressed="false">Sound</button>
@@ -447,6 +449,7 @@ let size = 1 // how big he's drawn around his feet; steps of 1/6 keep every art 
 function setSize(s){ size = s; petEl.style.setProperty('--s', s); place(pet.x, pet.y) }
 const scr = {top: 26, bottom: 0} // the menu bar above and the Dock below; the app sends the real ones
 let nativeTops = [] // in the app: the visible top edges of your real windows, {id, y, x0, x1, wx, w, h}
+let windowsAt = 0, surfAt = -1e9 // when the app last sent them, and when the one under him last moved fast
 /** The top edges of windows (and each window's left, width and height): your real ones in the app, the pretend ones in the mockup. */
 const edges = () => NATIVE ? nativeTops : [...desk.querySelectorAll('.win')].map(w => ({y: w.offsetTop, x0: w.offsetLeft, x1: w.offsetLeft + w.offsetWidth, wx: w.offsetLeft, w: w.offsetWidth, h: w.offsetHeight}))
 const roomToStand = t => t.y + 1 - 84 * size >= scr.top // his body, not his headroom, must clear the menu bar
@@ -479,13 +482,16 @@ function registerTrick(t){
 }
 let fanPack = false // fan-made tricks of other people's characters: off unless you turn them on
 const usable = t => t.pack !== 'fan' || fanPack
+const found = new Set() // fan tricks you've come across; the rest are secrets (the app keeps the list)
+const CODE = '↑↑↓↓←→←→BA' // finds them all (hangabout.code)
 /** Whether he's where a trick can be done: on the floor (the Dock or the screen's bottom) or up on a window's ledge. */
 function fits(t){
   if (!t.where) return true
   const here = surfaceUnder(pet.x, pet.y)
   return !here || (here.y >= surfaces()[0].y - 2 ? 'floor' : 'ledge') === t.where
 }
-const weightOf = t => typeof t.weight === 'function' ? t.weight() : t.weight ?? 1 // a function: likelier at some times than others
+// A function: likelier at some times than others. A secret not yet found turns up only now and then, so all are found in the end.
+const weightOf = t => (typeof t.weight === 'function' ? t.weight() : t.weight ?? 1) * (t.pack === 'fan' && !found.has(t.name) ? .05 : 1)
 let lastTrick = null
 /** A trick of one of these rarities that fits where he is, picked by weight, never the one he just did; null if there are none. */
 function choose(...rarities){
@@ -495,10 +501,17 @@ function choose(...rarities){
   for (const t of pool) if ((r -= weightOf(t)) < 0) return t.name
   return null
 }
-/** Something happened that a trick can answer (see `on` in TRICKS.md): each trick listening rolls its chance, and one of those that pass plays. */
+/**
+ * Something happened that a trick can answer (see `on` in TRICKS.md): each trick listening rolls its chance (a number, or a
+ * function returning one), and one of those that pass plays. Says whether one did.
+ */
 function fire(event){
-  const takers = Object.values(TRICKS).filter(t => t.on?.[event] && usable(t) && fits(t) && Math.random() < t.on[event])
+  const takers = Object.values(TRICKS).filter(t => {
+    const c = t.on?.[event]
+    return c && usable(t) && fits(t) && Math.random() < (typeof c === 'function' ? c() : c)
+  })
   if (takers.length) perform(pick(takers).name)
+  return takers.length > 0
 }
 
 // ---- behavior presets: how busy he is when nobody needs him ----
@@ -525,8 +538,15 @@ function walkTo(x, speed){ ai.mode = 'walk'; ai.targetX = x; ai.walkFrom = pet.x
 function fidget(now, frames){ ai.mode = 'fidget'; ai.seq = frames; ai.seqStart = now; ai.until = now + sum(frames) }
 function land(now){
   ai.mode = 'land'; ai.landAt = now; ai.until = now + 260; ai.vy = 0
-  if (pet.pendingDizzy) { pet.pendingDizzy = false; pet.dizzyUntil = now + 2400 } // you shook him about
+  if (pet.pendingDizzy) { // you shook him about
+    const today = new Date().toDateString()
+    pet.pendingDizzy = false; pet.dizzyUntil = now + 2400
+    pet.dizzies = {[today]: (pet.dizzies?.[today] || 0) + 1}
+    pet.dizzyAgain = pet.dizzies[today] === 3 // the third time today: once his head clears, he's had enough
+  }
   pet.clip = null // whatever portal he came out of, he's all the way out now
+  if (pet.droppedAt != null && pet.y - pet.droppedAt > desk.clientHeight / 2) fire('bigDrop') // you let go of him from way up
+  pet.droppedAt = null
 }
 /** Plays one of his moves now, or as soon as he's back on his feet. */
 function perform(name){
@@ -625,8 +645,8 @@ function behave(now, dt){
   if (isStill()) { if (here && here.y !== pet.y) place(pet.x, here.y); ai.mode = 'stand'; return }
   if (ai.mode === 'fall') {
     ai.vy += 2600 * dt / 1000
-    let y = pet.y + ai.vy * dt / 1000
-    if (here && y >= here.y) { y = here.y; land(now) }
+    const y = pet.y + ai.vy * dt / 1000
+    if (here && y >= here.y) { place(pet.x, here.y); return land(now) }
     return place(pet.x, y)
   }
   if (ai.mode === 'jump') {
@@ -646,6 +666,7 @@ function behave(now, dt){
     return
   }
   if (now < pet.dizzyUntil) { ai.mode = 'pause'; ai.until = pet.dizzyUntil; return } // stays put until his head clears
+  if (pet.dizzyAgain) { pet.dizzyAgain = false; if (fire('dizzyAgain')) return }
   if (ai.next) { startMove(now, ai.next, here); ai.next = null; return } // a move asked for while he was in the air
   const kind = roam(now)
   if (!kind) { ai.mode = 'stand'; ai.anchorX = null; return }
@@ -664,6 +685,8 @@ function behave(now, dt){
     else { ai.mode = 'pause'; ai.until = now + rand(1400, 2800) * preset.pace }
     return
   }
+  const day = new Date().toDateString()
+  if (!pet.away && pet.day !== day) { pet.day = day; if (fire('today')) return } // the first time he's free each day, for date-based secrets
   const onFloor = here.y >= surfaces()[0].y - 2, c = preset.chance
   if (r < c.walk) { // a stroll nearby, or now and then a trot to anywhere along the ledge
     const far = Math.random() < preset.odds.farWalk, x = clampX(far ? rand(here.x0, here.x1) : pet.x + pick([-1, 1]) * rand(60, 260))
@@ -674,13 +697,17 @@ function behave(now, dt){
     const name = (Math.random() < preset.odds.rare && choose('rare')) || choose('common')
     if (name) startMove(now, name, here)
   }
-  else if (r < c.walk + c.pause + c.move + c.jump || !onFloor) jumpFrom(now, here)
+  else if (r < c.walk + c.pause + c.move + c.jump || !onFloor) {
+    const high = surfaces()[0].y - here.y > desk.clientHeight / 2 // a window ledge more than half the screen up
+    if (!(high && fire('highUp'))) jumpFrom(now, here) // a trick may take him down another way
+  }
   else { const name = choose('edge'); name ? startMove(now, name, here) : jumpFrom(now, here) } // off to the screen's edges
 }
 /** A trick by name: most are played on the spot; a few are trips that take him places. */
 function startMove(now, name, here){
   const t = ai.trick = TRICKS[name]
   lastTrick = name
+  if (t.pack === 'fan' && !found.has(name)) { found.add(name); if (NATIVE) webkit.messageHandlers.hangabout.postMessage({found: [name]}) } // a secret, found
   if (!t.trip) return fidget(now, t.frames)
   const {x, y} = feet()
   trip(now, t.trip({now, here: here || surfaces()[0], x, y, dir: ai.dir || 1}))
@@ -988,6 +1015,27 @@ function syncClaude(now){
   const step = s?.stepAt || 0
   if (step !== cc.stepSeen) { if (cc.stepSeen) pet.stepAt = now; cc.stepSeen = step } // a new plan step opens the box for a moment
 }
+const FORCE_PUSH = /^Bash\(.*\bgit push\b.*\s(-f|--force(-with-lease)?)(?![\w-])/
+const isTest = e => e.call.startsWith('Bash(') && e.call.includes('test')
+/** Moments in what Claude just ran: each session's log is its last 8 calls, {ok, call, out}, and each new one is looked at once. */
+function watchLogs(){
+  const was = cc.seen
+  cc.seen = {}
+  for (const [id, s] of Object.entries(cc.sessions)) {
+    const log = s.log || [], seen = cc.seen[id] = log.map(e => JSON.stringify(e)), old = was?.[id] || []
+    if (!was) continue // when the page loads, what's in the logs already happened
+    // Calls have no ids: the new ones follow the longest run that ends the log as we last saw it.
+    // shortcut: a full log that repeats itself (one call failing the same way 9 times running) hides the newest; ids from the hook would fix it.
+    let k = Math.min(old.length, seen.length)
+    while (k && seen.slice(0, k).some((e, i) => e !== old[old.length - k + i])) k--
+    for (let i = k; i < log.length; i++) {
+      const e = log[i], before = log.slice(0, i)
+      if (isTest(e) && e.ok && before.findLast(isTest)?.ok === false) fire('comeback') // tests pass after failing
+      if (!e.ok && before.slice(-2).filter(p => !p.ok).length === 2 && before.at(-3)?.ok !== false) fire('failStreak') // the third failure in a row
+      if (FORCE_PUSH.test(e.call)) fire('forcePush')
+    }
+  }
+}
 const span = sec => sec < 60 ? `${Math.max(1, Math.round(sec))}s` : `${Math.floor(sec / 60)}m ${String(Math.floor(sec % 60)).padStart(2, '0')}s`
 const clock = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`
 const ago = sec => sec < 60 ? 'just now' : sec < 3600 ? `${Math.floor(sec / 60)}m ago` : `${Math.floor(sec / 3600)}h ago`
@@ -1036,8 +1084,9 @@ function pull(x, y){
   const dx = x - pet.drag.sx, dy = y - pet.drag.sy
   if (Math.hypot(dx, dy) > 4) pet.drag.moved = true
   if (pet.drag.moved) {
-    const nx = pet.drag.x + dx, now = performance.now(), vx = (nx - pet.x) / Math.max(1, now - (pet.drag.t || now - 16)) * 1000
-    pet.drag.t = now
+    const nx = pet.drag.x + dx, now = performance.now(), ms = Math.max(1, now - (pet.drag.t || now - 16)), vx = (nx - pet.x) / ms * 1000
+    pet.drag.fling = (x - (pet.drag.px ?? x)) / ms * 1000 // the pointer's own speed: his stops at the screen's edges
+    pet.drag.t = now; pet.drag.px = x
     pet.swing += (Math.max(-16, Math.min(16, -vx * .02)) - pet.swing) * .35 // swings opposite to the way you pull him
     // Shaken: four fast changes of direction within ~a second leave him dizzy.
     const sign = Math.sign(vx)
@@ -1048,9 +1097,19 @@ function pull(x, y){
   }
 }
 function drop(){
-  if (pet.drag && !pet.drag.moved) pet.pinned = !pet.pinned
-  if (pet.drag?.dizzy) pet.pendingDizzy = true
+  const d = pet.drag, now = performance.now()
+  if (d && !d.moved) { pet.pinned = !pet.pinned; beat(now) }
+  if (d?.dizzy) pet.pendingDizzy = true
+  if (d?.moved) {
+    const thrown = now - d.t < 100 && Math.abs(d.fling) > 2000 // let go mid-fling, hard to the side
+    pet.droppedAt = thrown && fire('thrown') ? null : pet.y // if not, how far he falls may count when he lands (bigDrop)
+  }
   pet.drag = null
+}
+/** Four clicks on him in an even beat (each gap 450–1,000 ms, all within 20% of their average): slower than a double-click. */
+function beat(now){
+  const at = pet.clicks = [...(pet.clicks || []), now].slice(-4), gaps = at.slice(1).map((t, i) => t - at[i]), avg = (now - at[0]) / 3
+  if (gaps.length === 3 && gaps.every(g => g >= 450 && g <= 1000 && Math.abs(g - avg) <= avg * .2)) { pet.clicks = []; fire('beat') }
 }
 button.addEventListener('pointerdown', e => { button.setPointerCapture(e.pointerId); grab(e.clientX, e.clientY) })
 button.addEventListener('pointermove', e => pull(e.clientX, e.clientY))
@@ -1086,24 +1145,39 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   // From the app: the menu bar and Dock, your windows, the mouse, Claude Code's state, and your settings.
   screen(top, bottom){ scr.top = top; scr.bottom = bottom; place(pet.x, pet.y) },
   windows(tops){
-    const on = surfaceUnder(pet.x, pet.y), was = on?.id != null && nativeTops.find(t => t.id === on.id)
+    const on = surfaceUnder(pet.x, pet.y), was = on?.id != null && nativeTops.find(t => t.id === on.id), now = performance.now()
     nativeTops = tops
     const is = was && tops.find(t => t.id === was.id)
-    if (is && ['stand', 'pause', 'walk', 'fidget', 'land'].includes(ai.mode)) place(pet.x + is.wx - was.wx, pet.y + is.y - was.y) // he rides the window he's standing on
+    if (is && ['stand', 'pause', 'walk', 'fidget', 'land'].includes(ai.mode)) {
+      place(pet.x + is.wx - was.wx, pet.y + is.y - was.y) // he rides the window he's standing on
+      // Dragged fast, over 1,500 points a second (the app looks every 100 ms at most): he surfs it, once a drag.
+      if (Math.hypot(is.wx - was.wx, is.y - was.y) / Math.max(100, now - windowsAt) > 1.5) { if (now - surfAt > 1000) fire('windowSurf'); surfAt = now }
+    }
+    windowsAt = now
   },
   cursor(x, y){ eyes.cursor = {x, y} },
   click(x, y){ eyes.attention = {x, y, until: performance.now() + 1800}; pet.pinned = false }, // you clicked something else: he glances at it, and his pinned box closes
   hover(on){ on ? enter() : leave() },
   left(){ pet.away = true }, // five minutes or more without the mouse or keys
   back(){ pet.away = false; fire('back') }, // and you're back
+  /** The cheat code, typed as arrows and capital letters (↑↑↓↓…): every secret found at once, and the Fan pack on. */
+  code(text){
+    if (text !== CODE) { perform('scratch'); return false } // puzzled
+    const fans = Object.values(TRICKS).filter(t => t.pack === 'fan').map(t => t.name)
+    for (const name of fans) found.add(name)
+    useFanPack(true)
+    if (NATIVE) webkit.messageHandlers.hangabout.postMessage({found: fans, fan: true})
+    perform('powerUp')
+    return true
+  },
   pointer(type, x, y){
     if (type === 'down') inBox(x, y) ? (pet.pinned = !pet.pinned) : grab(x, y)
     else if (type === 'move') pull(x, y)
     else if (type === 'up') drop()
     else fire('doubleClick')
   },
-  claude(state){ cc.sessions = state.sessions || {}; syncClaude(performance.now()) },
-  settings(s){ sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); useFanPack(s.fan) },
+  claude(state){ cc.sessions = state.sessions || {}; syncClaude(performance.now()); watchLogs() },
+  settings(s){ sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); s.found?.forEach(n => found.add(n)); useFanPack(s.fan) },
 }
 let hitKey = ''
 /** Tells the app where he and his open bubble are, so only those spots catch the mouse. */
@@ -1149,6 +1223,24 @@ const toggle = (id, fn) => { const b = document.getElementById(id); b.onclick = 
 toggle('reduced', () => document.body.classList.toggle('reduced'))
 toggle('sound', () => { sound.on = !sound.on; if (sound.on) chirp(); return sound.on }) // plays the chirp once so you know what it sounds like
 toggle('fan', () => (useFanPack(!fanPack), fanPack))
+// The code box (in the app it's right-click → Enter a code…): it records keys, not text, since arrows can't be typed.
+const codeBtn = document.getElementById('code'), codeIn = document.getElementById('codeIn')
+const ARROWS = {ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→'}
+const closeCode = said => {
+  codeIn.hidden = true; codeBtn.hidden = false; codeBtn.focus()
+  if (said) { codeBtn.textContent = live.textContent = said; setTimeout(() => (codeBtn.textContent = 'Enter a code…'), 1500) }
+}
+codeBtn.onclick = () => { codeIn.value = ''; codeBtn.hidden = true; codeIn.hidden = false; codeIn.focus() }
+codeIn.onkeydown = e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return
+  const key = ARROWS[e.key] || (/^[a-z]$/i.test(e.key) ? e.key.toUpperCase() : '')
+  if (e.key === 'Enter') closeCode(hangabout.code(codeIn.value) ? 'Unlocked!' : 'Nope')
+  else if (e.key === 'Escape') closeCode()
+  else if (e.key === 'Backspace') codeIn.value = codeIn.value.slice(0, -1)
+  else if (key) codeIn.value += key
+  else return
+  e.preventDefault()
+}
 toggle('light', () => { const on = document.body.classList.toggle('light'); readTheme(); return on })
 addEventListener('resize', () => place(pet.x, pet.y))
 

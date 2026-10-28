@@ -101,7 +101,7 @@ the new one as above:
 | Drag him | Dangles from your cursor; shake him and he gets dizzy |
 | Double-click | Hops |
 | Click a window | Notices, with a little "!" |
-| Right-click | Tricks, Behavior, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Quit |
+| Right-click | Tricks, Behavior, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Enter a code…, Quit |
 
 | Claude Code is… | Clawd | Status bubble |
 | --- | --- | --- |
@@ -143,11 +143,14 @@ through it, and in this repo you can ask Claude Code to "make a new trick" (ther
 
 ### Fan pack
 
-Off by default. Turn it on with right-click → **Fan pack**. It adds nine fan-made tricks of other people's characters:
-a Super Saiyan power-up (Dragon Ball), Guts (Berserk), Thorfinn (Vinland Saga), the Silver Surfer and Spider-Man
-(Marvel), Darth Vader (Star Wars), a Ghost revive and an Exotic engram (Destiny) and a portal gun (Portal 2). They're
-original pixel art made as homage, not affiliated with or endorsed by any of those rights holders, and they'll be removed
-on request.
+Off by default. Turn it on with right-click → **Fan pack**. It adds ten fan-made tricks of other people's characters,
+and they're secrets: you find them by what you do, and right-click → **Tricks** counts how many you've found. Fix your
+failing tests, say, or drop him from way up, or keep a steady beat on him. Each one, once found, is in the Tricks menu
+and turns up on its own now and then.
+
+They're original pixel art made as homage, after Dragon Ball, Berserk, Vinland Saga, Marvel's Silver Surfer and
+Spider-Man, Star Wars, Destiny, Portal 2 and Michael Jackson's moonwalk, not affiliated with or endorsed by any of those
+rights holders, and they'll be removed on request.
 
 ## FAQ
 
@@ -188,6 +191,20 @@ Two copies are each getting Claude Code's hooks, and every new session starts an
 
 No. The hook is a small native program that takes about 5 ms per event, prints nothing and always exits 0, so it can't
 block or change anything Claude does.
+
+</details>
+
+<details>
+<summary><b>Don't want to hunt for the secrets?</b></summary>
+
+Right-click → **Enter a code…** and type the code with your arrow keys and letters, then press Return. It turns the Fan
+pack on and finds every secret at once.
+
+<details><summary>Spoiler</summary>
+
+↑ ↑ ↓ ↓ ← → ← → B A
+
+</details>
 
 </details>
 
