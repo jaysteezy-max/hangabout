@@ -459,14 +459,6 @@ function surfaces(){
   }
   return list
 }
-/** Edges too close to the menu bar to stand on, like a maximized window's top: he can still hang from them. */
-function grips(){
-  const W = desk.clientWidth
-  return edges().filter(t => !roomToStand(t) && t.y >= scr.top - 2)
-    .map(t => ({y: t.y, wx: t.wx, id: t.id, x0: Math.max(0, t.x0 + 10), x1: Math.min(W - PW, t.x1 - PW - 10)})).filter(g => g.x1 > g.x0)
-}
-// Hanging, his fingertips curl over the edge: they're art row 16–17, so the edge meets row 18 (54 px down his canvas at size 1).
-const hangY = g => g.y - PH + 66 * size
 const surfaceUnder = (x, y) => surfaces().filter(s => x >= s.x0 && x <= s.x1 && s.y >= y - 1.5).sort((a, b) => a.y - b.y)[0]
 const rand = (a, b) => a + Math.random() * (b - a)
 const pick = list => list[Math.floor(Math.random() * list.length)]
@@ -498,12 +490,11 @@ function choose(...rarities){
 // no edge trips, so their share goes to jumping (it's his way back down). odds: the finer choices within those.
 // pace stretches or shortens his pauses; speed scales his walking.
 const PRESETS = {
-  calm: {chance: {walk: .3, pause: .45, move: .17, jump: .03, trip: .05}, odds: {farWalk: .2, rare: .08, hangNotLedge: .1, hangAlone: .3}, pace: 1.8, speed: .8},
-  normal: {chance: {walk: .38, pause: .2, move: .24, jump: .05, trip: .13}, odds: {farWalk: .35, rare: .15, hangNotLedge: .2, hangAlone: .5}, pace: 1, speed: 1},
-  erratic: {chance: {walk: .3, pause: .05, move: .33, jump: .15, trip: .17}, odds: {farWalk: .6, rare: .35, hangNotLedge: .4, hangAlone: .8}, pace: .4, speed: 1.6},
+  calm: {chance: {walk: .3, pause: .45, move: .17, jump: .03, trip: .05}, odds: {farWalk: .2, rare: .08}, pace: 1.8, speed: .8},
+  normal: {chance: {walk: .38, pause: .2, move: .24, jump: .05, trip: .13}, odds: {farWalk: .35, rare: .15}, pace: 1, speed: 1},
+  erratic: {chance: {walk: .3, pause: .05, move: .33, jump: .15, trip: .17}, odds: {farWalk: .6, rare: .35}, pace: .4, speed: 1.6},
 }
 // farWalk: of walks, a trot to anywhere along the ledge, not a stroll nearby. rare: of moves, a rare trick, not an everyday one.
-// hangNotLedge: of jumps, with ledges to land on and edges to hang from, hang. hangAlone: of jumps, with only an edge to hang from (a maximized window), hang; otherwise a stroll.
 for (const [name, p] of Object.entries(PRESETS)) console.assert(Math.abs(Object.values(p.chance).reduce((a, b) => a + b) - 1) < 1e-9, `preset ${name}: chances must add up to 1`)
 let preset = PRESETS.normal
 // Walking: turned toward where he's going, legs stepping in diagonal pairs, arms swinging fore and aft, rocking side to side.
@@ -521,28 +512,20 @@ function land(now){
   if (pet.pendingDizzy) { pet.pendingDizzy = false; pet.dizzyUntil = now + 2400 } // you shook him about
   pet.clip = null // whatever portal he came out of, he's all the way out now
 }
-function hang(now, g){ ai.mode = 'hang'; ai.grip = g; ai.hangAt = now; ai.until = now + rand(2500, 4500) }
 /** Plays one of his moves now, or as soon as he's back on his feet. */
 function perform(name){
   const now = performance.now()
   if (!TRICKS[name]) return console.warn(`hookpet: no trick named "${name}"`)
   if (ai.mode === 'script') endTrip(now) // a move asked for on a trip: back on screen first
-  if (['jump', 'fall', 'dangle', 'hang'].includes(ai.mode)) { ai.next = name; return }
+  if (['jump', 'fall', 'dangle'].includes(ai.mode)) { ai.next = name; return }
   startMove(now, name, surfaceUnder(pet.x, pet.y))
 }
 function jumpFrom(now, here){
-  const others = surfaces().filter(o => Math.abs(o.y - here.y) > 4), holds = grips() // any ledge on screen: a real desktop is far taller than a hop
-  if (holds.length && Math.random() < (others.length ? preset.odds.hangNotLedge : preset.odds.hangAlone)) return leapToGrip(now, pick(holds))
+  const others = surfaces().filter(o => Math.abs(o.y - here.y) > 4) // any ledge on screen: a real desktop is far taller than a hop
   if (!others.length) return walkTo(Math.max(here.x0, Math.min(here.x1, pet.x + rand(-200, 200))), 40)
   const to = pick(others), x1 = Math.max(to.x0, Math.min(to.x1, pet.x + rand(-170, 170))), rise = Math.abs(pet.y - to.y)
   ai.mode = 'jump'; ai.dir = x1 < pet.x ? -1 : 1
   ai.jump = {x0: pet.x, y0: pet.y, x1, y1: to.y, t0: now, T: 620 + rise * .45, h: rise / 2 + 45} // a higher ledge takes a bigger, slower leap
-}
-/** A leap that tops out exactly at the edge (h = rise / 4 leaves no upward speed at the end), so he catches it, not overshoots. */
-function leapToGrip(now, g){
-  const x1 = Math.max(g.x0, Math.min(g.x1, pet.x + rand(-170, 170))), y1 = hangY(g), rise = Math.max(0, pet.y - y1)
-  ai.mode = 'jump'; ai.dir = x1 < pet.x ? -1 : 1
-  ai.jump = {x0: pet.x, y0: pet.y, x1, y1, t0: now, T: 620 + rise * .45, h: rise / 4, grip: g}
 }
 
 // ---- trips: scripted outings off the usual paths (through the screen's edge, up its sides, through portals) ----
@@ -625,12 +608,8 @@ function behave(now, dt){
   if (ai.mode === 'jump') {
     const j = ai.jump, p = (now - j.t0 - 120) / j.T // 120 ms crouch first
     if (p < 0) return
-    if (p >= 1) { place(j.x1, j.y1); return j.grip ? hang(now, j.grip) : land(now) }
+    if (p >= 1) { place(j.x1, j.y1); return land(now) }
     return place(j.x0 + (j.x1 - j.x0) * p, j.y0 + (j.y1 - j.y0) * p - j.h * 4 * p * (1 - p))
-  }
-  if (ai.mode === 'hang') { // lets go after a few seconds, or straight away when he's needed
-    if (now > ai.until || pet.id === 'needs' || pet.id === 'blocked') { ai.mode = 'fall'; ai.vy = 0 }
-    return
   }
   if (!here || Math.abs(here.y - pet.y) > 1.5) { ai.mode = 'fall'; ai.vy = 0; return } // nothing under his feet
   if ((ai.mode === 'land' || ai.mode === 'fidget') && now < ai.until) {
@@ -693,10 +672,6 @@ function lifePose(now){
     case 'land': return {squash: 2}
     case 'script': return tripPose(now)
     case 'dangle': { const i = Math.floor(now / 120) % 2; return {arms: ['up', 'up'], lift: i ? [0, 3] : [1, 2], eyes: 'up', stretch: 1} }
-    case 'hang': { // both hands over the edge, legs kicking, now and then a peek down at the drop
-      const t = now - ai.hangAt, kick = Math.floor(t / 140) % 2, look = ['up', 'down', 'down', 'side'][Math.floor(t / 900) % 4]
-      return {arms: ['high', 'high'], stretch: 1, lift: t < 160 ? [] : kick ? [0, 3] : [1, 2], eyes: look, look: 1, tilt: Math.sin(t / 300) * 4 * Math.min(1, t / 400)}
-    }
   }
   return null
 }
@@ -732,7 +707,7 @@ desk.addEventListener('pointerdown', e => {
 function place(x, y){
   const W = desk.clientWidth, H = desk.clientHeight
   const edge = Math.max(0, 54 * size - 54) // a bigger Clawd stays clear of the screen's sides
-  const top = ['jump', 'hang', 'fall'].includes(ai.mode) ? -PH : scr.top - (PH - 84 * size) // only a leap or a hang takes him up past the menu bar (and he falls from there)
+  const top = ['jump', 'fall'].includes(ai.mode) ? -PH : scr.top - (PH - 84 * size) // only a leap takes him up past the menu bar (and he falls from there)
   if (ai.mode === 'script') { pet.x = x; pet.y = y } // a trip takes him off screen and up its sides
   else { pet.x = Math.max(edge, Math.min(W - PW - edge, x)); pet.y = Math.max(top, Math.min(H - scr.bottom - PH - 2, y)) } // the headroom may overlap the menu bar; never below the floor, or he'd fall forever
   petEl.style.left = pet.x + 'px'; petEl.style.top = pet.y + 'px'
@@ -908,7 +883,7 @@ function draw(now, dt){
   if (!pet.drag?.moved) pet.swing *= .86
   // Rotation: the waddle rocks him on his feet; dangling swings him from where you hold him.
   const rot = pet.swing + (still ? 0 : pose.tilt || 0) + (ai.mode === 'script' ? ai.rot : 0) // on a trip he may be on a wall, turned about his feet
-  canvas.style.transformOrigin = pet.drag?.moved ? '50% 0' : ai.mode === 'hang' ? '50% 44%' : Math.abs(pose.tilt || 0) > 20 ? '50% 72%' : '50% 100%' // big spins turn about his middle; hanging, he swings from his hands
+  canvas.style.transformOrigin = pet.drag?.moved ? '50% 0' : Math.abs(pose.tilt || 0) > 20 ? '50% 72%' : '50% 100%' // big spins turn about his middle
   canvas.style.transform = Math.abs(rot) > .3 ? `rotate(${rot.toFixed(1)}deg)` : ''
   // Peeking over a window or sitting on its edge: he sinks below the ledge; peeking hides what's behind the window.
   const sink = still ? 0 : (pose.sink || 0) * size
@@ -1075,11 +1050,6 @@ const hookpet = window.hookpet = {
     nativeTops = tops
     const is = was && tops.find(t => t.id === was.id)
     if (is && ['stand', 'pause', 'walk', 'fidget', 'land'].includes(ai.mode)) place(pet.x + is.wx - was.wx, pet.y + is.y - was.y) // he rides the window he's standing on
-    if (ai.mode === 'hang') { // and the one he's hanging from; if it goes away, he drops
-      const g = tops.find(t => t.id === ai.grip.id)
-      if (!g) { ai.mode = 'fall'; ai.vy = 0 }
-      else if (g.y !== ai.grip.y || g.wx !== ai.grip.wx) { place(pet.x + g.wx - ai.grip.wx, pet.y + g.y - ai.grip.y); ai.grip = {...ai.grip, y: g.y, wx: g.wx} }
-    }
   },
   cursor(x, y){ eyes.cursor = {x, y} },
   click(x, y){ eyes.attention = {x, y, until: performance.now() + 1800}; pet.pinned = false }, // you clicked something else: he glances at it, and his pinned box closes
@@ -1099,7 +1069,6 @@ function reportHits(){
   const {x: fx, y: fy} = feet(), s = size, wall = ai.mode === 'script' ? Math.round(ai.rot / 90) : 0 // on a wall his body lies sideways off his feet
   const rects = [wall < 0 ? [fx - 66 * s, fy - 54 * s, 66 * s, 108 * s] : wall > 0 ? [fx, fy - 54 * s, 66 * s, 108 * s] : [fx - 54 * s, fy - 66 * s, 108 * s, 66 * s]] // his body, not the headroom above it
   if (box.style.visibility === 'visible') { const b = box.getBoundingClientRect(); rects.push([b.x, b.y, b.width, b.height]) }
-  if (ai.mode === 'hang') rects.length = 0 // hanging over a title bar, he lets every click through to the toolbar behind him
   const r = rects.map(a => a.map(Math.round)), key = r.join(';')
   if (key !== hitKey) { hitKey = key; webkit.messageHandlers.hookpet.postMessage(r) }
 }
@@ -1159,7 +1128,7 @@ addEventListener('DOMContentLoaded', () => {
 function frame(now){
   // In the app, on a timer: 30 fps while he moves or the bubble animates, 15 while he stands (his slowest-changing poses
   // last 120 ms and more), so a 120 Hz screen doesn't wake him 120 times a second all day.
-  const busy = ['walk', 'jump', 'fall', 'dangle', 'fidget', 'land', 'hang', 'script'].includes(ai.mode) || pet.drag || now - Math.max(pet.openedAt, pet.closedAt) < 700
+  const busy = ['walk', 'jump', 'fall', 'dangle', 'fidget', 'land', 'script'].includes(ai.mode) || pet.drag || now - Math.max(pet.openedAt, pet.closedAt) < 700
   NATIVE ? setTimeout(() => frame(performance.now()), busy ? 33 : 66) : requestAnimationFrame(frame)
   const dt = Math.min(100, now - last); last = now
   runDemo(now); behave(now, dt); draw(now, dt); updateBox(now)

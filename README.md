@@ -22,8 +22,8 @@
 
 - **Knows what Claude is doing.** A status bubble beside him says it in Claude Code's own words: the plan step, the file
   being edited, the command running, the question waiting on you. It opens by itself only when it matters.
-- **Lives on your real windows.** He walks along the Dock and the tops of your windows, rides a window you drag, hangs
-  from a maximized one, climbs the sides of the screen and phases through its edges.
+- **Lives on your real windows.** He walks along the Dock and the tops of your windows, rides a window you drag, climbs
+  the sides of the screen and phases through its edges.
 - **Read-only and local.** The hook can't approve, block or change anything Claude does, and nothing leaves your Mac.
 - **Native and light.** A small Swift app that builds on your Mac in seconds. The hook takes about 5 ms per event.
 - **Easy to teach new tricks.** Each trick is one JavaScript file, and you can try it in a browser before installing.
@@ -109,7 +109,7 @@ Right-click → **Behavior** sets how busy he is when Claude doesn't need him. Y
 | --- | --- |
 | **Calm** | Mostly lingers and strolls. Long pauses, slow walks, rare tricks, hardly ever leaves the floor. |
 | **Normal** | The default mix of wandering, fidgets, jumps to windows and trips to the screen's edges. |
-| **Erratic** | Barely sits still. Fast trots, lots of jumping and hanging, edge trips and rare tricks far more often. |
+| **Erratic** | Barely sits still. Fast trots, lots of jumping, edge trips and rare tricks far more often. |
 
 ## Tricks
 
