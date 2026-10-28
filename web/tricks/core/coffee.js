@@ -9,6 +9,7 @@
   const GREEN = '#3D6B4F', LIT = '#558A66', SHADE = '#27462F', TUFT = '#1A3122', WOOD = '#3A2314'
   const STONE = '#8B857C', MORTAR = '#6A645C', STONE_LIT = '#A9A398', SOOT = '#160D09', MANTEL = '#5A3822', MANTEL_LIT = '#7A5236'
   const FLAME = ['#FFF2B0', '#FFD04A', '#FF9A2A', '#E8501C'] // hottest at the base
+  const [LEG, LEG_SHADE] = hangabout.skin === 'knight' ? ['#4A4A4A', '#383838'] : [BODY, SIDE] // the knight's legs are in armor
 
   /** +1 puts the fireplace on his right, -1 on his left: away from his status bubble, unless that runs off the screen. */
   function side(){
@@ -110,10 +111,10 @@
       out = out.filter(([, y]) => y < bottom)
       add(x0 + 1, bottom, x1 - x0 - 1, 2, ROBE); add(x0 + 1, bottom + 2, x1 - x0 - 1, 1, HEM) // draped over the seat
       add(25, collar + 4, 2, 2, SATIN); add(25, collar + 6, 1, 3, SATIN); add(27, collar + 6, 1, 2, SATIN) // the sash's knot and ends
-      if (!d.cross) for (const x of [12, 16, 26, 30]) add(x, bottom + 3, 2, 3, BODY)
+      if (!d.cross) for (const x of [12, 16, 26, 30]) add(x, bottom + 3, 2, 3, LEG)
       else { // one leg straight down, the other crossed over it
-        add(23, bottom + 3, 2, 4, SIDE)
-        for (const [x, y, w] of [[16, 3, 4], [20, 4, 6], [26, 5, 3]]) add(x, bottom + y, w, 2, BODY)
+        add(23, bottom + 3, 2, 4, LEG_SHADE)
+        for (const [x, y, w] of [[16, 3, 4], [20, 4, 6], [26, 5, 3]]) add(x, bottom + y, w, 2, LEG)
       }
       return out
     },
