@@ -50,11 +50,10 @@
   const EMOTE = {
     happy: [[1, 7, PINK], [2, 7, PINK], [13, 7, PINK], [14, 7, PINK]], // blushing
     content: [[1, 7, PINK], [2, 7, PINK], [13, 7, PINK], [14, 7, PINK]],
-    sad: [[3, 8, WET], [3, 9, WET]], // a tear
     strain: [[17, 0, WET], [16, 1, WET], [17, 1, WET], [16, 2, WET], [17, 2, WET]], // a sweat drop
     angry: [[17, -2, RED], [19, -2, RED], [16, -1, RED], [17, -1, RED], [19, -1, RED], [20, -1, RED], [16, 1, RED], [17, 1, RED], [19, 1, RED], [20, 1, RED], [17, 2, RED], [19, 2, RED]], // a cross mark
   }
-  const LAID_BACK = {sad: 1, angry: 1}
+  const LAID_BACK = {angry: 1}, TEAR = [[3, 8, WET], [3, 9, WET]] // ears back when cross; a tear down her cheek when she sulks (`tear`)
   const MOUTH = { // over her usual one, from her face's front and her top
     yawn: [[8, 7, PINK], [7, 8, LINE], [8, 8, PINK], [9, 8, LINE], [8, 9, LINE]],
     lick: [[8, 8, PINK]],
@@ -109,7 +108,7 @@
     /**
      * Pusheen in a pose: squashed or stretched through her middle, paws stepping or tucked, a front paw up, outlined,
      * whiskers, then her eyes and whatever her face is doing. Her own pose keys, beside the shared ones: `legs` (up on her
-     * little legs, as she walks), `tail` (1: flicked up off the floor), `ears` ('flat'), `mouth` ('yawn', 'lick'),
+     * little legs, as she walks), `tail` (1: flicked up off the floor), `ears` ('flat'), `tear`, `mouth` ('yawn', 'lick'),
      * `cat: 'stretch'` (a cat's stretch, drawn whole), and her props: `zz` (how many z's as she naps), `heart`, `balls`
      * (0 to 1: how far round her juggling the balls are).
      */
@@ -160,7 +159,7 @@
     moods: {
       idle: (m => ({intro: m, loops: Infinity, rest: m}))([[{}, 3200], [{eyes: 'blink'}, 130], [{}, 2000], [{tail: 1}, 180], [{}, 140], [{tail: 1}, 180], [{}, 600], [{eyes: 'blink'}, 120], [{}, 2400], [{squash: 1}, 520]]),
       nap: (m => ({intro: m, loops: Infinity, rest: m}))([0, 1, 2, 3].flatMap(zz => [[{eyes: 'content', tuck: 1, squash: 1, zz}, 700], [{eyes: 'content', tuck: 1, squash: 2, zz}, 700]])),
-      blocked: (m => ({intro: m, loops: 1, rest: m}))([[{squash: 2, tuck: 1, eyes: 'sad'}, 2800], [{squash: 2, tuck: 1, eyes: 'blink', ears: 'flat'}, 450]]),
+      blocked: (m => ({intro: m, loops: 1, rest: m}))([[{squash: 2, tuck: 1, eyes: 'sad', ears: 'flat', tear: 1}, 2800], [{squash: 2, tuck: 1, eyes: 'blink', ears: 'flat'}, 450]]),
     },
   }
 
@@ -198,7 +197,7 @@
       const pts = EYES[kind] || [[right ? -lx : lx, ly], [(right ? -lx : lx) + 1, ly]]
       for (const [x, y] of pts) put(ex + (far && EYES[kind] ? 1 - x : x), top + j + y, kind === 'blink' ? LID : kind === 'content' ? LINE : eyeColor)
     })
-    for (const [x, j, c] of EMOTE[kind] || []) put(X0 + x, top + j, c)
+    for (const [x, j, c] of [...EMOTE[kind] || [], ...pose.tear ? TEAR : []]) put(X0 + x, top + j, c)
     // Her props, drawn with her so they turn with her: z's as she naps, a heart for a wave, three balls juggled over her paw.
     for (let k = 0; k < (pose.zz || 0); k++) { const z = Z[k % 2]; z.forEach((r, j) => [...r].forEach((ch, i) => { if (ch === 'Z') put(X0 + 17 + 4 * k + i, top - 3 - 5 * k + j, ZED) })) }
     if (pose.heart) HEART.forEach((r, j) => [...r].forEach((ch, i) => { if (ch === 'W') put(X0 - 7 + i, top - 1 - pose.heart + j, PINK) }))

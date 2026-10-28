@@ -4,6 +4,8 @@
 // element of its own, flown frame by frame.
 {
   const {OY, PH, GW, paint, surfaces, desk, rand, pick} = hangabout
+  const PUSHEEN = hangabout.skin === 'pusheen' // a loaf cat: she folds it on the floor in front of her, patting it with a paw, and aims it from her raised paw
+  const FOLD = PUSHEEN ? {x: 35, y: 33} : {x: 18, y: OY + 9}, AIM = PUSHEEN ? [{x: 31, y: OY + 5}, {x: 29, y: OY + 6}] : [{x: 33, y: OY}, {x: 31, y: OY + 1}]
   const INK = {W: '#F4F4F1', L: '#C9CDD3', F: '#8F959E'} // paper, its shaded underside, the fold
   const SHEET = ['WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'LLLLLLL']
   const POINTED = ['...W...', '..WFW..', '.WWFWW.', 'WWWFWWW', 'WWWFWWW', 'LLLFLLL'] // top corners folded in
@@ -55,6 +57,7 @@
     trip({x, y, dir}){
       const s = hangabout.size, W = hangabout.width
       if ((dir > 0 ? W - x : x) < W / 3) dir = -dir // too near the edge he faces: he throws toward the room
+<<<<<<< HEAD
       const folding = (art, arms) => ({go: 'hold', T: 210, pose: {arms, eyes: 'down', ...CHICKEN && {hand: arms[0] === 'up' ? 7 : 8}, paperPlane: {art, ...SHEET_AT}}})
       const cheer = (T, pose) => ({go: 'hold', T, pose: {face: dir, eyes: 'happy', ...pose}})
       let f // the flight, once it's left his hand
@@ -63,6 +66,16 @@
         folding(SHEET, ['up', 'mid']), folding(POINTED, ['mid', 'up']), folding(POINTED, ['up', 'mid']), folding(DART, ['mid', 'up']),
         {go: 'hold', T: 520, pose: {face: dir, arms: ['mid', 'up'], eyes: 'sad', ...CHICKEN && {hand: 3}, paperPlane: {art: PLANE, x: 33, y: OY}}}, // squints down his arm
         {go: 'hold', T: 170, pose: {face: dir, arms: ['mid', 'up'], swing: -1, squash: 1, eyes: 'sad', ...CHICKEN && {hand: 4}, paperPlane: {art: PLANE, x: 31, y: OY + 1}}}, // draws back
+=======
+      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {...PUSHEEN ? arms[0] === 'up' && {hand: 8} : {arms}, eyes: 'down', paperPlane: {art, ...FOLD}}})
+      const cheer = (T, pose) => ({go: 'hold', T, pose: {face: dir, eyes: 'happy', ...pose}})
+      let f // the flight, once it's left his hand
+      return [
+        {go: 'hold', T: 160, pose: {squash: 1, eyes: 'down', paperPlane: {art: SHEET, ...FOLD}}},
+        folding(SHEET, ['up', 'mid']), folding(POINTED, ['mid', 'up']), folding(POINTED, ['up', 'mid']), folding(DART, ['mid', 'up']),
+        {go: 'hold', T: 520, pose: {face: dir, arms: ['mid', 'up'], eyes: 'sad', paperPlane: {art: PLANE, ...AIM[0]}}}, // squints down his arm
+        {go: 'hold', T: 170, pose: {face: dir, arms: ['mid', 'up'], swing: -1, squash: 1, eyes: 'sad', paperPlane: {art: PLANE, ...AIM[1]}}}, // draws back
+>>>>>>> c3cea28 (Pusheen folds her paper plane on the floor and fishes facing the water, rod in her paw; her tear only when she sulks)
         {go: 'do', fn: () => (f = launch(x + dir * 57 * s, y - 45 * s, dir))}, // from his outstretched hand (art 41, 25)
         {go: 'move', fn: t => fly(f, t), pose: t => t < 150 ? {face: dir, hand: 5, reach: 2, dy: -1, dx: 1} // lets go
           : {face: dir, dx: 1, eyes: f.y < y - 110 * s ? 'up' : f.y > y + 20 * s ? 'down' : 'open'}}, // and follows it with his eyes
