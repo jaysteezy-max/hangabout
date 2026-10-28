@@ -45,6 +45,7 @@ final class KeyField: NSView {
     required init?(coder: NSCoder) { fatalError() }
     private func show() { label.stringValue = typed.isEmpty ? "Press the keys" : typed.joined(separator: " ") }
     override func keyDown(with e: NSEvent) {
+        if e.isARepeat || !e.modifierFlags.isDisjoint(with: [.command, .control, .option]) { return } // chords and held keys aren't part of a code
         let arrows: [UInt16: String] = [126: "↑", 125: "↓", 123: "←", 124: "→"]
         if let arrow = arrows[e.keyCode] { typed.append(arrow) }
         else if e.keyCode == 51 { _ = typed.popLast() }

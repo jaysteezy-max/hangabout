@@ -508,7 +508,7 @@ function choose(...rarities){
 function fire(event){
   const takers = Object.values(TRICKS).filter(t => {
     const c = t.on?.[event]
-    return c && usable(t) && fits(t) && Math.random() < (typeof c === 'function' ? c() : c)
+    return c && usable(t) && fits(t) && (!t.trip || roam(performance.now()) === 'free') && Math.random() < (typeof c === 'function' ? c() : c)
   })
   if (takers.length) perform(pick(takers).name)
   return takers.length > 0
@@ -642,7 +642,7 @@ function behave(now, dt){
     endTrip(now) // Claude needs him, or got to work: back where you can see him
   }
   const here = surfaceUnder(pet.x, pet.y)
-  if (isStill()) { if (here && here.y !== pet.y) place(pet.x, here.y); ai.mode = 'stand'; return }
+  if (isStill()) { if (here && here.y !== pet.y) place(pet.x, here.y); ai.mode = 'stand'; pet.droppedAt = null; return } // land() never runs, so a stale drop height would count on a later fall
   if (ai.mode === 'fall') {
     ai.vy += 2600 * dt / 1000
     const y = pet.y + ai.vy * dt / 1000
@@ -1015,7 +1015,7 @@ function syncClaude(now){
   const step = s?.stepAt || 0
   if (step !== cc.stepSeen) { if (cc.stepSeen) pet.stepAt = now; cc.stepSeen = step } // a new plan step opens the box for a moment
 }
-const FORCE_PUSH = /^Bash\(.*\bgit push\b.*\s(-f|--force(-with-lease)?)(?![\w-])/
+const FORCE_PUSH = /^Bash\(.*\bgit push\b[^&;|]*\s(-f|--force(-with-lease)?)(?![\w-])/
 const isTest = e => e.call.startsWith('Bash(') && e.call.includes('test')
 /** Moments in what Claude just ran: each session's log is its last 8 calls, {ok, call, out}, and each new one is looked at once. */
 function watchLogs(){
@@ -1109,10 +1109,10 @@ function drop(){
   }
   pet.drag = null
 }
-/** Four clicks on him in an even beat (each gap 450–1,000 ms, all within 20% of their average): slower than a double-click. */
+/** Four clicks on him in an even beat (each gap 500–1,000 ms, all within 20% of their average): slower than a double-click. */
 function beat(now){
   const at = pet.clicks = [...(pet.clicks || []), now].slice(-4), gaps = at.slice(1).map((t, i) => t - at[i]), avg = (now - at[0]) / 3
-  if (gaps.length === 3 && gaps.every(g => g >= 450 && g <= 1000 && Math.abs(g - avg) <= avg * .2)) { pet.clicks = []; fire('beat') }
+  if (gaps.length === 3 && gaps.every(g => g >= 500 && g <= 1000 && Math.abs(g - avg) <= avg * .2)) { pet.clicks = []; fire('beat') }
 }
 button.addEventListener('pointerdown', e => { button.setPointerCapture(e.pointerId); grab(e.clientX, e.clientY) })
 button.addEventListener('pointermove', e => pull(e.clientX, e.clientY))
@@ -1128,6 +1128,7 @@ function usePreset(name){
   for (const b of document.querySelectorAll('[data-preset]')) b.setAttribute('aria-pressed', String(PRESETS[b.dataset.preset] === preset))
 }
 function useFanPack(on){
+  if (on && !fanPack) pet.day = null // today's date secrets get another look now that something can take them
   fanPack = !!on
   document.getElementById('fan').setAttribute('aria-pressed', String(fanPack))
   trickButtons()

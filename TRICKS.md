@@ -72,7 +72,7 @@ one of these moments comes and its chance comes up (if several tricks pass, one 
 | `thrown` | You let go of him mid-fling, hard to the side (the pointer going over 2,000 points a second). He answers once he lands. |
 | `highUp` | He's on a window ledge more than half the screen above the floor and decides to get down. A trick that answers takes him down instead of his usual jump. |
 | `dizzyAgain` | You've shaken him dizzy for the third time today, and his head has just cleared. |
-| `beat` | Four clicks on him in an even rhythm, slower than a double-click: each gap 450 to 1,000 ms, all within 20% of their average. |
+| `beat` | Four clicks on him in an even rhythm, slower than a double-click: each gap 500 to 1,000 ms, all within 20% of their average. |
 
 `comeback`, `failStreak` and `forcePush` come from the session's log of Claude's last 8 tool calls, and each call is
 looked at once, when it's logged. Calls already logged when the page loads don't count.
