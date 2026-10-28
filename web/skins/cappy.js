@@ -34,10 +34,10 @@
 
   SKINS.cappy = {
     name: 'Cappy', colors: COLORS, sideOn: true,
-    /** Where costumes find his face, as drawn facing left: his eye (x, y: its left pixel) and the top of his head between his ears. */
+    /** Where costumes find his face, as drawn facing left: his eye (x, y: its left pixel), the top of his head between his ears, and the front of his snout. */
     head(pose){
       const top = 38 - ROWS.length + (pose.squash || 0) - (pose.stretch || 0) + (pose.dy || 0) // as draw() works it out
-      return {x: 20, y: top + 5, top: top + 2}
+      return {x: 20, y: top + 5, top: top + 2, nose: 10}
     },
     /** Cappy in a pose: squashed or stretched through the middle, feet stepping or tucked, a front paw up instead of a hand, outlined, then his eye. */
     draw(pose, eyeColor){
