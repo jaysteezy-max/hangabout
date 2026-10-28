@@ -7,6 +7,7 @@
   const PROFILE = hangabout.sideOn && head
   const rump = (px, pose) => Math.max(...px.map(([x]) => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0))) - 1 // his last column, as drawn facing left
   const HATTY = hangabout.skin === 'hatty' // his hat stays on: the cloak off his shoulders, the sword in his cane hand
+  const CHICKEN = hangabout.skin === 'chicken' // the sword in his wing: up in front of him, planted in the ground, then over his head from his raised wing
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
 
   hangabout.trick({
@@ -22,7 +23,7 @@
       [{squash: 1, eyes: 'angry', arms: ['mid', 'down'], guts: {cape: 1, low: 1, brand: 1}}, 300],
       [{eyes: 'angry', guts: {cape: 1, shoulder: 1, brand: 1, aura: 1}}, 1500], // rests it on his shoulder
       [{guts: {cape: .5, shoulder: .5}}, 160], [{guts: {cape: .25, shoulder: .25}}, 160], [{}, 200],
-    ],
+    ].map(([p, ms]) => [!CHICKEN || !p.guts ? p : p.guts.shoulder ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: 4} : p.guts.sword ? {...p, hand: 10} : p, ms]), // the chicken's wing on its grip
     /** Behind him: the dark aura, the cloak's flaps, and the sword when it's upright or on his shoulder. */
     behind({ctx, d: g, px, now, pose}){
       if (g.aura) { // dark red aura flickering at his edges
@@ -34,7 +35,17 @@
         }
         ctx.globalAlpha = 1
       }
-      if (g.cape) facing(ctx, pose, () => { // the cloak's flaps behind his arms (side on: off his rump; Hatty: off his shoulders), fluttering at the hem
+      if (g.cape && CHICKEN) facing(ctx, pose, () => { // the chicken's cloak: off the back of his head, down his back a little proud of it, and on to just off the floor
+        ctx.globalAlpha = g.cape
+        const back = []
+        for (const [x, y] of px) back[y] = Math.max(back[y] ?? 0, pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0))
+        for (let y = head(pose).top + 4, edge = 0; y < GH - 1; y++) {
+          edge = edge ? Math.max(edge, Math.min(edge + 1, (back[y] ?? 0) + 2)) : back[y] + 2 // it falls: out over his back and tail, never back in
+          for (let x = 20; x <= edge; x++) if (y < GH - 3 + Math.round(1.5 * Math.sin(x * 1.7 + now / 110))) { ctx.fillStyle = x === edge ? '#2E2A36' : CLOAK; ctx.fillRect(x, y, 1, 1) }
+        }
+        ctx.globalAlpha = 1
+      })
+      else if (g.cape) facing(ctx, pose, () => { // the cloak's flaps behind his arms (side on: off his rump; Hatty: off his shoulders), fluttering at the hem
         ctx.globalAlpha = g.cape
         const top = PROFILE ? head(pose).top + 5 : HATTY ? head(pose).y + 5 : OY + 1
         for (const x0 of PROFILE ? [rump(px, pose) + 1] : HATTY ? [10, 29] : [OX + 2, OX + 30]) for (let x = x0; x < x0 + 4; x++) {
@@ -45,15 +56,22 @@
       })
       facing(ctx, pose, () => { // the sword stays behind him whichever way he faces side on
         if (HATTY) ctx.translate(-6, head(pose).y - 22) // its grip in his cane hand
-        if (g.sword) { // drawn up from behind his back: longer than he is tall
-          const cut = Math.round((1 - g.sword) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } }
+        if (CHICKEN) ctx.translate(-32, pose.dy || 0) // its grip in his wing, out in front of him (behind him, so his wing closes over it)
+        if (g.low && CHICKEN) { ctx.translate(0, 54); ctx.scale(1, -1) } // the chicken's after the swing: the same sword upside down, planted point first in front of him
+        if (g.sword || (g.low && CHICKEN)) { // drawn up from behind his back: longer than he is tall
+          const cut = Math.round((1 - (g.sword || 1)) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } }
           row(0, 38, 1, EDGE); row(1, 37, 3, IRON)
           for (let y = 2; y <= 26; y++) { row(y, 36, 1, EDGE); row(y, 37, 3, IRON); row(y, 40, 1, DARK) }
           row(27, 33, 10, STEELGUARD)
           for (let y = 28; y <= 32; y++) row(y, 37, 3, LEATHER) // the grip, in his hand
           row(33, 37, 3, STEELGUARD)
         }
-        if (g.shoulder) { // resting on his shoulder, angled up behind his head
+        if (g.shoulder && CHICKEN) { // its grip in his wing raised over his back, the blade behind his crest and on over his brow
+          thickLine(ctx, 57, 12, 33, 0, 5, IRON, g.shoulder)
+          thickLine(ctx, 57, 11, 33, -1, 1, EDGE, g.shoulder)
+          thickLine(ctx, 55, 15, 59, 7, 2, STEELGUARD, g.shoulder)
+          thickLine(ctx, 59, 13, 65, 16, 3, LEATHER, g.shoulder)
+        } else if (g.shoulder) { // resting on his shoulder, angled up behind his head
           thickLine(ctx, 37, 29, 7, 2, 5, IRON, g.shoulder)
           thickLine(ctx, 36, 27, 6, 0, 1, EDGE, g.shoulder)
           thickLine(ctx, 33, 26, 39, 32, 2, STEELGUARD, g.shoulder)
@@ -70,6 +88,7 @@
           const ridge = new Map()
           for (const [x, y] of px) if (!ridge.has(x) || y < ridge.get(x)) ridge.set(x, y)
           for (let i = 25 + n, end = rump(px, pose) + 1; i <= end; i++) { const x = pose.face > 0 ? GW - 1 - i : i, y = ridge.get(x); ctx.fillStyle = CLOAK; ctx.fillRect(x, y, 1, 4); ctx.fillStyle = '#3A3442'; ctx.fillRect(x, y + 4, 1, 1) }
+          if (CHICKEN) { ctx.globalAlpha = 1; for (const [x, y, c] of px) if (c === '#FFF050' || c === '#B8960F') { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) } } // his wing raised over it (his beak's the same yellow: no change)
         } else if (HATTY) facing(ctx, pose, () => { // the mantle over his shoulders, open at his collar
           for (const [x0, x1] of [[12, 17], [24, 30]]) { ctx.fillStyle = CLOAK; ctx.fillRect(x0, h.y + 6, x1 - x0 + 1, 2); ctx.fillStyle = '#3A3442'; ctx.fillRect(x0, h.y + 8, x1 - x0 + 1, 1) }
         })
@@ -91,14 +110,14 @@
           ctx.fillStyle = EYE; ctx.fillRect(OX + 24, eyeY + 2, 2, 1)
           ctx.fillStyle = '#8C3B2E'; ctx.fillRect(OX + 25, eyeY - 1, 1, 6)
         }
-        if (g.brand) { // the Brand of Sacrifice, bleeding red on his brow (side on: his neck)
-          const bx = PROFILE ? 25 + n : HATTY ? h.x + 3 : OX + 16, by = PROFILE ? h.y : HATTY ? h.y - 5 : eyeY - 1
-          if (g.brand > 1) { ctx.globalAlpha = .45; ctx.fillStyle = '#FF4D5E'; ctx.fillRect(bx - 1, by - 1, 5, 6) }
-          ctx.globalAlpha = g.brand > 1 ? 1 : .6 + .4 * Math.sin(now / 160); ctx.fillStyle = '#D7263D'
+        if (g.brand) { // the Brand of Sacrifice, bleeding red on his brow (side on: his neck; the chicken: his brow, before his eye)
+          const bx = CHICKEN ? h.x - 3 : PROFILE ? 25 + n : HATTY ? h.x + 3 : OX + 16, by = CHICKEN ? h.y - 3 : PROFILE ? h.y : HATTY ? h.y - 5 : eyeY - 1
+          if (g.brand > 1 && !CHICKEN) { ctx.globalAlpha = .45; ctx.fillStyle = '#FF4D5E'; ctx.fillRect(bx - 1, by - 1, 5, 6) }
+          ctx.globalAlpha = g.brand > 1 ? 1 : .6 + .4 * Math.sin(now / 160); ctx.fillStyle = CHICKEN && g.brand > 1 ? '#FF2E45' : '#D7263D' // the chicken's bleeds brighter instead of glowing
           ;['.#.', '.##', '##.', '.#.'].forEach((r, j) => [...r].forEach((ch, i) => { if (ch === '#') ctx.fillRect(bx + i, by + j, 1, 1) }))
           ctx.globalAlpha = 1
         }
-        if (g.low) { // after the swing: the blade along the ground in front of him (side on: its grip under his chin; Hatty: in his cane hand)
+        if (g.low && !CHICKEN) { // after the swing: the blade along the ground in front of him (side on: its grip under his chin; Hatty: in his cane hand)
           const k = PROFILE ? n - 21 : HATTY ? -4 : 0, y = HATTY ? h.y - 6 : OY
           ctx.fillStyle = EDGE; ctx.fillRect(2 + k, y + 14, 29, 1)
           ctx.fillStyle = IRON; ctx.fillRect(1 + k, y + 15, 30, 3)
@@ -107,11 +126,12 @@
           ctx.fillStyle = LEATHER; ctx.fillRect(33 + k, y + 15, 5, 2)
         }
       })
-      if (g.slash) facing(ctx, pose, () => { // a huge white arc tearing across
+      if (g.slash) facing(ctx, pose, () => { // a huge white arc tearing across (the chicken's: down in front of him, the way his sword goes)
         for (let i = 0; i <= 80; i++) {
           const t = i / 80, s = Math.sin(Math.PI * t), w = Math.round(1 + 2.5 * s)
+          const [x, y] = CHICKEN ? [6 - 18 * Math.sin(t * Math.PI / 2), 31 - 28 * Math.cos(t * Math.PI / 2)] : [41 - 40 * t + 8 * s, OY - 18 + 37 * t + 4 * s]
           ctx.globalAlpha = g.slash * (.6 + .4 * s); ctx.fillStyle = s > .5 ? '#FFFFFF' : '#FFD6D6'
-          ctx.fillRect(Math.round(41 - 40 * t + 8 * s) - (w >> 1), Math.round(OY - 18 + 37 * t + 4 * s) - (w >> 1), w, w)
+          ctx.fillRect(Math.round(x) - (w >> 1), Math.round(y) - (w >> 1), w, w)
         }
         ctx.globalAlpha = 1
       })

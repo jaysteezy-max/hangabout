@@ -13,6 +13,8 @@
   .plane{position:absolute;pointer-events:none;z-index:11;image-rendering:pixelated;transform-origin:50% 100%;filter:drop-shadow(0 0 1px rgba(0,0,0,.5));transition:opacity .6s}
   </style>`)
 
+  // The chicken is white too: he holds the paper out in his wing, off his belly, and aims the plane from it.
+  const CHICKEN = hangabout.skin === 'chicken', SHEET_AT = CHICKEN ? {x: 37, y: 25} : {x: 18, y: OY + 9}
   let plane = null // the element while it's in the air; once down, it fades on its own
   const fade = (el, wait) => setTimeout(() => { el.style.opacity = 0; setTimeout(() => el.remove(), 600) }, wait)
 
@@ -53,14 +55,14 @@
     trip({x, y, dir}){
       const s = hangabout.size, W = hangabout.width
       if ((dir > 0 ? W - x : x) < W / 3) dir = -dir // too near the edge he faces: he throws toward the room
-      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {arms, eyes: 'down', paperPlane: {art, x: 18, y: OY + 9}}})
+      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {arms, eyes: 'down', ...CHICKEN && {hand: arms[0] === 'up' ? 7 : 8}, paperPlane: {art, ...SHEET_AT}}})
       const cheer = (T, pose) => ({go: 'hold', T, pose: {face: dir, eyes: 'happy', ...pose}})
       let f // the flight, once it's left his hand
       return [
-        {go: 'hold', T: 160, pose: {squash: 1, eyes: 'down', paperPlane: {art: SHEET, x: 18, y: OY + 9}}},
+        {go: 'hold', T: 160, pose: {squash: 1, eyes: 'down', ...CHICKEN && {hand: 8}, paperPlane: {art: SHEET, ...SHEET_AT}}},
         folding(SHEET, ['up', 'mid']), folding(POINTED, ['mid', 'up']), folding(POINTED, ['up', 'mid']), folding(DART, ['mid', 'up']),
-        {go: 'hold', T: 520, pose: {face: dir, arms: ['mid', 'up'], eyes: 'sad', paperPlane: {art: PLANE, x: 33, y: OY}}}, // squints down his arm
-        {go: 'hold', T: 170, pose: {face: dir, arms: ['mid', 'up'], swing: -1, squash: 1, eyes: 'sad', paperPlane: {art: PLANE, x: 31, y: OY + 1}}}, // draws back
+        {go: 'hold', T: 520, pose: {face: dir, arms: ['mid', 'up'], eyes: 'sad', ...CHICKEN && {hand: 3}, paperPlane: {art: PLANE, x: 33, y: OY}}}, // squints down his arm
+        {go: 'hold', T: 170, pose: {face: dir, arms: ['mid', 'up'], swing: -1, squash: 1, eyes: 'sad', ...CHICKEN && {hand: 4}, paperPlane: {art: PLANE, x: 31, y: OY + 1}}}, // draws back
         {go: 'do', fn: () => (f = launch(x + dir * 57 * s, y - 45 * s, dir))}, // from his outstretched hand (art 41, 25)
         {go: 'move', fn: t => fly(f, t), pose: t => t < 150 ? {face: dir, hand: 5, reach: 2, dy: -1, dx: 1} // lets go
           : {face: dir, dx: 1, eyes: f.y < y - 110 * s ? 'up' : f.y > y + 20 * s ? 'down' : 'open'}}, // and follows it with his eyes

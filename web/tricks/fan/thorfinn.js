@@ -2,9 +2,10 @@
 // Shaggy blond hair and a scar; twin daggers in reverse grip, dashes with afterimages, an aerial flip into an X-slash.
 // Then the farmer: the blades go away and a little sprout grows at his feet.
 {
-  const {OX, OY, GW, GH, head, facing} = hangabout
+  const {OX, OY, GW, GH, BODY, head, facing} = hangabout
   const PROFILE = hangabout.sideOn && head // side on: the mop on his head, a dagger on each leg
   const HATTY = hangabout.skin === 'hatty' // the hair under his top hat, a dagger in each hand along his forearm
+  const CHICKEN = hangabout.skin === 'chicken' // the scar by his eye, a dagger in his wing and one tucked in a belt at his side
   const BLADE = '#DCE1E8', STEEL = '#8E96A3', ARM = {down: 12, mid: 8, up: 4, high: -2}
   const DOWN = ['down', 'down']
 
@@ -18,14 +19,20 @@
     const h = head(pose), t = h.top, k = h.x - 20, dy = pose.dy || 0, strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x + k, y0, 1, len) }
     const L = x => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0), rump = Math.max(...px.map(([x]) => L(x))) - 1 // as drawn facing left
     facing(ctx, pose, () => {
-      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(h.nose + 2 + i, h.y + 5 - (i >> 1), 1, 1) } // scar across his snout
+      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(CHICKEN ? h.x + 5 - i : h.nose + 2 + i, CHICKEN ? h.y - 2 + i : h.y + 5 - (i >> 1), 1, 1) } // scar across his snout (the chicken: down his cheek past his eye; on his beak it reads as a mouth)
       if (th.hair) {
         ;[1, 2, 3, 4, 3, 5, 4, 3, 5, 4, 3, 4, 5, 3, 2, 1].forEach((n, i) => strand(13 + i, (i === 0 ? t + 2 : i === 1 ? t + 1 : t) - n, n + 2, i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID)) // the mop
         for (const [x, len, c] of [[25, 7, MID], [26, 8, MID], [27, 9, SHADE], [28, 6, SHADE]]) strand(x, t, len, c) // locks down the back of his head
-        for (const [x, len, c] of [[13, 4, SHADE], [14, 5, MID], [16, 3, MID], [17, 2, MID]]) strand(x, t + 1, len, c) // bangs over his brow
+        for (const [x, len, c] of [[13, 4, SHADE], [14, 5, MID], ...CHICKEN ? [[15, 4, LIGHT]] : [], [16, 3, MID], [17, 2, MID]]) strand(x, t + 1, len, c) // bangs over his brow (the chicken's unparted: his brow shows through the part)
         for (const x of [17, 22, 26]) strand(x, t - 2, 1, LIGHT) // shine
       }
-      if (th.daggers) { // reverse grip: down along his legs, or up from his front paw when he lifts it
+      if (th.daggers && CHICKEN) { // reverse grip in his wing, down from his fist (up when he raises it); the other tucked at his side, darker so it shows on his white
+        const fy = Math.max(18, Math.min(30, 17 + pose.hand)) + dy, up = pose.hand < 6, y0 = up ? fy - 4 : fy + 6 // his fist's top row, as the skin works it out
+        ctx.fillStyle = BLADE; ctx.fillRect(5, y0, 2, 5)
+        ctx.fillStyle = STEEL; ctx.fillRect(6, y0, 1, 5)
+        if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(5, up ? y0 - 1 : y0 + 5, 1, 1) }
+        for (const [x, y, w, len, c] of [[23, 29, 2, 2, '#4A3020'], [22, 31, 4, 1, STEEL], [23, 32, 1, 5, STEEL], [24, 32, 1, 4, '#5E6672']]) { ctx.fillStyle = c; ctx.fillRect(x, y + dy, w, len) } // hilt, guard, blade
+      } else if (th.daggers) { // reverse grip: down along his legs, or up from his front paw when he lifts it
         const g = Math.max(...px.map(([, y]) => y)) - 1, line = px.find(([, y]) => y === g + 1)[2] // the row his feet are on; his outline is all that's below it
         const sole = px.filter(([, y, c]) => y === g && c !== line).sort((a, b) => L(a[0]) - L(b[0]))[0]?.[2], toes = px.filter(([, y, c]) => y < g && c === sole)
         const paw = (pose.arms || []).some(a => a === 'up' || a === 'high') && toes.length ? [Math.min(...toes.map(([x]) => L(x))), Math.min(...toes.map(([, y]) => y))] : null
@@ -35,8 +42,9 @@
           if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, up ? y0 - 1 : y0 + 5, 1, 1) }
         }
       }
-      if (th.sheathe) { ctx.fillStyle = '#FFFFFF'; for (const x of [h.nose + 7, rump]) ctx.fillRect(x, 34 + dy, 1, 1) }
+      if (th.sheathe) { ctx.fillStyle = '#FFFFFF'; for (const [x, y] of CHICKEN ? [[6, 35], [24, 34]] : [[h.nose + 7, 34], [rump, 34]]) ctx.fillRect(x, y + dy, 1, 1) }
     })
+    if (CHICKEN && (th.hair || th.daggers)) for (const [x, y, c] of px) if (c === BODY && (y === 32 + dy || y === 33 + dy)) { ctx.fillStyle = y === 32 + dy ? '#6B4A2B' : '#4A3020'; ctx.fillRect(x, y, 1, 1) } // the chicken's belt round his white, over the tucked blade (his wattle and wing hang in front of it)
   }
 
   /** Hatty, drawn facing you: the scar across his face, the hair coming out from under his hat (tufts at its sides, locks down his head, bangs over his brow), and a dagger in each hand. */
@@ -81,7 +89,7 @@
       [{eyes: 'happy', squash: 1, thorfinn: {hair: 1, sprout: 2}}, 350],
       [{eyes: 'happy', thorfinn: {hair: 1, sprout: 3}}, 1300],
       [{thorfinn: {sprout: 3}}, 200], [{}, 150],
-    ],
+    ].map(([p, ms]) => [CHICKEN && p.thorfinn?.daggers ? {...p, hand: p.arms?.[0] === 'up' ? 3 : 9} : p, ms]), // the chicken's wing round a dagger
     /** Behind him: afterimages trailing a dash. */
     behind({ctx, d: th, px}){
       if (!th.ghost) return

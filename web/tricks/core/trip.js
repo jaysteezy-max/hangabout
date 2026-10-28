@@ -3,6 +3,8 @@
 // long he's been down, and its pixels hook lays him flat on his front (tilting him 90° would stand him on his side).
 {
   const {GW, GH, EYE} = hangabout
+  const CHICKEN = hangabout.skin === 'chicken' // an egg: he tips right over onto his side, rocks there, dazed, and pops back up
+  const DOWN = CHICKEN ? {eyes: 'dizzy'} : {}
   // A walking step, as his own walk draws it, gliding the way he's going.
   const STEP = i => [{lift: [[0, 3], [], [1, 2], []][i % 4], dy: i % 2 ? -1 : 0, swing: i % 4 < 2 ? 1 : -1, tilt: i % 4 < 2 ? -3.5 : 3.5, glide: 45}, 130]
 
@@ -13,9 +15,9 @@
       [{lift: [2, 3], arms: ['high', 'high'], eyes: 'up', tilt: 14, glide: 70}, 110], // a toe catches
       [{tuck: 1, arms: ['high', 'high'], eyes: 'strain', tilt: 40, glide: 80}, 90],
       [{tuck: 1, arms: ['up', 'up'], eyes: 'strain', tilt: 70, glide: 70}, 70],
-      [{tilt: 0, trip: 0, glide: 40}, 100], // splat
-      [{tilt: 0, trip: 1, glide: 20}, 160],
-      [{tilt: 0, trip: 2, glide: 1}, 800], // a glide this slow keeps him facing the way he was going
+      [{...DOWN, tilt: 0, trip: 0, glide: 40}, 100], // splat
+      [{...DOWN, tilt: CHICKEN ? -7 : 0, trip: 1, glide: 20}, 160],
+      [{...DOWN, tilt: 0, trip: 2, glide: 1}, 800], // a glide this slow keeps him facing the way he was going
       [{dy: -4, stretch: 1, tuck: 1, arms: ['up', 'up'], eyes: 'up'}, 130], // up!
       [{squash: 2}, 110],
       [{eyes: 'side', look: -1}, 420], [{eyes: 'side', look: 1}, 420],
@@ -23,6 +25,10 @@
       [{}, 200],
     ],
     pixels({d, px, pose}){
+      if (CHICKEN) { // turned 90° forward about his middle, his crest ahead and his foot behind, then set down on the ground
+        const s = pose.face < 0 ? -1 : 1, out = px.map(([x, y, c]) => [22 - s * (y - 29), 29 + s * (x - 22), c]), low = Math.max(...out.map(p => p[1]))
+        return out.map(([x, y, c]) => [x, y + GH - 1 - low, c])
+      }
       // Face down, so no eyes. Turned his way, his front edge is x 32: it goes to the ground, his head (y 20) forward and
       // his legs trailing, and his width is squashed to a slab, flattest the moment he lands.
       const flip = x => pose.face < 0 ? GW - 1 - x : x, k = d ? .4 : .3

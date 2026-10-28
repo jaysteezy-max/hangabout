@@ -8,6 +8,12 @@
   const G = 2600 // points per second², the pull he falls with everywhere else
   const PROFILE = hangabout.sideOn && head // side on: the suit laid out in profile
   const HATTY = hangabout.skin === 'hatty', UP = arm => HATTY ? [arm, 'mid'] : ['mid', arm] // Hatty reaches up with his free hand, the one in front when he turns
+  const CHICKEN = hangabout.skin === 'chicken', GRIP = CHICKEN ? {hand: 1} : {} // raised high, his wing is over his back, so he holds the web out front in it
+  // The chicken's yellow beak, wing and foot stay red (a bulge in the mask, lit; a glove; a boot), their gold edge a darker
+  // red; his blue crest, wattle and tail keep their dark blue as the suit's shade. His lens is a teardrop, pointed at his beak.
+  const SHADE = CHICKEN && {'#FFF050': BODY, '#B8960F': SIDE, '#44AEF6': BODY, '#0060A0': SIDE}, GOLD = ['#FFF050', '#B8960F']
+  const LENS = CHICKEN ? [[21, -3], [22, -3], [20, -2], [21, -2], [22, -2], [23, -2], [20, -1], [21, -1], [22, -1], [23, -1], [19, 0], [20, 0], [21, 0], [22, 0], [19, 1]]
+    : [[20, -2], [21, -2], [19, -1], [20, -1], [21, -1], [22, -1], [19, 0], [20, 0], [21, 0], [22, 0], [20, 1], [21, 1]]
   const RED = {[BODY]: '#D3252E', [TOP]: '#F2615E', [SIDE]: '#951A22'}, BLUE = {[BODY]: '#2659C9', [TOP]: '#5585E8', [SIDE]: '#183B8E'}
   document.head.insertAdjacentHTML('beforeend', `<style>
   .web{position:absolute;height:2px;margin-top:-1px;background:#F2F2F2;box-shadow:0 0 1px rgba(0,0,0,.6);transform-origin:0 50%;pointer-events:none;z-index:9;transition:opacity .3s}
@@ -34,9 +40,9 @@
     line.style.opacity = splat.style.opacity = 0
     setTimeout(() => { line.remove(); splat.remove() }, 300)
   }
-  /** His front hand reaching up (art pixel 36, 17 facing right; Hatty's 33, 20), with his feet at (x, y) and him turned rot degrees about them. */
+  /** His front hand reaching up (art pixel 36, 17 facing right; Hatty's 33, 20; the chicken's wingtip 38, 19), with his feet at (x, y) and him turned rot degrees about them. */
   function hand(x, y, dir, rot){
-    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : 14) * 3 * s, hy = (HATTY ? -20 : -23) * 3 * s
+    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : CHICKEN ? 16 : 14) * 3 * s, hy = (HATTY ? -20 : CHICKEN ? -21 : -23) * 3 * s
     return [x + hx * Math.cos(a) - hy * Math.sin(a), y + hx * Math.sin(a) + hy * Math.cos(a)]
   }
   /** Longest web he'll swing on from (x, y): his feet clear the floor at the bottom of the arc, and a few swings fit across the screen. */
@@ -130,9 +136,9 @@
       pose(){
         if (!m) return {spidey: 1}
         const on = {face: m.dir, lookX: 1, spidey: 1}
-        if (m.phase === 'aim') return {...on, squash: 1, arms: UP('high'), eyes: 'up'}
-        if (m.phase === 'up' || m.phase === 'catch') return {...on, stretch: 1, arms: UP('high')}
-        if (m.phase === 'swing') return {...on, arms: UP('high'), tuck: Math.abs(m.th) < .35 ? 1 : 0} // legs up through the bottom of the arc
+        if (m.phase === 'aim') return {...on, ...GRIP, squash: 1, arms: UP('high'), eyes: 'up'}
+        if (m.phase === 'up' || m.phase === 'catch') return {...on, ...GRIP, stretch: 1, arms: UP('high')}
+        if (m.phase === 'swing') return {...on, ...GRIP, arms: UP('high'), tuck: Math.abs(m.th) < .35 ? 1 : 0} // legs up through the bottom of the arc
         if (m.phase === 'fly') return {...on, stretch: 1, arms: UP('up')}
         return {...on, squash: 2}
       },
@@ -151,11 +157,14 @@
     const out = px.map(([x, y, c]) => {
       if (c === EYE) return [x, y, mix(EYE, '#FFFFFF', d)]
       if (dark(c)) return [x, y, c]
-      const mask = flip(x) <= h.nose + 8 || y < h.y + 8, pal = mask || y >= 38 + dy ? RED : BLUE // red boots
-      return [x, y, mix(c, mask && web(flip(x), y) ? '#7E1219' : pal[c] || pal[BODY], d)]
+      const mask = (flip(x) <= h.nose + 8 && !(y >= h.chin)) || y < h.y + 8, pal = mask || y >= 38 + dy || CHICKEN && GOLD.includes(c) ? RED : BLUE // red boots; below a chin, blue all the way across
+      const beak = CHICKEN && GOLD.includes(c) && flip(x) > 12 && flip(x) < 18 && y >= h.y && y <= h.chin // x 13 to 17 down the front of his face
+      const shade = CHICKEN && (beak && c === GOLD[0] ? TOP : SHADE[c]), edge = shade === SIDE // his edges stay a darker shade, unwebbed
+      if (beak) return [x, y, mix(c, edge ? '#5E0C13' : web(flip(x), y) ? RED[BODY] : RED[TOP], d)] // lit, a fainter web on it, its edge darker than the web's
+      return [x, y, mix(c, mask && !edge && web(flip(x), y) ? '#7E1219' : pal[shade || c] || pal[BODY], d)]
     })
     if (d < 1) return out
-    const lens = new Set([[20, -2], [21, -2], [19, -1], [20, -1], [21, -1], [22, -1], [19, 0], [20, 0], [21, 0], [22, 0], [20, 1], [21, 1]].map(([x, v]) => x + h.x - 20 + ',' + (h.y + v)))
+    const lens = new Set(LENS.map(([x, v]) => x + h.x - 20 + ',' + (h.y + v)))
     for (const k of lens) {
       const [x, y] = k.split(',').map(Number)
       out.push([flip(x), y, '#FFFFFF'])
