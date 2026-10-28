@@ -56,6 +56,12 @@
 
   SKINS.hatty = {
     name: 'Hatty', label: 'Hatty Hattington (fan art)', colors: COLORS, pack: 'fan',
+    mirror: M, // turned right he's mirrored, x to M - x: facing() turns a costume drawn on him the same way
+    /** Where costumes find his face, as drawn facing you or to his left: his screen-left eye (x, y: its top-left pixel) and the top of his head, just under his hat (the 11 rows above it). */
+    head(pose){
+      const sq = pose.squash || 0, st = pose.stretch || 0, y0 = Math.max(pose.dy || 0, st - sq - 7) + sq - st // as draw() works it out
+      return {x: pose.face && !pose.half ? 14 : 15, y: 25 + y0, top: 18 + y0}
+    },
     /** Hatty in a pose: his legs bend, step and tuck, his free arm waves and reaches, his cane hand raises it, then his face. */
     draw(pose, eyeColor){
       const sq = pose.squash || 0, st = pose.stretch || 0

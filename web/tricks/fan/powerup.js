@@ -10,6 +10,7 @@
     const hair = new Map()
     if (d !== 'on' && d !== 'release') return hair
     if (hangabout.skin === 'cappy') return cappyMane(hair, d, pose)
+    if (hangabout.skin === 'hatty') return hattyMane(hair, d, px, pose)
     const headTop = Math.min(...px.map(([, y]) => y)), bx = OX + 6, scale = d === 'release' ? .4 : 1
     const put = (x, y, c) => hair.set(x + ',' + y, c)
     for (let x = bx - 1; x <= bx + 24; x++) for (let y = headTop; y < headTop + 2; y++) put(x, y, '#F7CF3A') // the cap
@@ -39,6 +40,23 @@
       }
     }
     for (const [x0, len] of [[12, 3], [15, 4]]) for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), t + 1 + r, '#F7CF3A') // bangs
+    return hair
+  }
+  /** Hatty's, drawn facing you: his hat stays on, so the spikes flare out from behind it, with gold at its sides and two bangs over his brow. */
+  function hattyMane(hair, d, px, pose){
+    const {top: t} = head(pose), scale = d === 'release' ? .4 : 1, L = x => pose.face > 0 ? 42 - x : x
+    const put = (x, y, c) => hair.set(L(x) + ',' + y, c)
+    for (const [x0, x1, y] of [[12, 14, t - 3], [11, 14, t - 2], [11, 14, t - 1], [27, 29, t - 3], [27, 30, t - 2], [27, 30, t - 1]]) for (let x = x0; x <= x1; x++) put(x, y, '#F7CF3A') // at his hat's sides
+    // [base center, base width, height, lean per row]: from behind his hat, tall in the middle, sweeping out at the sides
+    for (const [x0b, bw, h0, lean] of [[12, 5, 8, -1.1], [15, 6, 11, -.6], [19, 6, 14, -.18], [23, 6, 13, .22], [27, 6, 11, .62], [30, 5, 8, 1.1]]) {
+      const h = Math.max(2, Math.round(h0 * scale))
+      for (let r = 0; r < h; r++) {
+        const w = Math.max(1, Math.round(bw * (1 - r / h))), x0 = Math.round(x0b + lean * r - w / 2)
+        for (let i = 0; i < w; i++) put(x0 + i, t - 2 - r, r >= h - 2 ? '#FFFBD6' : i < w / 2 ? '#FFF39A' : '#F7CF3A')
+      }
+    }
+    for (const [x0, len] of [[16, 3], [21, 4]]) for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), t + r, '#F7CF3A') // bangs
+    for (const [x, y] of px) if (y < t) hair.delete(x + ',' + y) // behind his hat
     return hair
   }
   let lastPx = null, lastHair = null

@@ -199,12 +199,14 @@ Helpers:
 | `recolor(px, {from: to}, t)` | His pixels with some colors moved toward others by `t` (0 to 1). |
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
-| `head(pose)` | Where Cappy's face is in this pose, as drawn facing left: `{x, y}` is his eye's left pixel, `top` the top of his head between his ears. They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
-| `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin faces right (and slid by `ox`), so a costume drawn once on him facing left turns with him. On Clawd it changes nothing. |
+| `head(pose)` | Where his face is in this pose. Cappy's is as drawn facing left: `{x, y}` is his eye's left pixel, `top` the top of his head between his ears. Hatty's is as drawn facing you: `{x, y}` is the top-left pixel of his eye on your left, `top` the top of his head, just under his hat (the 11 rows above it). They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
+| `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin, or one with a `mirror` like Hatty, faces right (and slid by `ox`), so a costume drawn once on him facing left (Hatty: facing you) turns with him. On Clawd it changes nothing. |
 
-**Costumes on both skins.** Hair, masks and anything else that sits on his face need a spot on each skin. Clawd faces
-you, eyes at x 14 and 28; Cappy is side on, so draw his version facing left with `head(pose)` inside `facing()`, and
-check `hangabout.skin` to pick which. Guts, Vader and Thorfinn in `web/tricks/fan/` show how.
+**Costumes on every skin.** Hair, masks and anything else that sits on his face need a spot on each skin. Clawd faces
+you, eyes at x 14 and 28; Cappy is side on, so draw his version facing left with `head(pose)` inside `facing()`; Hatty
+faces you in a top hat, so draw his the same way, facing you, and put props in his cane hand (x 28 to 31, 7 rows below
+his eyes). Check `hangabout.skin` to pick which; the other skins wear Clawd's. Guts, Vader and Thorfinn in
+`web/tricks/fan/` show how.
 
 ## Trips
 
@@ -281,7 +283,8 @@ SKINS.hippo = {
   colors: [body, top, side, eye], // become BODY, TOP, SIDE, EYE: tricks recolor exactly these, so use them in your art
   sideOn: true,                // optional: drawn side on, so he keeps facing the way he last went
   pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
-  head(pose){ return {x, y, top} }, // optional, side on: his eye's left pixel and the top of his head, as drawn facing left
+  head(pose){ return {x, y, top} }, // optional: his eye's left pixel and the top of his head, as drawn facing left (front on: facing you)
+  mirror: 42,                  // optional, front on: turned right he's drawn mirrored, x to 42 - x, and facing() turns costumes so
   draw(pose, eye){ return [[x, y, color], ...] },
 }
 ```
