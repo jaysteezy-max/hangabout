@@ -4,6 +4,7 @@
 // the rod in his hand.
 {
   const {GW, OY, desk, paint, thickLine, pick} = hangabout
+  const PUSHEEN = hangabout.skin === 'pusheen' // side on, she turns to the water and holds the rod's butt in her paw
   document.head.insertAdjacentHTML('beforeend', `<style>
   .fishline{position:absolute;z-index:9;width:var(--a);height:0;pointer-events:none;transition:height .45s ease-in;background:linear-gradient(90deg,transparent 33%,var(--line) 33% 67%,transparent 67%)}
   .fishline canvas{position:absolute;image-rendering:pixelated}
@@ -43,7 +44,7 @@
       const s = hangabout.size, a = 3 * s
       const side = x - 66 < (here.x0 + here.x1) / 2 ? 1 : -1 // casts toward the middle of the window
       const hands = (rod, free) => side > 0 ? [free, rod] : [rod, free]
-      const sit = (o, f) => ({sink: 12, arms: hands('mid', 'down'), ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, fishing: {rod: 'out', side, ...f}})
+      const sit = (o, f) => ({sink: 12, arms: hands('mid', 'down'), ...PUSHEEN && {face: side, ...!o?.arms && {hand: 6}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, fishing: {rod: 'out', side, ...f}})
       const cast = () => {
         const [, , tx, ty] = ROD.out
         line = document.createElement('div'); line.className = 'fishline'

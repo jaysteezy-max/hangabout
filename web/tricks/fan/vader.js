@@ -6,7 +6,9 @@
   const PROFILE = hangabout.sideOn && head // side on: the helmet in profile, one lens, the saber at his chin
   const HATTY = hangabout.skin === 'hatty' // the helmet in place of his top hat, his suit gone black, the saber in his cane hand
   const CHICKEN = hangabout.skin === 'chicken' // a dome of a helmet over his crest, his blue and toes gone black, the cape down his back, the saber in his wing
+  const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out of a side-on loaf: the dome over both ears, a lens on each eye
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
+  if (PUSHEEN) ARMOR['#8B8B90'] = '#111115' // and her paws (web/skins/pusheen.js)
   if (HATTY) Object.assign(ARMOR, {'#915544': '#1E1E24', '#4E4E4E': '#111115', '#9B225D': '#2C2D35', '#4BA2CE': '#1E1E24'}) // and his jacket, trousers, tie and tears (web/skins/hatty.js)
   if (CHICKEN) Object.assign(ARMOR, {'#F2BE2E': '#2C2D35', '#6B2020': '#111115'}) // his toes (web/skins/chicken.js)
   const SUITED = {'#44AEF6': '#1E1E24', '#0060A0': '#111115', '#FFF050': '#3C3D47', '#B8960F': '#111115'} // the chicken's blue and yellow, gone black all but his beak and tail (see pixels)
@@ -107,6 +109,34 @@
     })
   }
 
+  /** Pusheen, drawn facing left: the dome down over her ears and the top of her head, flaring at her cheeks and down her back, a lens on each eye, the grille on her mouth, the chest panel, and the saber at her chin. */
+  function pusheenFront(ctx, v, now, pose){
+    const h = head(pose), row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0 + 1, 1) }
+    facing(ctx, pose, () => {
+      if (v.helmet != null) {
+        const t = h.top + v.helmet
+        for (const [dy, x0, x1] of [[-6, 14, 21], [-5, 12, 23], [-4, 11, 25], [-3, 10, 26], [-2, 10, 27], [-1, 9, 27], [0, 9, 28], [1, 9, 28]]) row(t + dy, x0, x1, '#111114')
+        for (const [dy, l, r] of [[2, 10, 28], [3, 10, 29], [4, 10, 29], [5, 9, 29], [6, 9, 30]]) { row(t + dy, l, 11, '#111114'); row(t + dy, 25, r, '#111114') } // the flare, beside her face and down her back
+        row(t - 6, 16, 19, '#3C3D47'); row(t + 1, 11, 25, '#2C2D35') // light on the crown, and the brow over the mask
+        for (const [dy, x] of [[3, 29], [4, 29], [5, 29], [6, 30]]) row(t + dy, x, x, '#3C3D47') // and on the flare's edge
+        ctx.fillStyle = '#4B4E5C'; for (const [x, y] of [[14, t - 5], [12, t - 4], [11, t - 3], [10, t - 2]]) ctx.fillRect(x, y, 1, 1) // shine
+      }
+      if (v.mask) {
+        for (const [x0, outer] of [[h.x - 1, -1], [h.x + 8, 1]]) { // angled lenses over her eyes, cut away at the outer bottom corner
+          row(h.y - 1, x0, x0 + 3, '#2B0E10'); row(h.y, x0, x0 + 3, '#2B0E10'); row(h.y + 1, x0 + (outer < 0), x0 + 3 - (outer > 0), '#2B0E10')
+          ctx.fillStyle = '#7A3232'; ctx.fillRect(x0 + 1, h.y - 1, 1, 1)
+        }
+        ctx.fillStyle = '#5D606B'; ctx.fillRect(h.x + 4, h.y - 2, 1, 3); ctx.fillRect(h.x + 5, h.y - 2, 1, 3) // the ridge between them
+        for (let i = 0; i < 2; i++) { ctx.fillRect(h.x + i, h.y + 2 + i, 1, 1); ctx.fillRect(h.x + 9 - i, h.y + 2 + i, 1, 1) } // the cheeks, down to the grille
+        for (const [y, w] of [[h.y + 1, 1], [h.y + 2, 2], [h.y + 3, 2]]) for (let x = h.x + 5 - w; x <= h.x + 4 + w; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille
+        row(h.y + 6, h.x + 1, h.x + 8, '#4F525C'); row(h.y + 7, h.x + 1, h.x + 8, '#4F525C') // chest panel, its lights blinking
+        const on = Math.floor(now / 350)
+        ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(h.x + 2 + i * 2, h.y + 6 + (i % 2), 1, 1) } })
+      }
+      saber(ctx, v, now, 8, h.y + 8)
+    })
+  }
+
   hangabout.trick({
     name: 'vader', label: 'Darth Vader 🔴', rarity: 'rare', pack: 'fan', on: {forcePush: 1, today: maythe4th}, // a force push, and May the 4th
     frames: [
@@ -152,6 +182,7 @@
     },
     /** In front: the helmet coming down, the mask and chest panel, and the red saber (hilt in his right hand). */
     front({ctx, d: v, px, now, pose}){
+      if (PUSHEEN) return pusheenFront(ctx, v, now, pose)
       if (PROFILE) return profileFront(ctx, v, px, now, pose)
       if (HATTY) return hattyFront(ctx, v, now, pose)
       const dy = pose.dy || 0, sq = pose.squash || 0, eyeY = OY + 4 + dy + sq, top = Math.min(...px.map(([, y]) => y)) + (v.helmet || 0)

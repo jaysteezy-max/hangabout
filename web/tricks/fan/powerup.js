@@ -4,6 +4,7 @@
 {
   const {OX, LIFT, GW, GH, EYE, recolor, head} = hangabout
   const PROFILE = hangabout.sideOn && head // side on: the mane in profile
+  const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the mane square on her head, bangs either side of her brow
   const GOLD = ['#FFF3B0', '#FFD84D', '#FFB938', '#FF8F2A'] // white-hot core → orange tips
 
   /** The mane: a cap over his head, seven spikes fanning up and out, two bangs over his brow. */
@@ -32,7 +33,7 @@
   /** A side-on skin's, drawn facing left: a cap over his head and ears, six spikes swept up and back, two bangs over his brow. */
   function profileMane(hair, d, pose){
     const {x: ex, top: t} = head(pose), scale = d === 'release' ? .4 : 1
-    const put = (x, y, c) => { x += ex - 20; hair.set((pose.face > 0 ? GW - 1 - x : x) + ',' + y, c) } // laid out on Cappy, whose eye is at x 20
+    const put = (x, y, c) => { x += PUSHEEN ? -3 : ex - 20; hair.set((pose.face > 0 ? GW - 1 - x : x) + ',' + y, c) } // laid out on Cappy, whose eye is at x 20
     for (let x = 14; x <= 27; x++) for (let y = t - (x > 14 ? 2 : 0); y <= t + 1; y++) put(x, y, '#F7CF3A') // the cap
     for (const [off, bw, h0, lean] of [[0, 4, 7, -.25], [3, 5, 11, .05], [6, 5, 13, .35], [9, 5, 11, .7], [12, 4, 8, 1.1]]) {
       const h = Math.max(2, Math.round(h0 * scale))
@@ -41,7 +42,7 @@
         for (let i = 0; i < w; i++) put(x0 + i, t - 3 - r, r >= h - 2 ? '#FFFBD6' : i < w / 2 ? '#FFF39A' : '#F7CF3A')
       }
     }
-    for (const [x0, len] of [[12, 3], [15, 4]]) for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), t + 1 + r, '#F7CF3A') // bangs
+    for (const [x0, len] of PUSHEEN ? [[16, 2], [22, 2]] : [[12, 3], [15, 4]]) for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), t + 1 + r, '#F7CF3A') // bangs
     return hair
   }
   /** The chicken's, drawn facing left: a cap hugging his head over his crest, ragged at his brow, and five solid gold spikes rising off it about as wide as his crown. */

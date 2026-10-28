@@ -7,6 +7,7 @@
   const {GW, OY, PH, BODY, TOP, SIDE, EYE, feet, putFeet, surfaces, edges, scr, desk, rand, pick, mix, head} = hangabout
   const G = 2600 // points per second², the pull he falls with everywhere else
   const PROFILE = hangabout.sideOn && head // side on: the suit laid out in profile
+  const PUSHEEN = hangabout.skin === 'pusheen' // side on, but her face looks out at you: a lens on each eye, the web from between them
   const HATTY = hangabout.skin === 'hatty', UP = arm => HATTY ? [arm, 'mid'] : ['mid', arm] // Hatty reaches up with his free hand, the one in front when he turns
   const CHICKEN = hangabout.skin === 'chicken', GRIP = CHICKEN ? {hand: 1} : {} // raised high, his wing is over his back, so he holds the web out front in it
   // The chicken's yellow beak, wing and foot stay red (a bulge in the mask, lit; a glove; a boot), their gold edge a darker
@@ -153,7 +154,7 @@
   function profileSuit(d, px, pose){
     const h = head(pose), dy = pose.dy || 0, flip = x => pose.face > 0 ? GW - 1 - x : x // between his art facing left and the screen, either way
     const dark = c => parseInt(c.slice(1, 3), 16) + parseInt(c.slice(3, 5), 16) + parseInt(c.slice(5, 7), 16) < 150
-    const web = (x, y) => { const dx = x - h.x - .5, dv = y - h.y - .5, r = Math.hypot(dx / 1.3, dv); return y <= h.y + 9 && (Math.abs(Math.abs(dx) - 2 * Math.abs(dv)) < .7 || Math.abs(Math.abs(dv) - 2 * Math.abs(dx)) < .7 || Math.abs(r - 6) < .5) }
+    const cx = PUSHEEN ? h.x + 4 : h.x, web = (x, y) => { const dx = x - cx - .5, dv = y - h.y - .5, r = Math.hypot(dx / 1.3, dv); return y <= h.y + 9 && (Math.abs(Math.abs(dx) - 2 * Math.abs(dv)) < .7 || Math.abs(Math.abs(dv) - 2 * Math.abs(dx)) < .7 || Math.abs(r - 6) < .5) }
     const out = px.map(([x, y, c]) => {
       if (c === EYE) return [x, y, mix(EYE, '#FFFFFF', d)]
       if (dark(c)) return [x, y, c]
@@ -164,7 +165,7 @@
       return [x, y, mix(c, mask && !edge && web(flip(x), y) ? '#7E1219' : pal[shade || c] || pal[BODY], d)]
     })
     if (d < 1) return out
-    const lens = new Set(LENS.map(([x, v]) => x + h.x - 20 + ',' + (h.y + v)))
+    const lens = new Set(LENS.flatMap(([x, v]) => [x + h.x - 20 + ',' + (h.y + v), ...PUSHEEN ? [h.x + 30 - x + ',' + (h.y + v)] : []])) // her far eye's is the mirror image
     for (const k of lens) {
       const [x, y] = k.split(',').map(Number)
       out.push([flip(x), y, '#FFFFFF'])

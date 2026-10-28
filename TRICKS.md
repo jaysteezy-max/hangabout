@@ -132,6 +132,13 @@ Clawd's: `arms` for each (by screen side), `swing`, and `hand` and `reach` for t
 and nothing is ever drawn in `EYE`, so a trick that finds his eyes by their color finds none. With no eye he has no
 `head()` either: costumes dress him the way they dress Clawd.
 
+Pusheen is a loaf drawn side on, like Cappy, but her face looks out at you with two eyes. Like Cappy she has no arms:
+`arms` `'up'` or `'high'` raise her front paw, and `hand` and `reach` push it out low (`reach` longer). Tucked on the
+ground she settles onto the floor. She brings her own walk (up on her little legs, tail up), her own stretch, yawn,
+wash, sit, wave, juggle and trip, and her own idle, nap and blocked poses, through the skin keys in [Skins](#skins).
+Her extra pose keys (`legs`, `tail`, `ears`, `mouth`, `tear`, `cat`, `zz`, `heart`, `balls`) are listed in
+`web/skins/pusheen.js`. Each fan costume has a Pusheen layout for her face (`PUSHEEN` in its file).
+
 ## The art grid
 
 He's drawn on a 44 × 40 grid of art pixels, each shown as 3 × 3 screen points at normal size (more or less with the

@@ -20,6 +20,7 @@
   const SMALL_HAT = ['.....KK..KK.....', '....LKKKKKKK....', '...LKKKKKKKKK...', '...BBBBBBBBBB...', 'KKKKKKKKKKKKKKKK']
   // Hatty (web/skins/hatty.js) keeps his own top hat for the fedora: he lifts it and sets it back on, pulls it low, tips
   // it. The glove goes on his free hand, socks and loafers on his two legs, and in the slide his legs are redrawn.
+  const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the fedora sits square between her ears
   const HATTY = hangabout.skin === 'hatty', TROUSERS = '#4E4E4E', HATTY_LEGS = [16, 21] // each leg's left x
   // The chicken stands on one foot: lifted, his belly is lowest, so his floor and toes are found by where and what they are.
   const CHICKEN = hangabout.skin === 'chicken', CHICKEN_TOES = '#F2BE2E', CHICKEN_LINE = '#16161A'
@@ -71,7 +72,7 @@
       : [x, y, c])
     if (d.hat != null) { // over his ears: the brim on the top of his head
       SMALL_HAT.forEach((row, j) => [...row].forEach((ch, i) => {
-        if (INK[ch]) out.push([h.x - 6 + i, h.top - SMALL_HAT.length + j + d.hat + (j === SMALL_HAT.length - 1 && i <= 2 ? d.tilt : 0), INK[ch]]) // brim down at the front, over his snout
+        if (INK[ch]) out.push([h.x - (PUSHEEN ? 3 : 6) + i, h.top - SMALL_HAT.length + j + d.hat + (j === SMALL_HAT.length - 1 && i <= 2 ? d.tilt : 0), INK[ch]]) // brim down at the front, over his snout
       }))
     }
     return out.map(([x, y, c]) => [L(x), y, c])
