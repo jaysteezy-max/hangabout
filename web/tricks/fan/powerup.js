@@ -5,6 +5,7 @@
   const {OX, LIFT, GW, GH, EYE, recolor, head} = hangabout
   const PROFILE = hangabout.sideOn && head // side on: the mane in profile
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the mane square on her head, bangs either side of her brow
+  const KNIGHT = hangabout.skin === 'knight' // his helmet stays on: the spikes flare out from behind it
   const GOLD = ['#FFF3B0', '#FFD84D', '#FFB938', '#FF8F2A'] // white-hot core → orange tips
 
   /** The mane: a cap over his head, seven spikes fanning up and out, two bangs over his brow. */
@@ -157,7 +158,7 @@
           const [x, y] = k.split(',').map(Number)
           for (const [a, b] of [[1, 0], [-1, 0], [0, -1], [1, -1], [-1, -1]]) { const n = (x + a) + ',' + (y + b); if (!hair.has(n) && !body.has(n)) ctx.fillRect(x + a, y + b, 1, 1) }
         }
-        for (const [k, c] of hair) { const [x, y] = k.split(',').map(Number); ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
+        for (const [k, c] of hair) { if (KNIGHT && body.has(k)) continue; const [x, y] = k.split(',').map(Number); ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
         if (d === 'on' && now % 520 < 90) { // lightning crackles down one side, then the other
           const base = Math.floor(now / 520) % 2 ? 39 : 4
           ctx.fillStyle = '#CFEFFF'

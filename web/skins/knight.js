@@ -76,6 +76,7 @@
     [{dy: -4, stretch: 1, tuck: 1, arms: ['up', 'up'], eyes: 'up', sword: 'dropped'}, 130], [{squash: 2, sword: 'dropped'}, 110],
     [{eyes: 'side', look: -1, sword: 'dropped'}, 420], [{eyes: 'side', look: 1, sword: 'dropped'}, 420], [{sword: 'poof', eyes: 'happy'}, 220],
     ...[0, 1, 2, 3].map(STEP), [{}, 200]]
+  const COSTUMES = ['guts', 'vader', 'thorfinn', 'spidey', 'portal', 'moonwalk', 'surfer', 'ghost', 'engram'] // fan tricks that dress him up (the power-up keeps his sword)
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]], X = 6
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
   const lift = pose => { // how far his upper body moves: hops, crouches and stretches, his helmet never above row 1
@@ -140,7 +141,8 @@
       // Raising his near arm raises the sword; his far hand waves, points or holds things on its own. Crossed arms, or a
       // trick that needs both hands, put them both down on the ground. A trick can say (sword: 'ready', 'raise', 'forward',
       // 'down', 'lean' on it, 'planted', 'dropped', 'hug' held tight, 'flung', 'onBack', 'poof' back in his hands, 'none').
-      const hold = pose.sword ?? (crossed ? 'dropped' : up(near) ? 'raise' : 'ready')
+      const costume = COSTUMES.some(k => pose[k] != null) // dressed up as someone else, he's put his own gear away
+      const hold = pose.sword ?? (costume ? 'none' : crossed ? 'dropped' : up(near) ? 'raise' : 'ready')
       const holding = hold === 'ready' || hold === 'poof', farFree = holding && !up(far) && !reaching && !pose.chin
       const shieldUp = holding || ['raise', 'forward', 'down', 'lean', 'planted'].includes(hold)
 

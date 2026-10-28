@@ -24,6 +24,9 @@
   const HATTY = hangabout.skin === 'hatty', TROUSERS = '#4E4E4E', HATTY_LEGS = [16, 21] // each leg's left x
   // The chicken stands on one foot: lifted, his belly is lowest, so his floor and toes are found by where and what they are.
   const CHICKEN = hangabout.skin === 'chicken', CHICKEN_TOES = '#F2BE2E', CHICKEN_LINE = '#16161A'
+  // The knight has hands: the glove goes on his front gauntlet (his armor, ahead of his helmet's middle), and his helmet
+  // takes the full fedora, centred on it.
+  const KNIGHT = hangabout.skin === 'knight', KNIGHT_ARMOR = ['#4A4A4A', '#7A7A7A']
   // His wing is his hand, so the glove goes on it: white, rimmed dark (white on his white side), its feathers lined grey, a few sequins catching the light. His foot
   // gets the sock and loafer. Wing, foot and beak are all his yellow, so they're told apart by where they are.
   const CHICKEN_GOLD = ['#FFF050', '#B8960F'], SEAM = '#9AA1AF'
@@ -68,12 +71,15 @@
       const glove = new Set(out.filter(wing).map(([x, y]) => x + ',' + y)), rim = ([x, y]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => !glove.has(x + a + ',' + (y + b)))
       out = out.map(p => foot(p) ? [p[0], p[1], mix(p[2], p[1] > shoe ? SHOE[BODY] : p[1] === shoe ? INK.L : SOCK[BODY], f)] // its top catching the light, like his hat's
         : wing(p) ? [p[0], p[1], mix(p[2], p[2] === CHICKEN_GOLD[1] ? (rim(p) ? CHICKEN_LINE : SEAM) : GLOVE[sequins.has(p) ? 1 : 0], f)] : p)
-    } else out = out.map(([x, y, c]) => c === line ? [x, y, c]
+    } else if (KNIGHT) out = out.map(([x, y, c]) => KNIGHT_ARMOR.includes(c) && (x <= 12 || x <= 18 && y >= 30) ? [x, y, mix(c, GLOVE[(x * 3 + y * 5 + Math.floor(now / 140)) % 4 ? 0 : 1], f)] // his front fist, gloved
+      : y === g ? [x, y, mix(c, SHOE[BODY], f)] : y === g - 1 && shod.has(x) ? [x, y, mix(c, SOCK[BODY], f)] : [x, y, c]) // loafers, white socks
+    else out = out.map(([x, y, c]) => c === line ? [x, y, c]
       : (c === sole && y < g) || (front && y === g && x >= front.x0 && x <= front.x1) ? [x, y, mix(c, GLOVE[(x * 3 + y * 5 + Math.floor(now / 140)) % 4 ? 0 : 1], f)] // the gloved front foot
       : y === g ? [x, y, mix(c, SHOE[BODY], f)] // loafers
       : y === g - 1 && shod.has(x) ? [x, y, mix(c, SOCK[BODY], f)] // white socks above them
       : [x, y, c])
-    if (d.hat != null) { // over his ears: the brim on the top of his head
+    if (d.hat != null && KNIGHT) HAT.forEach((row, j) => [...row].forEach((ch, i) => { if (INK[ch]) out.push([12 + i, h.top - HAT.length + j + d.hat + (j === HAT.length - 1 && i <= 6 ? d.tilt : 0), INK[ch]]) })) // on his helmet, the brim down at the front
+    else if (d.hat != null) { // over his ears: the brim on the top of his head
       SMALL_HAT.forEach((row, j) => [...row].forEach((ch, i) => {
         if (INK[ch]) out.push([h.x - (PUSHEEN ? 3 : 6) + i, h.top - SMALL_HAT.length + j + d.hat + (j === SMALL_HAT.length - 1 && i <= 2 ? d.tilt : 0), INK[ch]]) // brim down at the front, over his snout
       }))
