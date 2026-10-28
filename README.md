@@ -11,10 +11,10 @@
 
 [Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hangabout/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
 
-<img src="assets/hero.gif" width="820" alt="The pet in its Clawd skin, standing on a terminal window. His status bubble reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he writes on a page, 'Bash(npm test) Running…' while he presses Enter on a little terminal and watches it, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
+<img src="assets/hero.gif" width="820" alt="Cappy the capybara standing on a terminal window. His status bubble reads 'Noodling… Step 2/5' while he thinks, then 'Update(page.mts) +12 −3' while he writes on a page with a pencil, 'Bash(npm test) Running…' while he starts a little terminal and watches its output scroll, 'Do you want to proceed?' while he lifts a front paw and glows for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
 
-<sub>The pet in its Clawd skin on a window ledge, following one Claude Code turn: thinking, editing, running a command,
-waiting on you, done. The default pet is Cappy, a capybara.</sub>
+<sub>Cappy, the default pet, on a window ledge, following one Claude Code turn: thinking, editing, running a command,
+waiting on you, done.</sub>
 
 </div>
 
@@ -105,7 +105,7 @@ the new one as above:
 | Drag him | Dangles from your cursor; shake him and he gets dizzy |
 | Double-click | Hops |
 | Click a window | Notices, with a little "!" |
-| Right-click | Tricks, Behavior, Skin, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Quit |
+| Right-click | Tricks, Behavior, Skin, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Enter a code…, Quit |
 
 | Claude Code is… | Cappy | Status bubble |
 | --- | --- | --- |
@@ -140,11 +140,12 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 | **Clawd** | Fan art of Anthropic's Clawd, Claude Code's mascot. Not affiliated with or endorsed by Anthropic. |
 
 Every trick plays with either skin. The fan-pack costumes were drawn for Clawd's front-on body, so on Cappy they sit
-where Clawd's face would be.
+where Clawd's face would be. A skin is one file in `web/skins/` ([how to make one](TRICKS.md#skins)); fan-art skins of
+other people's characters show in the menu only while Fan pack is on.
 
 ## Tricks
 
-<img src="assets/tricks.gif" width="600" alt="The pet in its Clawd skin on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave.">
+<img src="assets/tricks.gif" width="600" alt="Cappy on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave of his front paw.">
 
 Core tricks, all original: dance, juggle, cartwheel, a sneeze, a paper plane, sneaking through the screen's edge and
 climbing its side, plus everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around, peeking over the Dock).
@@ -159,11 +160,14 @@ through it, and in this repo you can ask Claude Code to "make a new trick" (ther
 
 ### Fan pack
 
-Off by default. Turn it on with right-click → **Fan pack**. It adds nine fan-made tricks of other people's characters:
-a Super Saiyan power-up (Dragon Ball), Guts (Berserk), Thorfinn (Vinland Saga), the Silver Surfer and Spider-Man
-(Marvel), Darth Vader (Star Wars), a Ghost revive and an Exotic engram (Destiny) and a portal gun (Portal 2). They're
-original pixel art made as homage, not affiliated with or endorsed by any of those rights holders, and they'll be removed
-on request.
+Off by default. Turn it on with right-click → **Fan pack**. It adds ten fan-made tricks of other people's characters,
+and they're secrets: you find them by what you do, and right-click → **Tricks** counts how many you've found. Fix your
+failing tests, say, or drop him from way up, or keep a steady beat on him. Each one, once found, is in the Tricks menu
+and turns up on its own now and then.
+
+They're original pixel art made as homage, after Dragon Ball, Berserk, Vinland Saga, Marvel's Silver Surfer and
+Spider-Man, Star Wars, Destiny, Portal 2 and Michael Jackson's moonwalk, not affiliated with or endorsed by any of those
+rights holders, and they'll be removed on request.
 
 ## FAQ
 
@@ -204,6 +208,20 @@ Two copies are each getting Claude Code's hooks, and every new session starts an
 
 No. The hook is a small native program that takes about 5 ms per event, prints nothing and always exits 0, so it can't
 block or change anything Claude does.
+
+</details>
+
+<details>
+<summary><b>Don't want to hunt for the secrets?</b></summary>
+
+Right-click → **Enter a code…** and type the code with your arrow keys and letters, then press Return. It turns the Fan
+pack on and finds every secret at once.
+
+<details><summary>Spoiler</summary>
+
+↑ ↑ ↓ ↓ ← → ← → B A
+
+</details>
 
 </details>
 

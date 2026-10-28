@@ -6,6 +6,7 @@
   const CAPPY = hangabout.skin === 'cappy' // side on: the helmet in profile, one lens, the saber at his chin
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
   const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid']
+  const maythe4th = () => { const d = new Date(); return d.getMonth() === 4 && d.getDate() === 4 ? 1 : 0 } // your local date
 
   /** The red saber, its hilt at (hx, hy). */
   function saber(ctx, v, now, hx, hy){
@@ -44,7 +45,7 @@
   }
 
   hangabout.trick({
-    name: 'vader', label: 'Darth Vader 🔴', rarity: 'rare', pack: 'fan',
+    name: 'vader', label: 'Darth Vader 🔴', rarity: 'rare', pack: 'fan', on: {forcePush: 1, today: maythe4th}, // a force push, and May the 4th
     frames: [
       [{vader: {dark: .4}}, 160],
       [{vader: {dark: .8, cape: .5, helmet: -6}}, 160],

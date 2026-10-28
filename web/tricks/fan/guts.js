@@ -6,7 +6,7 @@
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
 
   hangabout.trick({
-    name: 'guts', label: 'Guts ⚔', rarity: 'rare', pack: 'fan',
+    name: 'guts', label: 'Guts ⚔', rarity: 'rare', pack: 'fan', on: {failStreak: 1}, // three failures in a row
     frames: [
       [{eyes: 'angry', guts: {cape: 1, aura: 1}}, 260],
       [{squash: 1, eyes: 'angry', guts: {cape: 1, aura: 1, sword: .35}}, 110],
@@ -58,7 +58,7 @@
     },
     /** In front: the mantle on his shoulders, the Brand, his scarred eye, the slash, and the sword after the swing. */
     front({ctx, d: g, px, now, pose}){
-      const top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + (pose.dy || 0) + (pose.squash || 0), h = head(pose)
+      const top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + (pose.dy || 0) + (pose.squash || 0), h = CAPPY && head(pose)
       if (g.cape) {
         ctx.globalAlpha = g.cape
         if (CAPPY) { // the mantle over his back, behind his ears

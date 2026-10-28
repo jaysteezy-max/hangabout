@@ -32,7 +32,7 @@
   }
 
   hangabout.trick({
-    name: 'thorfinn', label: 'Thorfinn 🗡', rarity: 'rare', pack: 'fan',
+    name: 'thorfinn', label: 'Thorfinn 🗡', rarity: 'rare', pack: 'fan', on: {dizzyAgain: 1}, // shaken dizzy a third time today
     frames: [
       [{eyes: 'angry', thorfinn: {hair: 1, daggers: 1, glint: 1}}, 320],
       [{squash: 2, eyes: 'angry', arms: DOWN, thorfinn: {hair: 1, daggers: 1}}, 220],

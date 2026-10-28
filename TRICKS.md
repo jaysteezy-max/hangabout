@@ -35,12 +35,12 @@ covers all of it. The core tricks are short and worth reading alongside it: `cor
 | `name` | yes | Unique id: letters, digits, `-`, `_`. Also the pose key that turns on your draw hooks (see below). |
 | `rarity` | yes | When he picks it on his own: `common` (an everyday fidget), `rare` (now and then), `edge` (a trip to the screen's edges), `manual` (never on his own; menu, `perform()` and `on` only). The old `perched` still works and means `common` with `where: 'ledge'`. |
 | `where` | no | `'floor'` (the Dock or the bottom of the screen) or `'ledge'` (the top of a window). He only picks it, or answers with it, while he's there; asked for from the menu somewhere else, he leaps there first. Leave it out for anywhere. |
-| `on` | no | Things that happen that it answers, each with the chance it does: `{back: 1}` always, `{cleanFinish: .25}` one time in four. See [Moments](#moments). |
+| `on` | no | Things that happen that it answers, each with the chance it does: `{back: 1}` always, `{cleanFinish: .25}` one time in four. A chance can also be a function returning one, asked each time the moment comes: `{today: () => isHalloween() ? 1 : 0}`. See [Moments](#moments). |
 | `frames` | one of these | `[[pose, ms], ...]`, played once on the spot. |
 | `trip` | one of these | `({now, here, x, y, dir}) => steps`, an outing that moves him around. See [Trips](#trips). |
 | `label` | no | Text for the Tricks menu and the mockup's button. Without one the trick still plays on its own, but isn't listed. |
 | `weight` | no | How likely it is next to others of the same rarity. Default 1. A function returning a number makes it likelier at some times than others, e.g. `() => new Date().getHours() >= 22 ? 3 : 1`. |
-| `pack` | no | `'fan'` for fan art of other people's characters. Fan tricks only play while the Fan pack setting is on. |
+| `pack` | no | `'fan'` for fan art of other people's characters. Fan tricks only play while the Fan pack setting is on, and each is a secret until it's found. See [Secrets](#secrets). |
 | `pixels`, `behind`, `front`, `glow` | no | Draw hooks. See [Drawing](#drawing). |
 | `end` | no | Called when a trip is cut short (Claude needs him, or you grab him). Tidy up anything you added to the page. |
 
@@ -63,9 +63,24 @@ one of these moments comes and its chance comes up (if several tricks pass, one 
 | `midWalk` | He's halfway through a walk of more than 120 points, while he's free to roam. |
 | `longFinish` | Claude finished a turn that took 15 minutes or more, while you're here. |
 | `finishedWhileAway` | Claude finished a turn while you were away from your Mac. `hangabout.away` says whether you still are. |
+| `today` | Once a day: the first time he's free to roam while you're at your Mac, so soon after he starts. For tricks tied to a date: give it a function chance that's 1 on the day. |
+| `comeback` | A command Claude ran with `test` in it succeeds, and the last test command before it in that session failed. |
+| `failStreak` | Three of Claude's tool calls in a row failed in one session. Once per streak: a call that works ends it. |
+| `forcePush` | Claude ran `git push` with `--force`, `--force-with-lease` or `-f`. |
+| `windowSurf` | In the app: the window he's standing on is dragged fast (over 1,500 points a second). Once per drag. |
+| `bigDrop` | He lands after you let go of him more than half the screen's height above where he lands. |
+| `thrown` | You let go of him mid-fling, hard to the side (the pointer going over 2,000 points a second). He answers once he lands. |
+| `highUp` | He's on a window ledge more than half the screen above the floor and decides to get down. A trick that answers takes him down instead of his usual jump. |
+| `dizzyAgain` | You've shaken him dizzy for the third time today, and his head has just cleared. |
+| `beat` | Four clicks on him in an even rhythm, slower than a double-click: each gap 500 to 1,000 ms, all within 20% of their average. |
 
-To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console. Run
-`hangabout.left()` first to have `hangabout.away` say you're away, and `hangabout.back()` to end it.
+`comeback`, `failStreak` and `forcePush` come from the session's log of Claude's last 8 tool calls, and each call is
+looked at once, when it's logged. Calls already logged when the page loads don't count.
+
+To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console. `fire`
+returns `true` if a trick answered. Run `hangabout.left()` first to have `hangabout.away` say you're away, and
+`hangabout.back()` to end it. For the Claude moments, feed it a log, then the same log with a call added:
+`hangabout.claude({sessions: {s: {mood: 'running', ts: Date.now() / 1000, log: [{ok: false, call: 'Bash(npm test)', out: ''}]}}})`.
 
 `hangabout.trick()` throws a clear error for a missing name, an unknown rarity, or malformed frames, so check the console.
 
@@ -100,8 +115,9 @@ comes next. Keep tricks short, a few seconds at most; there's always next time.
 | `phase` | 1 | Dithered and violet, as if halfway through a wall. |
 | `<your trick's name>` | anything but `null` | Turns on your trick's draw hooks for this frame and hands them the value. |
 
-**Two skins.** Tricks play on whichever pet is on screen: Cappy, the default, or the Clawd skin (right-click → Skin, or
-the mockup's **Clawd skin** button). Cappy is a capybara drawn side on, facing the way he last went. He has no arms:
+**Skins.** Tricks play on whichever pet is on screen: Cappy, the default, the Clawd skin, or any other in
+[Skins](#skins) (right-click → Skin, or the mockup's **Skin** picker). Cappy is a capybara drawn side on, facing the way
+he last went. He has no arms:
 `arms` `'up'` lifts his front paw in a wave, `'high'` lifts it higher, `hand` and `reach` push it forward, and `'cross'`
 does nothing. `face` turns him left or right, and his one eye takes the same `eyes` and `look` values as Clawd's.
 Everything else above works the same on both.
@@ -130,7 +146,7 @@ x:  0    4   6  10  14       28  33 34  37   43
 | `OX`, `OY` | 4, 20 | Clawd's offset in the grid: his front-facing body spans x `OX + 6` to `OX + 29`, y `OY` to `OY + 15`. Cappy fills about the same box side on, x 9 to 34, with his eye on y 24 and his feet on y 38. |
 | `LIFT` | 12 | `OY - 8`. Add it to a y you worked out as if he had only 8 rows of headroom above him. |
 | `BODY`, `TOP`, `SIDE`, `EYE` | hex colors | The skin's colors: its body, the lit top, the shaded side, the eyes. Cappy's brown or Clawd's terracotta, so read them from here; never hard-code them. |
-| `skin` | `'cappy'` or `'clawd'` | Which skin is on, for a trick that needs to draw differently on each. The page reloads when it changes. |
+| `skin` | `'cappy'`, `'clawd'`, … | The key of the skin that's on (see [Skins](#skins)), for a trick that needs to draw differently on each. The page reloads when it changes. |
 | `C` | `{clay, peri, ok, err, dim}` | Claude Code's theme colors, light or dark to match the screen. |
 | `PH` | 120 | His footprint's height in screen points at normal size (for trips). |
 
@@ -173,8 +189,8 @@ Helpers:
 | `recolor(px, {from: to}, t)` | His pixels with some colors moved toward others by `t` (0 to 1). |
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
-| `head(pose)` | Where Cappy's face is in this pose, as drawn facing left: `{x, y}` is his eye's left pixel, `top` the top of his head between his ears. They move with `dy`, `squash` and `stretch`. |
-| `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while Cappy faces right (and slid by `ox`), so a costume drawn once on him facing left turns with him. On Clawd it changes nothing. |
+| `head(pose)` | Where Cappy's face is in this pose, as drawn facing left: `{x, y}` is his eye's left pixel, `top` the top of his head between his ears. They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
+| `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin faces right (and slid by `ox`), so a costume drawn once on him facing left turns with him. On Clawd it changes nothing. |
 
 **Costumes on both skins.** Hair, masks and anything else that sits on his face need a spot on each skin. Clawd faces
 you, eyes at x 14 and 28; Cappy is side on, so draw his version facing left with `head(pose)` inside `facing()`, and
@@ -237,12 +253,53 @@ A trip is cut short when Claude needs him or you grab him. If yours added anythi
   ```
 
   (Tilts are CSS rotations of the whole canvas, so they don't show on the sheet.)
-- **Both skins:** check it on Cappy and on Clawd (the mockup's **Clawd skin** button).
+- **Every skin:** check it on Cappy, on Clawd and on any other skin (the mockup's **Skin** picker, or `?skin=<name>`).
 - **Reduce motion** on (mockup button or right-click menu): he should still look right standing still.
 - **The real thing:** `./install.sh`, then right-click → Tricks.
 
+## Skins
+
+A skin is who the pet is. Each is one file in `web/skins/` that adds itself to `SKINS`, loaded with a
+`<script src="skins/<name>.js">` line next to `skins/cappy.js` near the top of `web/pet.html` (before the page's own
+script, so his colors are known before the tricks load). `web/skins/cappy.js` is the worked example; Clawd is drawn
+inside `web/pet.html` and registered there.
+
+```js
+SKINS.hippo = {
+  name: 'Hippo',               // what the page and the menu call him
+  label: 'Hippo (fan art)',    // optional: the menu's text, when it should say more than the name
+  colors: [body, top, side, eye], // become BODY, TOP, SIDE, EYE: tricks recolor exactly these, so use them in your art
+  sideOn: true,                // optional: drawn side on, so he keeps facing the way he last went
+  pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
+  head(pose){ return {x, y, top} }, // optional, side on: his eye's left pixel and the top of his head, as drawn facing left
+  draw(pose, eye){ return [[x, y, color], ...] },
+}
+```
+
+`draw` turns a [pose](#frames-and-poses) into pixels on the [art grid](#the-art-grid): every key in the pose table
+should do something sensible (`dy`, `squash`, `stretch`, `tuck`, `lift`, `tapLeg`, `arms`, `hand`, `reach`, `eyes`,
+`look`, `lookX`, `lookY`, `dx`, `face`, `half`, `swing`, `ox`), or nothing where the pet has no such part. Draw his eyes
+in the `eye` color it's given (it flashes while Claude needs you). His lowest pixel must be on row 39, the ground; the
+page checks this. Stay inside about x 6 to 37 and keep the head near y 18 to 24, where tricks put hats and props. The
+pet is outlined with its own dark line, as in the pixel-art reference it was drawn from.
+
+Pick one with right-click → Skin in the app (saved, and the page reloads), or `?skin=<key>` in the mockup.
+Before you ship one: play every trick on it in the mockup with no console errors, and look at a sheet of its poses.
+
 ## Fan pack rules
 
-Tricks that depict other people's characters go in `web/tricks/fan/` with `pack: 'fan'`, and start with a comment
-naming the source and saying it's fan-made and unofficial. Draw original pixel art: no traced or copied sprites, logos
-or sounds. If a rights holder asks for a trick to be removed, it will be.
+Tricks and skins that depict other people's characters are fan art: tricks go in `web/tricks/fan/` with `pack: 'fan'`,
+skins in `web/skins/` with `pack: 'fan'`, and each starts with a comment naming the source and saying it's fan-made and
+unofficial. Draw original pixel art: no traced or copied sprites, logos or sounds. If a rights holder asks for a trick or
+skin to be removed, it will be.
+
+### Secrets
+
+Every `pack: 'fan'` trick is a secret. Until it's found, right-click → Tricks shows it as `???` and counts how many of
+them you've found, and he picks it on his own at a twentieth of its weight, so every secret still turns up in the end.
+It's found the first time it plays for any reason: a moment it answers, a random pick, or its button in the mockup.
+From then on it's listed by name and he picks it at its normal weight. The app remembers what you've found.
+
+Give each secret an `on` moment that fits it, so it's found by something you do rather than only by waiting.
+`hangabout.code(text)` (right-click → **Enter a code…**, or the mockup's button) finds them all at once and turns the
+Fan pack on.

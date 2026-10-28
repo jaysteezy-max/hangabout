@@ -163,7 +163,7 @@
   }
 
   hangabout.trick({
-    name: 'spidey', label: 'Spider-Man 🕸', rarity: 'rare', pack: 'fan',
+    name: 'spidey', label: 'Spider-Man 🕸', rarity: 'rare', pack: 'fan', on: {highUp: .15}, // high up a window, sometimes he swings down
     trip: () => [
       {go: 'hold', T: 200, pose: {eyes: 'up', spidey: .5}}, // suits up
       {go: 'hold', T: 260, pose: {eyes: 'happy', spidey: 1}},

@@ -38,7 +38,7 @@
   }
 
   hangabout.trick({
-    name: 'portal', label: 'Portal gun ◐', rarity: 'rare', pack: 'fan',
+    name: 'portal', label: 'Portal gun ◐', rarity: 'rare', pack: 'fan', on: {thrown: 1}, // flung toward the screen's edge
     trip({here, x, y, dir}){
       const W = hangabout.width, s = hangabout.size, floorY = surfaces()[0].y + PH
       const lo = here.x0 + 66 + 40, hi = here.x1 + 66 - 40
