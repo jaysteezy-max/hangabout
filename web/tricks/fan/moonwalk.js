@@ -13,36 +13,51 @@
   const HALF = 420, STEPS = 6, D = 6, SLIDE = HALF * STEPS, SPIN = 480 // each step's ms, how many, how far (art px) one foot slides past the other; the spin's ms
   const ON = {fit: 1, hat: 0, tilt: 1}
   const at = (T, pose, d) => ({go: 'hold', T, pose: {...pose, moonwalk: {...ON, ...d}}})
-  // Cappy (web/skins/cappy.js) is side on with no hands: the glove goes on his front paw, socks and loafers on his own four
-  // feet, a smaller fedora over his ears, and in the slide his feet are redrawn sliding. His outline, foot color and feet:
-  const CAPPY = hangabout.skin === 'cappy', LINE = '#1C1214', FOOT = '#7A3A3E', FEET = [18, 22, 26, 30]
+  // A side-on skin (Cappy, the hippo) has no hands: the glove goes on his front foot, socks and loafers on his own four,
+  // a smaller fedora over his ears, and in the slide his legs are redrawn sliding. The hat is laid out on Cappy (his eye at
+  // x 20) and moved to this skin's eye; his feet are found in his pixels.
+  const PROFILE = hangabout.sideOn && head
   const SMALL_HAT = ['.....KK..KK.....', '....LKKKKKKK....', '...LKKKKKKKKK...', '...BBBBBBBBBB...', 'KKKKKKKKKKKKKKKK']
   // Hatty (web/skins/hatty.js) keeps his own top hat for the fedora: he lifts it and sets it back on, pulls it low, tips
   // it. The glove goes on his free hand, socks and loafers on his two legs, and in the slide his legs are redrawn.
   const HATTY = hangabout.skin === 'hatty', TROUSERS = '#4E4E4E', HATTY_LEGS = [16, 21] // each leg's left x
 
-  /** The outfit on Cappy, worked as he's drawn, facing left (facing right is the mirror image). */
-  function onCappy(d, px, pose, now){
-    const L = x => pose.face > 0 ? GW - 1 - x : x, f = d.fit, g = 38 + (pose.dy || 0) // g: the row his feet stand on
-    const paw = pose.hand != null || pose.reach || (pose.arms || []).some(a => a === 'up' || a === 'high') // front paw up, off the floor
+  /**
+   * The outfit on a side-on skin, worked as he's drawn, facing left (facing right is the mirror image). His feet are on
+   * the row above his lowest (which is all outline), each run of pixels along it that isn't outline, front first; a leg
+   * is as many rows as stand clear of his body above it. His toes are a color of their own, which finds a front foot
+   * he's lifted.
+   */
+  function inProfile(d, px, pose, now){
+    const L = x => pose.face > 0 ? GW - 1 - x : x, f = d.fit
     let out = px.map(([x, y, c]) => [L(x), y, c])
+    const g = Math.max(...out.map(([, y]) => y)) - 1, line = out.find(([, y]) => y === g + 1)[2], legs = []
+    for (const [x] of out.filter(([, y, c]) => y === g && c !== line).sort((a, b) => a[0] - b[0])) { const l = legs.at(-1); if (l && x === l.x1 + 1) l.x1 = x; else legs.push({x0: x, x1: x}) }
+    const at = new Map(out.map(([x, y, c]) => [x + ',' + y, c])), clear = (x, y) => [undefined, line].includes(at.get(x + ',' + y))
+    for (const l of legs) for (l.h = 1; clear(l.x0 - 1, g - l.h) && clear(l.x1 + 1, g - l.h); l.h++);
+    const sole = legs[0] && at.get(legs[0].x0 + ',' + g), paw = out.some(([, y, c]) => y < g && c === sole) // front foot up, off the floor
     if (d.slide) { // the flat pair slides back (+x, as he faces left), the other is up on its toes
-      const [flat, off] = d.slide, under = out.filter(([, y, c]) => y === g - 1 && c !== LINE), feet = []
-      out = out.filter(([, y]) => y < g)
-      FEET.forEach((x0, n) => { if (n || !paw) { const x = x0 + (n % 2 === flat ? off : -off); feet.push([x, g], ...(n % 2 === flat ? [[x + 1, g]] : [])) } })
-      for (const [x] of under) out.push([x, g, LINE])
-      for (const [x, y] of feet) out.push([x - 1, y, LINE], [x + 1, y, LINE], [x, y + 1, LINE])
-      for (const [x, y] of feet) out.push([x, y, FOOT])
+      const [flat, off] = d.slide, top = g + 1 - Math.max(1, ...legs.map(l => l.h)), moved = []
+      legs.forEach((l, i) => { // numbered as his feet are, so the pairs stay put when his front one is up
+        const n = i + (paw ? 1 : 0), dx = n % 2 === flat ? off : -off
+        for (const [x, y, c] of out) if (x >= l.x0 && x <= l.x1 && y > g - l.h && y <= g && (n % 2 === flat || y < g || x === l.x0)) moved.push([x + dx, y, c])
+      })
+      const under = out.filter(([, y, c]) => y === top - 1 && c !== line), mine = new Set(moved.map(([x, y]) => x + ',' + y))
+      out = out.filter(([, y]) => y < top)
+      for (const [x] of under) out.push([x, top, line])
+      for (const [x, y] of moved) for (const [a, b] of [[-1, 0], [1, 0], [0, 1], [0, -1]]) if (y + b >= top && !mine.has(x + a + ',' + (y + b))) out.push([x + a, y + b, line])
+      out.push(...moved)
     }
-    const shod = new Set(out.filter(([, y, c]) => y === g && c === FOOT).map(([x]) => x))
-    out = out.map(([x, y, c]) => c === FOOT && (y < g || (!d.slide && x < 21)) ? [x, y, mix(c, GLOVE[(x * 3 + y * 5 + Math.floor(now / 140)) % 4 ? 0 : 1], f)] // the gloved front paw
-      : c === FOOT ? [x, y, mix(c, SHOE[BODY], f)] // loafers
-      : y === g - 1 && shod.has(x) && c !== LINE ? [x, y, mix(c, SOCK[BODY], f)] // white socks above them
+    const front = !paw && !d.slide && legs[0], shod = new Set(out.filter(([, y, c]) => y === g && c !== line).map(([x]) => x))
+    out = out.map(([x, y, c]) => c === line ? [x, y, c]
+      : (c === sole && y < g) || (front && y === g && x >= front.x0 && x <= front.x1) ? [x, y, mix(c, GLOVE[(x * 3 + y * 5 + Math.floor(now / 140)) % 4 ? 0 : 1], f)] // the gloved front foot
+      : y === g ? [x, y, mix(c, SHOE[BODY], f)] // loafers
+      : y === g - 1 && shod.has(x) ? [x, y, mix(c, SOCK[BODY], f)] // white socks above them
       : [x, y, c])
     if (d.hat != null) {
-      const top = 19 + (pose.squash || 0) - (pose.stretch || 0) + (pose.dy || 0) // the tips of his ears
+      const h = head(pose) // over his ears: the brim on the top of his head
       SMALL_HAT.forEach((row, j) => [...row].forEach((ch, i) => {
-        if (INK[ch]) out.push([14 + i, top + 2 - SMALL_HAT.length + j + d.hat + (j === SMALL_HAT.length - 1 && i <= 2 ? d.tilt : 0), INK[ch]]) // brim down at the front, over his snout
+        if (INK[ch]) out.push([h.x - 6 + i, h.top - SMALL_HAT.length + j + d.hat + (j === SMALL_HAT.length - 1 && i <= 2 ? d.tilt : 0), INK[ch]]) // brim down at the front, over his snout
       }))
     }
     return out.map(([x, y, c]) => [L(x), y, c])
@@ -105,7 +120,7 @@
         at(600, {arms: ['high', 'down'], tapLeg: 2, tilt: -5, eyes: 'side', look: 1}), // the pose
         at(200, {face, lookX: 1}),
         {go: 'move', fn: t => { putFeet(Math.max(lo, Math.min(hi, x + back * v * Math.min(t, SLIDE))), y); return t >= SLIDE },
-          pose: t => { const u = t + HALF / 2, k = Math.floor(u / HALF); return {face, lookX: 1, swing: k % 2 ? 1 : -1, ...(CAPPY && {arms: ['up', 'mid']}), moonwalk: {...ON, slide: [k % 2, Math.round(D * (u % HALF / HALF - .5))]}} }}, // Cappy slides with his gloved paw up
+          pose: t => { const u = t + HALF / 2, k = Math.floor(u / HALF); return {face, lookX: 1, swing: k % 2 ? 1 : -1, ...(PROFILE && {arms: ['up', 'mid']}), moonwalk: {...ON, slide: [k % 2, Math.round(D * (u % HALF / HALF - .5))]}} }}, // side on, he slides with his gloved paw up
         {go: 'hold', T: SPIN, pose: t => { const p = Math.min(1, t / SPIN); return {stretch: 1, arms: ['down', 'down'], moonwalk: {...ON, spin: 4 * Math.PI * (1 - (1 - p) * (1 - p))}} }},
         at(450, {dy: -1, stretch: 1, arms: ['down', 'down']}, {toes: 1}), // up on his toes
         at(120, {squash: 1}),
@@ -117,7 +132,7 @@
     },
     /** The outfit: the glove (his left hand facing you, the near one turned), socks and loafers, the fedora; the spin squeezes it all. */
     pixels({d, px, pose, now}){
-      if (CAPPY) return spun(d, onCappy(d, px, pose, now))
+      if (PROFILE) return spun(d, inProfile(d, px, pose, now))
       if (HATTY) return spun(d, onHatty(d, px, pose, now))
       const face = pose.face || 0, m = x => face < 0 ? GW - 1 - x : x // px come mirrored when he faces left: work as if he faces right
       const wide = (pose.squash || 0) >= 2 ? 1 : 0, legTop = OY + 16 + (pose.dy || 0), f = d.fit
