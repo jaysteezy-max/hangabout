@@ -28,6 +28,7 @@ on.
 ## Before you open a pull request
 
 - `python3 scripts/test_hooks.py` passes (it checks the settings.json helper).
+- If you touched the hook, `python3 scripts/test_hook.py` passes (it plays turns through it, interrupts included).
 - Every changed script parses: `for f in web/tricks/*/*.js; do node --check "$f"; done` if you have Node.
 - The mockup's console is free of errors, your trick plays from its button, and it still looks right with Reduce
   motion on.
