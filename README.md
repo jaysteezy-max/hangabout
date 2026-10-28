@@ -207,7 +207,10 @@ Everything stays on your Mac. hookpet makes no network requests: no telemetry, n
 - **The hook** (`hookpet-hook`) reads each event Claude Code sends it and writes a small `state.json` next to itself:
   per session, the mood, the current tool call as Claude Code prints it (for example `Update(page.mts)` or the first
   40 characters of a command), the first line of your prompt (up to 80 characters), the titles of the plan's steps,
-  line counts for edits, and the last 8 tool calls. A session is dropped when it ends, or after 24 hours.
+  line counts for edits, the last 8 tool calls, and where the session's transcript is. A session is dropped when it
+  ends, or after 24 hours.
+- **Interrupts:** Claude Code sends no hook when you stop it, only notes it at the end of the session's transcript. So
+  while Claude is busy, the hook looks at the last entries there for that note, and keeps nothing it reads.
 - **The app** reads that file, the positions of your windows (to walk on them: sizes and positions only, which needs no
   screen recording permission), and where your mouse is (so his eyes can follow it).
 

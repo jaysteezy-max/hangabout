@@ -956,7 +956,7 @@ function chooseSession(nowS){
   for (const s of Object.values(cc.sessions)) {
     let mood = s.mood === 'waiting' ? 'needs' : s.mood
     const age = nowS - s.ts
-    // shortcut: Claude Code says nothing when you interrupt it mid-thought, so 15 quiet minutes counts as stopped
+    // Interrupts show up in the transcript (the app has the hook check); if that's missed, 15 quiet minutes counts as stopped
     if (['thinking', 'editing', 'running'].includes(mood) && age > 900) mood = 'idle'
     if ((mood === 'done' && age > 300) || !RANK[mood]) mood = 'idle'
     const rank = RANK[mood] * 1e10 + s.ts

@@ -42,6 +42,25 @@ func display(_ tool: String, _ input: [String: Any]) -> String {
     }
 }
 
+/// When you last interrupted the session, if that's the last thing in its transcript. Claude Code sends no hook for it.
+// shortcut: reads only the last 256 KB; a bigger burst written after the interrupt hides it, and the page's 15-minute fallback takes over.
+func interruptedAt(_ path: String) -> Double? {
+    guard let file = FileHandle(forReadingAtPath: path) else { return nil }
+    defer { try? file.close() }
+    let end = file.seekToEndOfFile()
+    file.seek(toFileOffset: end > 262_144 ? end - 262_144 : 0)
+    for line in file.readDataToEndOfFile().split(separator: UInt8(ascii: "\n")).reversed() {
+        guard let entry = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
+              ["user", "assistant"].contains(entry["type"] as? String ?? ""), entry["isSidechain"] as? Bool != true else { continue }
+        let content = (entry["message"] as? [String: Any])?["content"] as? [[String: Any]] ?? []
+        guard content.contains(where: { ($0["text"] ?? $0["content"]).map { ($0 as? String ?? "").hasPrefix("[Request interrupted by user") } == true }) else { return nil }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return iso.date(from: entry["timestamp"] as? String ?? "")?.timeIntervalSince1970
+    }
+    return nil
+}
+
 /// Starts the pet in the background unless he's already up.
 // shortcut: trusts the pid file; a stale one whose pid got reused would skip a launch until the pet next starts.
 func launchPet() {
@@ -192,11 +211,17 @@ case "SessionEnd":
     sessions[id] = nil
     save()
     exit(0)
+case "TranscriptChanged": // not Claude Code's: the app's nudge when a busy session's transcript changes with no hook
+    guard ["thinking", "editing", "running", "waiting"].contains(state["mood"] as? String ?? ""), let path = state["transcript"] as? String,
+          let at = interruptedAt(path), at > state["ts"] as? Double ?? now else { exit(0) } // an interrupt from before the last hook is an old turn's
+    set("idle", "interrupted")
+    state["call"] = ""
 default:
     exit(0)
 }
 
-state["project"] = ((event["cwd"] as? String ?? "") as NSString).lastPathComponent
+if let cwd = event["cwd"] as? String { state["project"] = (cwd as NSString).lastPathComponent }
+if let path = event["transcript_path"] as? String { state["transcript"] = path }
 state["ts"] = now
 sessions[id] = state
 save()

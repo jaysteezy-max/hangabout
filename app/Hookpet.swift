@@ -35,6 +35,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var hitRects: [NSRect] = []
     var holding = false
     var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
+    /// Each busy session's transcript as of the last time hookpet-hook looked at it.
+    var checked: [String: Date] = [:]
     let sizeLabel = NSTextField(labelWithString: "")
     let prefs = UserDefaults.standard
     /// The tricks the page has, for the menu: (name, label, fan pack).
@@ -79,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.trackPointer() }
         Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.sendWindows() }
         Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in self?.sendState() }
+        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.checkTranscripts() }
     }
 
     func applicationWillTerminate(_ note: Notification) { try? FileManager.default.removeItem(at: pidURL) }
@@ -150,6 +153,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
               let json = String(data: data, encoding: .utf8) else { return }
         lastState = stamp
         web.evaluateJavaScript("hookpet.claude(\(json))")
+    }
+
+    /// Claude Code sends no hook when you interrupt it, only writes it into the transcript. So when a busy session's
+    /// transcript changes after its last hook, hookpet-hook gets a look (it stops him if that change was an interrupt).
+    func checkTranscripts() {
+        guard let data = try? Data(contentsOf: stateURL),
+              let sessions = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["sessions"] as? [String: [String: Any]] else { return }
+        for (id, s) in sessions where ["thinking", "editing", "running", "waiting"].contains(s["mood"] as? String ?? "") {
+            guard let path = s["transcript"] as? String,
+                  let changed = (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate] as? Date,
+                  changed.timeIntervalSince1970 > s["ts"] as? Double ?? 0, changed != checked[id] else { continue }
+            checked[id] = changed
+            let hook = Process(), input = Pipe(), event = try! JSONSerialization.data(withJSONObject: ["hook_event_name": "TranscriptChanged", "session_id": id])
+            hook.executableURL = dir.appendingPathComponent("hookpet-hook")
+            hook.standardInput = input
+            guard (try? hook.run()) != nil else { continue }
+            input.fileHandleForWriting.write(event)
+            try? input.fileHandleForWriting.close()
+        }
     }
 
     var scale: Double { prefs.object(forKey: "scale") as? Double ?? 1 }
