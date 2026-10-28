@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for wanting to make Clawd better. New tricks, fixes, and ideas are all welcome.
+Thanks for wanting to make Hangabout better. New tricks, fixes, and ideas are all welcome.
 
 ## Getting set up
 
