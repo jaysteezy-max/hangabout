@@ -2,13 +2,14 @@
 // Charge (trembling, pebbles rising, the screen rumbling), a white flash, then golden spiky hair, golden flames,
 // teal eyes and crackling lightning, then a happy power-down.
 {
-  const {OX, LIFT, GW, GH, EYE, recolor} = hangabout
+  const {OX, LIFT, GW, GH, EYE, recolor, head} = hangabout
   const GOLD = ['#FFF3B0', '#FFD84D', '#FFB938', '#FF8F2A'] // white-hot core → orange tips
 
   /** The mane: a cap over his head, seven spikes fanning up and out, two bangs over his brow. */
-  function mane(d, px){
+  function mane(d, px, pose){
     const hair = new Map()
     if (d !== 'on' && d !== 'release') return hair
+    if (hangabout.skin === 'cappy') return cappyMane(hair, d, pose)
     const headTop = Math.min(...px.map(([, y]) => y)), bx = OX + 6, scale = d === 'release' ? .4 : 1
     const put = (x, y, c) => hair.set(x + ',' + y, c)
     for (let x = bx - 1; x <= bx + 24; x++) for (let y = headTop; y < headTop + 2; y++) put(x, y, '#F7CF3A') // the cap
@@ -25,8 +26,23 @@
       for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), headTop + 2 + r, '#F7CF3A')
     return hair
   }
+  /** Cappy's, drawn facing left: a cap over his head and ears, six spikes swept up and back, two bangs over his brow. */
+  function cappyMane(hair, d, pose){
+    const {top: t} = head(pose), scale = d === 'release' ? .4 : 1
+    const put = (x, y, c) => hair.set((pose.face > 0 ? GW - 1 - x : x) + ',' + y, c)
+    for (let x = 14; x <= 27; x++) for (let y = t - (x > 14 ? 2 : 0); y <= t + 1; y++) put(x, y, '#F7CF3A') // the cap
+    for (const [off, bw, h0, lean] of [[0, 4, 7, -.25], [3, 5, 11, .05], [6, 5, 13, .35], [9, 5, 11, .7], [12, 4, 8, 1.1]]) {
+      const h = Math.max(2, Math.round(h0 * scale))
+      for (let r = 0; r < h; r++) {
+        const w = Math.max(1, Math.round(bw * (1 - r / h))), x0 = Math.round(14 + off + lean * r - w / 2)
+        for (let i = 0; i < w; i++) put(x0 + i, t - 3 - r, r >= h - 2 ? '#FFFBD6' : i < w / 2 ? '#FFF39A' : '#F7CF3A')
+      }
+    }
+    for (const [x0, len] of [[12, 3], [15, 4]]) for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), t + 1 + r, '#F7CF3A') // bangs
+    return hair
+  }
   let lastPx = null, lastHair = null
-  const hairFor = (d, px) => px === lastPx ? lastHair : (lastPx = px, lastHair = mane(d, px)) // behind and front share one mane per frame
+  const hairFor = (d, px, pose) => px === lastPx ? lastHair : (lastPx = px, lastHair = mane(d, px, pose)) // behind and front share one mane per frame
 
   const DOWN = ['down', 'down']
   hangabout.trick({
@@ -45,8 +61,8 @@
       return d === 'on' || d === 'release' ? recolor(px, {[EYE]: '#2EE6C8'}, 1) : px // teal eyes
     },
     /** Behind him: a flickering white aura while he charges; golden flames once he's powered up, rising off his hair. */
-    behind({ctx, d, px, now}){
-      const hair = hairFor(d, px)
+    behind({ctx, d, px, now, pose}){
+      const hair = hairFor(d, px, pose)
       const shape = [...px.map(([x, y]) => [x, y]), ...[...hair.keys()].map(k => k.split(',').map(Number))]
       const filled = new Set(shape.map(([x, y]) => x + ',' + y)), ring = []
       for (const [x, y] of shape) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
@@ -78,9 +94,9 @@
       ctx.globalAlpha = 1
     },
     /** In front: the white flash, the golden mane, crackling lightning, rising pebbles or sparks. */
-    front({ctx, d, px, now}){
+    front({ctx, d, px, now, pose}){
       if (d === 'flash') { ctx.fillStyle = '#FFFFFF'; for (const [x, y] of px) ctx.fillRect(x, y, 1, 1); return }
-      const hair = hairFor(d, px)
+      const hair = hairFor(d, px, pose)
       if (hair.size) {
         // A dark gold outline so every spike reads clearly against the flames behind it.
         const body = new Set(px.map(([x, y]) => x + ',' + y))

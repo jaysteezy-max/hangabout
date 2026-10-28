@@ -77,6 +77,9 @@ one of these moments comes and its chance comes up (if several tricks pass, one 
 `comeback`, `failStreak` and `forcePush` come from the session's log of Claude's last 8 tool calls, and each call is
 looked at once, when it's logged. Calls already logged when the page loads don't count.
 
+A trick that's a `trip` only answers a moment while he's free to roam (Claude doesn't need him and isn't at work):
+any other time the trip would be cut short as it starts.
+
 To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console. `fire`
 returns `true` if a trick answered. Run `hangabout.left()` first to have `hangabout.away` say you're away, and
 `hangabout.back()` to end it. For the Claude moments, feed it a log, then the same log with a call added:
@@ -189,6 +192,12 @@ Helpers:
 | `recolor(px, {from: to}, t)` | His pixels with some colors moved toward others by `t` (0 to 1). |
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
+| `head(pose)` | Where Cappy's face is in this pose, as drawn facing left: `{x, y}` is his eye's left pixel, `top` the top of his head between his ears. They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
+| `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin faces right (and slid by `ox`), so a costume drawn once on him facing left turns with him. On Clawd it changes nothing. |
+
+**Costumes on both skins.** Hair, masks and anything else that sits on his face need a spot on each skin. Clawd faces
+you, eyes at x 14 and 28; Cappy is side on, so draw his version facing left with `head(pose)` inside `facing()`, and
+check `hangabout.skin` to pick which. Guts, Vader and Thorfinn in `web/tricks/fan/` show how.
 
 ## Trips
 
@@ -265,6 +274,7 @@ SKINS.hippo = {
   colors: [body, top, side, eye], // become BODY, TOP, SIDE, EYE: tricks recolor exactly these, so use them in your art
   sideOn: true,                // optional: drawn side on, so he keeps facing the way he last went
   pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
+  head(pose){ return {x, y, top} }, // optional, side on: his eye's left pixel and the top of his head, as drawn facing left
   draw(pose, eye){ return [[x, y, color], ...] },
 }
 ```
