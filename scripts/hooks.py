@@ -1,6 +1,6 @@
-"""Adds, removes or checks hookpet's hooks in a Claude Code settings.json, leaving everything else as it was.
+"""Adds, removes or checks Hangabout's hooks in a Claude Code settings.json, leaving everything else as it was.
 
-    python3 scripts/hooks.py add|remove|check <settings.json> <path to hookpet-hook>
+    python3 scripts/hooks.py add|remove|check <settings.json> <path to hangabout-hook>
 
 check exits 0 when every event already runs the hook, 1 when not. A settings file that isn't valid JSON is never written.
 """
@@ -10,9 +10,12 @@ EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Post
           'PermissionRequest', 'Notification', 'Stop', 'StopFailure', 'SessionEnd']
 
 
-def is_ours(hook):
+NAMES = ('hangabout-hook', 'hookpet-hook')  # hookpet-hook: its name before the rename; add swaps those out, remove takes them too
+
+
+def is_ours(hook, names=NAMES[:1]):
     try:
-        return os.path.basename(shlex.split(hook.get('command', ''))[0]) == 'hookpet-hook'
+        return os.path.basename(shlex.split(hook.get('command', ''))[0]) in names
     except (ValueError, IndexError):
         return False
 
@@ -22,16 +25,17 @@ def has(settings, event):
 
 
 def add(settings, command):
+    remove(settings, NAMES[1:])
     hooks = settings.setdefault('hooks', {})
     for event in EVENTS:
         if not has(settings, event):
             hooks.setdefault(event, []).append({'hooks': [{'type': 'command', 'command': command, 'timeout': 10}]})
 
 
-def remove(settings):
+def remove(settings, names=NAMES):
     hooks = settings.get('hooks', {})
     for event in list(hooks):
-        groups = [{**g, 'hooks': [h for h in g.get('hooks', []) if not is_ours(h)]} for g in hooks[event]]
+        groups = [{**g, 'hooks': [h for h in g.get('hooks', []) if not is_ours(h, names)]} for g in hooks[event]]
         hooks[event] = [g for g in groups if g['hooks']]
         if not hooks[event]:
             del hooks[event]

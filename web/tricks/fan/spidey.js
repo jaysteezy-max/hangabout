@@ -4,7 +4,7 @@
 // over the top of it), a let-go on the upswing, and in mid-air the next web to swing on. After the last swing he flies on
 // and lands on whatever is below. A trip, with the web as a page element.
 {
-  const {OY, PH, BODY, TOP, SIDE, EYE, feet, putFeet, surfaces, edges, scr, desk, rand, pick, mix} = hookpet
+  const {OY, PH, BODY, TOP, SIDE, EYE, feet, putFeet, surfaces, edges, scr, desk, rand, pick, mix} = hangabout
   const G = 2600 // points per second², the pull he falls with everywhere else
   const RED = {[BODY]: '#D3252E', [TOP]: '#F2615E', [SIDE]: '#951A22'}, BLUE = {[BODY]: '#2659C9', [TOP]: '#5585E8', [SIDE]: '#183B8E'}
   document.head.insertAdjacentHTML('beforeend', `<style>
@@ -34,12 +34,12 @@
   }
   /** His front hand reaching up (art pixel 36, 17 facing right), with his feet at (x, y) and him turned rot degrees about them. */
   function hand(x, y, dir, rot){
-    const s = hookpet.size, a = rot * Math.PI / 180, hx = dir * 14 * 3 * s, hy = -23 * 3 * s
+    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * 14 * 3 * s, hy = -23 * 3 * s
     return [x + hx * Math.cos(a) - hy * Math.sin(a), y + hx * Math.sin(a) + hy * Math.cos(a)]
   }
   /** Longest web he'll swing on from (x, y): his feet clear the floor at the bottom of the arc, and a few swings fit across the screen. */
-  const reach = (f, x, y) => Math.min(Math.hypot(x - f.x, f.y - y), surfaces()[0].y + PH - 24 * hookpet.size - y, .3 * hookpet.width)
-  const room = swings => swings * 150 * hookpet.size // screen to leave ahead for swings still to come
+  const reach = (f, x, y) => Math.min(Math.hypot(x - f.x, f.y - y), surfaces()[0].y + PH - 24 * hangabout.size - y, .3 * hangabout.width)
+  const room = swings => swings * 150 * hangabout.size // screen to leave ahead for swings still to come
 
   /**
    * Somewhere to stick a web from feet at f: the top, bottom or side of a window well above him, at an angle that makes a
@@ -47,7 +47,7 @@
    * to clear the floor lifts him straight up; in mid-air one too long reels him in along it, keeping his angle under it.
    */
   function anchor(f, dir, air, ahead = 0){
-    const s = hookpet.size, W = hookpet.width, wins = edges()
+    const s = hangabout.size, W = hangabout.width, wins = edges()
     const covered = (x, y) => wins.some(r => x > r.wx + 2 && x < r.wx + r.w - 2 && y > r.y + 2 && y < r.y + r.h - 2) // over another window, maybe behind it
     const spots = wins.flatMap(r => [...Array(8)].flatMap(() => [
       [rand(r.x0, r.x1), r.y], // the top's visible stretch
@@ -75,7 +75,7 @@
       go: 'move',
       fn(t, dt){
         if (!m) {
-          const f = feet(), a = anchor(f, Math.sign(hookpet.width / 2 - f.x), false, room(swings - 1)) || anchor(f) // off toward the room for the rest, if he can
+          const f = feet(), a = anchor(f, Math.sign(hangabout.width / 2 - f.x), false, room(swings - 1)) || anchor(f) // off toward the room for the rest, if he can
           if (!a) return true // nothing above him to swing from
           const [ax, ay] = a, dx = f.x - ax, R = reach(f, ax, ay)
           // th: his angle out from straight under the web (positive: his feet to its right). y1: where the web takes his
@@ -103,7 +103,7 @@
             m.vx = m.r * m.w * Math.cos(m.th); m.vy = -m.r * m.w * Math.sin(m.th); m.phase = 'fly'; cut()
           }
         } else if (m.phase === 'fly' || m.phase === 'catch') {
-          const f = feet(), W = hookpet.width
+          const f = feet(), W = hangabout.width
           m.vy += G * dt / 1000
           let x = f.x + m.vx * dt / 1000, y = f.y + m.vy * dt / 1000
           if (x < 66 || x > W - 66) { x = Math.max(66, Math.min(W - 66, x)); m.vx = 0; m.left = 0 } // the screen's edge: straight down from there
@@ -137,7 +137,7 @@
     }
   }
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'spidey', label: 'Spider-Man 🕸', rarity: 'rare', pack: 'fan',
     trip: () => [
       {go: 'hold', T: 200, pose: {eyes: 'up', spidey: .5}}, // suits up

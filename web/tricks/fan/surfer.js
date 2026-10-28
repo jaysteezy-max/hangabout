@@ -2,11 +2,11 @@
 // Power cosmic twinkles up and he turns to chrome; his board appears, he hops on and glides across your screen with a
 // trail streaming behind; then he kicks the board up into his hand and the shine fades.
 {
-  const {GW, GH, BODY, TOP, SIDE, EYE, mix} = hookpet
+  const {GW, GH, BODY, TOP, SIDE, EYE, mix} = hangabout
   const CHROME = {[BODY]: '#C3CCD6', [TOP]: '#EEF3F8', [SIDE]: '#8793A1', [EYE]: '#3B4654'}
   const ON = {cosmic: 1, chrome: 1, board: 1}
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'surfer', label: 'Silver Surfer 🏄', rarity: 'rare', pack: 'fan',
     frames: [
       [{eyes: 'up', surfer: {cosmic: .5, chrome: .3}}, 260],

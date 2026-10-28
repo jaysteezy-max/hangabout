@@ -1,5 +1,5 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>hookpet</title>
+<html><head><meta charset="utf-8"><title>Hangabout</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 /* Claude Code's own theme colors (dark, then light). */
@@ -68,7 +68,7 @@ body.native .desk{position:fixed;inset:0;height:auto;min-height:0;border-radius:
 <body>
 <main>
 <header>
-  <h1>hookpet <span class="dim" style="font-weight:400">· Clawd</span></h1>
+  <h1>Hangabout <span class="dim" style="font-weight:400">· Clawd</span></h1>
   <div class="bar" style="margin:0">
     <button class="t" data-preset="calm">Calm</button><button class="t" data-preset="normal">Normal</button><button class="t" data-preset="erratic">Erratic</button>
     <span class="sep"></span>
@@ -117,11 +117,11 @@ nothing to commit, working tree clean
 </div>
 <div class="sr" aria-live="polite" id="live"></div>
 <p class="notes">Pick a state above, or watch the demo run through a real turn: thinking, editing, running a command, asking you, done. Needs you and Blocked keep the bubble open; Done and a new plan step open it briefly; tool calls never do. The trick buttons play any trick on demand; Calm, Normal and Erratic set how busy he is on his own.</p>
-<p class="notes">Put him on your real desktop: <a href="https://github.com/jaysteezy-max/hookpet" style="color:var(--clay)">github.com/jaysteezy-max/hookpet</a>. hookpet is an unofficial fan project, not affiliated with or endorsed by Anthropic. Clawd and Claude are Anthropic's. Fan-pack tricks are fan art of other people's characters.</p>
+<p class="notes">Put him on your real desktop: <a href="https://github.com/jaysteezy-max/hangabout" style="color:var(--clay)">github.com/jaysteezy-max/hangabout</a>. Hangabout is an unofficial fan project, not affiliated with or endorsed by Anthropic. Clawd and Claude are Anthropic's. Fan-pack tricks are fan art of other people's characters.</p>
 </main>
 <script>
-// In the hookpet app this page is a transparent layer over your whole screen; in a browser it's the mockup desktop.
-const NATIVE = !!window.webkit?.messageHandlers?.hookpet
+// In the Hangabout app this page is a transparent layer over your whole screen; in a browser it's the mockup desktop.
+const NATIVE = !!window.webkit?.messageHandlers?.hangabout
 if (NATIVE) { document.body.classList.add('native'); for (const e of document.querySelectorAll('.win, .menubar')) e.remove() }
 const GW = 44, GH = 40, OX = 4, OY = 20 // room above his head for big hair and high hops
 const LIFT = OY - 8 // effects around him were laid out for 8 rows of headroom
@@ -480,7 +480,7 @@ function registerTrick(t){
     : !RARITIES.includes(t.rarity) ? `needs a rarity: ${RARITIES.join(', ')}`
     : !Array.isArray(t.frames) === !t.trip ? 'needs frames or a trip (one, not both)'
     : t.frames && !t.frames.every(f => Array.isArray(f) && typeof f[0] === 'object' && f[1] > 0) ? 'frames must be [pose, ms] pairs with ms > 0' : ''
-  if (problem) throw new Error(`hookpet trick "${t?.name}": ${problem}`)
+  if (problem) throw new Error(`hangabout trick "${t?.name}": ${problem}`)
   TRICKS[t.name] = t
 }
 let fanPack = false // fan-made tricks of other people's characters: off unless you turn them on
@@ -525,7 +525,7 @@ function hang(now, g){ ai.mode = 'hang'; ai.grip = g; ai.hangAt = now; ai.until 
 /** Plays one of his moves now, or as soon as he's back on his feet. */
 function perform(name){
   const now = performance.now()
-  if (!TRICKS[name]) return console.warn(`hookpet: no trick named "${name}"`)
+  if (!TRICKS[name]) return console.warn(`hangabout: no trick named "${name}"`)
   if (ai.mode === 'script') endTrip(now) // a move asked for on a trip: back on screen first
   if (['jump', 'fall', 'dangle', 'hang'].includes(ai.mode)) { ai.next = name; return }
   startMove(now, name, surfaceUnder(pet.x, pet.y))
@@ -822,7 +822,7 @@ function draw(now, dt){
   const tricks = still ? [] : Object.values(TRICKS).filter(k => pose[k.name] != null)
   const run = (k, hook, extra) => {
     try { return k[hook]?.({ctx, d: pose[k.name], px, pose, now, ...extra}) }
-    catch (e) { console.error(`hookpet: trick "${k.name}" failed in ${hook}(), so it's switched off`, e); delete TRICKS[k.name] }
+    catch (e) { console.error(`hangabout: trick "${k.name}" failed in ${hook}(), so it's switched off`, e); delete TRICKS[k.name] }
   }
   for (const k of tricks) px = run(k, 'pixels') || px
   if (pose.phase && !still) { const k = Math.floor(now / 70); px = recolor(px.filter(([x, y]) => (x + y + k) % 3), PHASE, .45) } // phasing through the screen's edge: dithered, violet
@@ -1057,9 +1057,9 @@ function useFanPack(on){
   trickButtons()
 }
 
-// ---- window.hookpet: tricks register through it (see TRICKS.md), and the app talks to the page through it ----
+// ---- window.hangabout: tricks register through it (see TRICKS.md), and the app talks to the page through it ----
 const inBox = (x, y) => { const b = box.getBoundingClientRect(); return box.style.visibility === 'visible' && x >= b.left && x <= b.right && y >= b.top && y <= b.bottom }
-const hookpet = window.hookpet = {
+const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the old name, so tricks written for it still load
   // For tricks: register, the art grid and his colors, drawing helpers, and what trips need to move him about.
   trick: registerTrick,
   GW, GH, OX, OY, LIFT, PH, BODY, TOP, SIDE, EYE, C,
@@ -1101,7 +1101,7 @@ function reportHits(){
   if (box.style.visibility === 'visible') { const b = box.getBoundingClientRect(); rects.push([b.x, b.y, b.width, b.height]) }
   if (ai.mode === 'hang') rects.length = 0 // hanging over a title bar, he lets every click through to the toolbar behind him
   const r = rects.map(a => a.map(Math.round)), key = r.join(';')
-  if (key !== hitKey) { hitKey = key; webkit.messageHandlers.hookpet.postMessage(r) }
+  if (key !== hitKey) { hitKey = key; webkit.messageHandlers.hangabout.postMessage(r) }
 }
 
 // ---- controls ----
@@ -1148,7 +1148,7 @@ addEventListener('DOMContentLoaded', () => {
   if (NATIVE) { // his status bubble follows your system's light or dark appearance
     const q = matchMedia('(prefers-color-scheme: light)'), sync = () => { document.body.classList.toggle('light', q.matches); readTheme() }
     q.addEventListener('change', sync); sync()
-    webkit.messageHandlers.hookpet.postMessage({tricks: Object.values(TRICKS).filter(t => t.label).map(t => ({name: t.name, label: t.label, fan: t.pack === 'fan'}))}) // for the Tricks menu
+    webkit.messageHandlers.hangabout.postMessage({tricks: Object.values(TRICKS).filter(t => t.label).map(t => ({name: t.name, label: t.label, fan: t.pack === 'fan'}))}) // for the Tricks menu
   }
   usePreset('normal'); trickButtons()
   place(desk.clientWidth - PW - 40, surfaces()[0].y) // on the floor, bottom-right, like Codex's pet
@@ -1166,7 +1166,7 @@ function frame(now){
   if (NATIVE) { reportHits(); if (now - cc.checkedAt > 1000) syncClaude(now) } // re-checks once a second, for the time-based changes
 }
 </script>
-<!-- Tricks: each file registers one or more with hookpet.trick(). Add yours here (see TRICKS.md). -->
+<!-- Tricks: each file registers one or more with hangabout.trick(). Add yours here (see TRICKS.md). -->
 <script src="tricks/core/everyday.js"></script>
 <script src="tricks/core/dance.js"></script>
 <script src="tricks/core/juggle.js"></script>

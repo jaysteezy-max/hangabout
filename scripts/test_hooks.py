@@ -1,4 +1,4 @@
-"""Round trip for hooks.py: add twice, check, remove, and everything that isn't hookpet's comes back untouched.
+"""Round trip for hooks.py: add twice, check, remove, and everything that isn't Hangabout's comes back untouched.
 
     python3 scripts/test_hooks.py
 """
@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 run = lambda *a: subprocess.run([sys.executable, os.path.join(HERE, 'hooks.py'), *a]).returncode
 
 with tempfile.TemporaryDirectory() as d:
-    path, hook = os.path.join(d, 'settings.json'), '/Users/someone/My Stuff/.claude/hookpet/hookpet-hook'
+    path, hook = os.path.join(d, 'settings.json'), '/Users/someone/My Stuff/.hangabout/hangabout-hook'
     theirs = {'theme': 'dark', 'hooks': {'PreToolUse': [{'matcher': 'Bash', 'hooks': [{'type': 'command', 'command': 'lint.sh'}]}],
                                          'Stop': [{'hooks': [{'type': 'command', 'command': 'say done'}]}]}}
     json.dump(theirs, open(path, 'w'))
@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory() as d:
     s = json.load(open(path))
     assert run('check', path, hook) == 0
     assert len(s['hooks']) == 10 and len(s['hooks']['Stop']) == 2 and len(s['hooks']['SessionStart']) == 1, s
-    assert s['hooks']['SessionStart'][0]['hooks'][0]['command'] == "'/Users/someone/My Stuff/.claude/hookpet/hookpet-hook'"  # quoted: the path has a space
+    assert s['hooks']['SessionStart'][0]['hooks'][0]['command'] == "'/Users/someone/My Stuff/.hangabout/hangabout-hook'"  # quoted: the path has a space
     assert s['hooks']['PreToolUse'][0] == theirs['hooks']['PreToolUse'][0]
     assert run('remove', path, hook) == 0
     assert json.load(open(path)) == theirs, json.load(open(path))
@@ -28,4 +28,12 @@ with tempfile.TemporaryDirectory() as d:
     fresh = os.path.join(d, 'none.json')  # no settings file yet
     assert run('add', fresh, hook) == 0 and run('check', fresh, hook) == 0
     assert run('remove', fresh, hook) == 0 and json.load(open(fresh)) == {}
+
+    old = {'hooks': {e: [{'hooks': [{'type': 'command', 'command': '/Users/someone/.claude/hookpet/hookpet-hook'}]}] for e in ('SessionStart', 'Stop')}}
+    json.dump(old, open(path, 'w'))  # hooks from before the rename: not counted by check, swapped by add, taken by remove
+    assert run('check', path, hook) == 1 and run('add', path, hook) == 0
+    s = json.load(open(path))
+    assert 'hookpet-hook' not in json.dumps(s) and len(s['hooks']['Stop']) == 1 and run('check', path, hook) == 0, s
+    json.dump(old, open(path, 'w'))
+    assert run('remove', path, hook) == 0 and json.load(open(path)) == {}
 print('hooks.py: ok')
