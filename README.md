@@ -1,6 +1,6 @@
 <div align="center">
 
-# hookpet
+# Hangabout
 
 **A desktop pet for macOS that shows what Claude Code is doing.**
 
@@ -9,7 +9,7 @@
 ![Network](https://img.shields.io/badge/network-none-2C7A39?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5769F7?style=flat-square)](LICENSE)
 
-[Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hookpet/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
+[Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hangabout/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
 
 <img src="assets/hero.gif" width="820" alt="Clawd standing on a terminal window. His status bubble reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he writes on a page, 'Bash(npm test) Running…' while he presses Enter on a little terminal and watches it, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
 
@@ -34,12 +34,12 @@
 and Apple's free command line tools, which the installer offers to install if they're missing.
 
 ```bash
-git clone https://github.com/jaysteezy-max/hookpet.git && cd hookpet && ./install.sh
+git clone https://github.com/jaysteezy-max/hangabout.git && cd hangabout && ./install.sh
 ```
 
-1. The installer builds hookpet into `~/.claude/hookpet` and starts it: Clawd appears at the bottom right of your screen.
+1. The installer builds Hangabout into `~/.hangabout` and starts it: Clawd appears at the bottom right of your screen.
 2. It shows the hooks it wants to add to `~/.claude/settings.json` and **asks first**. If you say yes, it backs that
-   file up as `settings.json.hookpet-backup-<time>` and leaves everything else in it as it was.
+   file up as `settings.json.hangabout-backup-<time>` and leaves everything else in it as it was.
 3. **Check it works:** start a new Claude Code session and send a prompt. Clawd puts a hand to his chin and his
    status bubble says what Claude is doing.
 
@@ -54,7 +54,7 @@ One command is added to ten [hook events](https://code.claude.com/docs/en/hooks)
 
 ```json
 "SessionStart": [
-  { "hooks": [{ "type": "command", "command": "/Users/you/.claude/hookpet/hookpet-hook", "timeout": 10 }] }
+  { "hooks": [{ "type": "command", "command": "/Users/you/.hangabout/hangabout-hook", "timeout": 10 }] }
 ]
 ```
 
@@ -67,13 +67,28 @@ already decided), and `./uninstall.sh` takes exactly these back out.
 <summary>Or install it as a Claude Code plugin</summary>
 
 ```text
-/plugin marketplace add jaysteezy-max/hookpet
-/plugin install hookpet@hookpet
+/plugin marketplace add jaysteezy-max/hangabout
+/plugin install hangabout@hangabout
 ```
 
-The plugin brings its own hooks, so hookpet never edits your settings (Claude Code itself records that the plugin is
-on). The first session you start afterwards builds hookpet into the plugin's data folder (a few seconds; it also needs
+The plugin brings its own hooks, so Hangabout never edits your settings (Claude Code itself records that the plugin is
+on). The first session you start afterwards builds Hangabout into the plugin's data folder (a few seconds; it also needs
 the command line tools) and starts the pet. Use the plugin **or** `install.sh`, not both, or you'll get two pets.
+
+</details>
+
+<details>
+<summary>Coming from hookpet?</summary>
+
+Hangabout used to be called hookpet. In your old clone, `git pull` and run `./install.sh`: it quits the old pet, keeps
+his size and behavior settings, swaps the old hooks in `settings.json` for the new ones (after a backup) and deletes
+`~/.claude/hookpet`. With the plugin, right-click the old pet → **Quit hookpet**, take the old plugin out, then install
+the new one as above:
+
+```text
+/plugin uninstall hookpet@hookpet
+/plugin marketplace remove hookpet
+```
 
 </details>
 
@@ -120,7 +135,7 @@ everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around) and two h
 over it, sitting on it with his legs swinging). Pick any of them from right-click → **Tricks**.
 
 **Make your own.** A trick is one file in `web/tricks/`: some poses with timings, and optionally something to draw. Try it
-in the [browser mockup](https://jaysteezy-max.github.io/hookpet/) before you install it. [TRICKS.md](TRICKS.md) walks
+in the [browser mockup](https://jaysteezy-max.github.io/hangabout/) before you install it. [TRICKS.md](TRICKS.md) walks
 through it, and in this repo you can ask Claude Code to "make a new trick" (there's a `new-trick` skill for it).
 
 ### Fan pack
@@ -138,15 +153,15 @@ on request.
 
 Hooks only reach Claude Code sessions started after they were added, so start a new session. If that doesn't help, run
 `./install.sh` again: it says whether the hooks are in `~/.claude/settings.json`. While Claude works,
-`~/.claude/hookpet/state.json` should keep changing.
+`~/.hangabout/state.json` should keep changing.
 
 </details>
 
 <details>
 <summary><b>I installed the plugin and nothing happens.</b></summary>
 
-The first session after installing builds hookpet; if that failed, the reason is in `build.log` in the plugin's data
-folder (`~/.claude/plugins/data/hookpet-*/`). Some setups skip plugin hooks altogether: an organization's
+The first session after installing builds Hangabout; if that failed, the reason is in `build.log` in the plugin's data
+folder (`~/.claude/plugins/data/hangabout-*/`). Some setups skip plugin hooks altogether: an organization's
 `allowManagedHooksOnly` policy, or a host app's own plugin security layer. In that case use `install.sh` instead.
 
 </details>
@@ -156,11 +171,12 @@ folder (`~/.claude/plugins/data/hookpet-*/`). Some setups skip plugin hooks alto
 
 Two copies are each getting Claude Code's hooks, and every new session starts any that isn't running.
 
-- **The plugin and `install.sh` are both installed.** Keep one: `./uninstall.sh`, or `/plugin uninstall hookpet@hookpet`.
+- **The plugin and `install.sh` are both installed.** Keep one: `./uninstall.sh`, or `/plugin uninstall hangabout@hangabout`.
 - **An older copy left its hooks behind**, such as one from before a rename or installed in another folder. In the
-  `"hooks"` section of `~/.claude/settings.json`, look for a command other than `~/.claude/hookpet/hookpet-hook`.
+  `"hooks"` section of `~/.claude/settings.json`, look for a command other than `~/.hangabout/hangabout-hook`.
   Back the file up, delete those entries (there's one per event), quit that copy and remove its folder.
-  `./uninstall.sh` only removes hooks that run `hookpet-hook`, so it won't catch these.
+  `./uninstall.sh` only removes hooks that run `hangabout-hook` (or `hookpet-hook`, its old name), so it won't catch
+  the others.
 
 </details>
 
@@ -183,7 +199,7 @@ Not yet: he lives on your main display (the one with the menu bar).
 <summary><b>How is this different from Clawd on Desk?</b></summary>
 
 [Clawd on Desk](https://github.com/rullerzhou-afk/clawd-on-desk) is a bigger, cross-platform app (Windows, macOS,
-Linux) that follows many coding agents and can approve permission requests for you. hookpet is deliberately small: a
+Linux) that follows many coding agents and can approve permission requests for you. Hangabout is deliberately small: a
 native macOS app just for Claude Code that only watches (it never approves or blocks anything), uses no network, roams
 across your actual windows, and is made to be extended one trick file at a time. Both are unofficial fan projects.
 
@@ -195,16 +211,16 @@ across your actual windows, and is made to be extended one trick file at a time.
 ./uninstall.sh
 ```
 
-It asks once, then quits hookpet, removes its hooks from `~/.claude/settings.json` (after a backup), and deletes
-`~/.claude/hookpet` and its saved preferences. Your other settings and hooks stay as they are.
+It asks once, then quits Hangabout, removes its hooks from `~/.claude/settings.json` (after a backup), and deletes
+`~/.hangabout` and its saved preferences. Your other settings and hooks stay as they are.
 
-With the plugin: right-click → **Quit hookpet**, then `/plugin uninstall hookpet@hookpet`.
+With the plugin: right-click → **Quit Hangabout**, then `/plugin uninstall hangabout@hangabout`.
 
 ## Privacy
 
-Everything stays on your Mac. hookpet makes no network requests: no telemetry, no accounts, no update checks.
+Everything stays on your Mac. Hangabout makes no network requests: no telemetry, no accounts, no update checks.
 
-- **The hook** (`hookpet-hook`) reads each event Claude Code sends it and writes a small `state.json` next to itself:
+- **The hook** (`hangabout-hook`) reads each event Claude Code sends it and writes a small `state.json` next to itself:
   per session, the mood, the current tool call as Claude Code prints it (for example `Update(page.mts)` or the first
   40 characters of a command), the first line of your prompt (up to 80 characters), the titles of the plan's steps,
   line counts for edits, the last 8 tool calls, and where the session's transcript is. A session is dropped when it
@@ -223,7 +239,7 @@ seconds. A notarized download could come later if the project gets a developer a
 ## How it works
 
 ```text
-Claude Code ── hook events ──▶ hookpet-hook ──▶ state.json ──▶ Hookpet.app ──▶ web/pet.html (Clawd)
+Claude Code ── hook events ──▶ hangabout-hook ──▶ state.json ──▶ Hangabout.app ──▶ web/pet.html (Clawd)
                                                                  │
                                        your windows, mouse, menu ┘
 ```
@@ -232,8 +248,8 @@ Claude Code ── hook events ──▶ hookpet-hook ──▶ state.json ─�
 | --- | --- |
 | `web/pet.html` | The whole pet: pixel engine, behavior, the status bubble. Opened in a browser it's a mockup desktop with buttons for every state and trick. |
 | `web/tricks/` | One file per trick (`core/` ships on; `fan/` is the fan pack). |
-| `app/Hookpet.swift` | The app: a transparent, click-through layer over your main screen hosting the page. |
-| `app/HookpetHook.swift` | The hook: turns Claude Code events into `state.json`. |
+| `app/Hangabout.swift` | The app: a transparent, click-through layer over your main screen hosting the page. |
+| `app/HangaboutHook.swift` | The hook: turns Claude Code events into `state.json`. |
 | `install.sh`, `uninstall.sh`, `build.sh` | Install, remove, build. `scripts/hooks.py` edits `settings.json`. |
 | `.claude-plugin/`, `hooks/` | The Claude Code plugin. |
 

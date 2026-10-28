@@ -1,9 +1,9 @@
 {
-  "name": "hookpet",
+  "name": "hangabout",
   "owner": { "name": "Jay Baldwin" },
   "plugins": [
     {
-      "name": "hookpet",
+      "name": "hangabout",
       "source": "./",
       "description": "A desktop pet for macOS that shows what Claude Code is doing. Unofficial fan project, not affiliated with Anthropic."
     }

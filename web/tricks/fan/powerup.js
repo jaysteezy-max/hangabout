@@ -2,7 +2,7 @@
 // Charge (trembling, pebbles rising, the screen rumbling), a white flash, then golden spiky hair, golden flames,
 // teal eyes and crackling lightning, then a happy power-down.
 {
-  const {OX, LIFT, GW, GH, EYE, recolor} = hookpet
+  const {OX, LIFT, GW, GH, EYE, recolor} = hangabout
   const GOLD = ['#FFF3B0', '#FFD84D', '#FFB938', '#FF8F2A'] // white-hot core → orange tips
 
   /** The mane: a cap over his head, seven spikes fanning up and out, two bangs over his brow. */
@@ -29,7 +29,7 @@
   const hairFor = (d, px) => px === lastPx ? lastHair : (lastPx = px, lastHair = mane(d, px)) // behind and front share one mane per frame
 
   const DOWN = ['down', 'down']
-  hookpet.trick({
+  hangabout.trick({
     name: 'powerUp', label: 'Power up ⚡', rarity: 'rare', pack: 'fan',
     frames: [
       [{squash: 1, arms: DOWN, eyes: 'strain', powerUp: 'charge'}, 250],

@@ -2,7 +2,7 @@
 // Blue portal on the floor ahead, orange one up high; in one, and out of the other. A trip, with its own page elements
 // (the two portals and the shots that open them) and a front hook for the gun in his hand.
 {
-  const {GW, OY, PH, feet, putFeet, surfaces, rand, scr, desk, clip} = hookpet
+  const {GW, OY, PH, feet, putFeet, surfaces, rand, scr, desk, clip} = hangabout
   document.head.insertAdjacentHTML('beforeend', `<style>
   .portal{position:absolute;border-radius:50%;pointer-events:none;z-index:9;transform:scale(0);transition:transform .22s cubic-bezier(.2,1.4,.4,1)}
   .portal.open{transform:scale(1)}
@@ -16,7 +16,7 @@
   const portals = []
   let live = false, closer = 0 // live: this trip is still running, so a shot in flight may still open its portal
   function openPortal(color, x, y){
-    const p = document.createElement('div'), s = hookpet.size, upright = color === 'blue', w = (upright ? 34 : 84) * s, h = (upright ? 78 : 26) * s
+    const p = document.createElement('div'), s = hangabout.size, upright = color === 'blue', w = (upright ? 34 : 84) * s, h = (upright ? 78 : 26) * s
     p.className = 'portal ' + color
     Object.assign(p.style, {left: x - w / 2 + 'px', top: y - h / 2 + 'px', width: w + 'px', height: h + 'px'})
     desk.append(p); portals.push(p)
@@ -28,7 +28,7 @@
   }
   /** A shot from the gun's tip to (x, y), where its portal opens. */
   function shoot(color, dir, x, y){
-    const s = hookpet.size, f = feet(), left = f.x - 66 * s, top = f.y - 120 * s, shot = document.createElement('div')
+    const s = hangabout.size, f = feet(), left = f.x - 66 * s, top = f.y - 120 * s, shot = document.createElement('div')
     shot.className = 'shot ' + color
     Object.assign(shot.style, {left: left + (dir > 0 ? 43 : 0) * 3 * s + 'px', top: top + 28 * 3 * s + 'px'})
     desk.append(shot)
@@ -36,10 +36,10 @@
     setTimeout(() => { shot.remove(); if (live) openPortal(color, x, y) }, 200)
   }
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'portal', label: 'Portal gun ◐', rarity: 'rare', pack: 'fan',
     trip({here, x, y, dir}){
-      const W = hookpet.width, s = hookpet.size, floorY = surfaces()[0].y + PH
+      const W = hangabout.width, s = hangabout.size, floorY = surfaces()[0].y + PH
       const lo = here.x0 + 66 + 40, hi = here.x1 + 66 - 40
       if (x + dir * 160 * s < lo || x + dir * 160 * s > hi) dir = -dir // room on the other side
       const ax = Math.max(lo, Math.min(hi, x + dir * 160 * s))

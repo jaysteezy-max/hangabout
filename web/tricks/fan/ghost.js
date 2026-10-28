@@ -3,7 +3,7 @@
 // a little wiggle and scans him back and forth with a beam of light; he's revived in a flash, the Light rising off him,
 // and the Ghost transmats away.
 {
-  const {GH, BODY, TOP, SIDE, recolor, paint} = hookpet
+  const {GH, BODY, TOP, SIDE, recolor, paint} = hangabout
   const DEAD = {[BODY]: '#8A8A8A', [TOP]: '#A8A8A8', [SIDE]: '#6C6C6C'}, HURT = {[BODY]: '#FF6A6A', [TOP]: '#FF9C9C', [SIDE]: '#C83C3C'}
   const LIT = {[BODY]: '#FFFFFF', [TOP]: '#FFFFFF', [SIDE]: '#FFFFFF'}
   const SHELL = ['..X.X..', '.XXXXX.', 'XXGEGXX', '.XEWEX.', 'XXGEGXX', '.XXXXX.', '..X.X..'] // spiky shell, glowing eye
@@ -16,7 +16,7 @@
   const orbit = Array.from({length: 29}, (_, i) => { const a = i / 22.4 * 2 * Math.PI; return [R(18 + 15 * Math.cos(a)), R(14 - 8 * Math.sin(a))] }) // 1¼ laps round him, ending above him
   const scan = Array.from({length: 29}, (_, i) => lying({at: [R(18 + 10 * Math.sin(i / 14 * 2 * Math.PI)), 6], look: 1, scan: 1}, 55)) // twice back and forth over him
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'ghost', label: 'Ghost revive ✦', rarity: 'rare', pack: 'fan',
     frames: [
       [{squash: 1, eyes: 'strain', ghost: {hit: 1}}, 120],

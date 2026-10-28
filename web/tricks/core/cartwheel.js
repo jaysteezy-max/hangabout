@@ -1,6 +1,6 @@
 // Two cartwheels along the ledge, then a happy landing. Frames only: `tilt` turns him, `glide` carries him along
 // (px per second, the way he's facing; while gliding, tilt follows that direction too).
-hookpet.trick({
+hangabout.trick({
   name: 'cartwheel', label: 'Cartwheel ✺', rarity: 'rare',
   frames: [
     [{squash: 2, arms: ['up', 'up']}, 140],

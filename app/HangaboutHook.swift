@@ -4,7 +4,7 @@ import Foundation
 
 let dir = (Bundle.main.executableURL ?? URL(fileURLWithPath: CommandLine.arguments[0])).resolvingSymlinksInPath().deletingLastPathComponent() // the install folder
 let stateURL = dir.appendingPathComponent("state.json")
-let appPath = dir.appendingPathComponent("Hookpet.app").path
+let appPath = dir.appendingPathComponent("Hangabout.app").path
 let editTools: Set<String> = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
 let forgetAfter: TimeInterval = 24 * 60 * 60
 
@@ -64,7 +64,7 @@ func interruptedAt(_ path: String) -> Double? {
 /// Starts the pet in the background unless he's already up.
 // shortcut: trusts the pid file; a stale one whose pid got reused would skip a launch until the pet next starts.
 func launchPet() {
-    if let pid = Int32((try? String(contentsOf: dir.appendingPathComponent("hookpet.pid"), encoding: .utf8)) ?? ""), kill(pid, 0) == 0 { return }
+    if let pid = Int32((try? String(contentsOf: dir.appendingPathComponent("hangabout.pid"), encoding: .utf8)) ?? ""), kill(pid, 0) == 0 { return }
     let open = Process()
     open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
     open.arguments = ["-g", appPath]

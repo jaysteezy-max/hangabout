@@ -2,11 +2,11 @@
 // His armor goes black, the cape falls, the helmet comes down; two slow breaths with the chest panel blinking;
 // the red saber snaps on, a big slash across; then it switches off and it all comes away again.
 {
-  const {OX, OY, GH, BODY, TOP, SIDE, EYE, recolor, thickLine} = hookpet
+  const {OX, OY, GH, BODY, TOP, SIDE, EYE, recolor, thickLine} = hangabout
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
   const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid']
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'vader', label: 'Darth Vader 🔴', rarity: 'rare', pack: 'fan',
     frames: [
       [{vader: {dark: .4}}, 160],
