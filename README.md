@@ -11,15 +11,19 @@
 
 [Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hangabout/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
 
-<img src="assets/hero.gif" width="820" alt="Clawd standing on a terminal window. His status bubble reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he writes on a page, 'Bash(npm test) Running…' while he presses Enter on a little terminal and watches it, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
+<img src="assets/hero.gif" width="820" alt="The pet in its Clawd skin, standing on a terminal window. His status bubble reads 'Noodling… Step 2/5', then 'Update(page.mts) +12 −3' while he writes on a page, 'Bash(npm test) Running…' while he presses Enter on a little terminal and watches it, 'Do you want to proceed?' while he waves for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
 
-<sub>Clawd on a window ledge, following one Claude Code turn: thinking, editing, running a command, waiting on you, done.</sub>
+<sub>The pet in its Clawd skin on a window ledge, following one Claude Code turn: thinking, editing, running a command,
+waiting on you, done. The default pet is Cappy, a capybara.</sub>
 
 </div>
 
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude, Claude Code and Clawd
-> are Anthropic's. The optional fan pack is fan art of other people's characters (see [Fan pack](#fan-pack)).
+> are Anthropic's; the optional Clawd skin is fan art of their character. The optional fan pack is fan art of other
+> people's characters (see [Fan pack](#fan-pack)).
 
+- **Cappy, or Clawd.** The pet is Cappy, a capybara, unless you'd rather have Claude Code's own mascot: right-click →
+  **Skin** → **Clawd**, a fan-art skin.
 - **Knows what Claude is doing.** A status bubble beside him says it in Claude Code's own words: the plan step, the file
   being edited, the command running, the question waiting on you. It opens by itself only when it matters.
 - **Lives on your real windows.** He walks along the Dock and the tops of your windows, rides a window you drag, climbs
@@ -37,11 +41,11 @@ and Apple's free command line tools, which the installer offers to install if th
 git clone https://github.com/jaysteezy-max/hangabout.git && cd hangabout && ./install.sh
 ```
 
-1. The installer builds Hangabout into `~/.hangabout` and starts it: Clawd appears at the bottom right of your screen.
+1. The installer builds Hangabout into `~/.hangabout` and starts it: Cappy appears at the bottom right of your screen.
 2. It shows the hooks it wants to add to `~/.claude/settings.json` and **asks first**. If you say yes, it backs that
    file up as `settings.json.hangabout-backup-<time>` and leaves everything else in it as it was.
-3. **Check it works:** start a new Claude Code session and send a prompt. Clawd puts a hand to his chin and his
-   status bubble says what Claude is doing.
+3. **Check it works:** start a new Claude Code session and send a prompt. Cappy looks about while a star spins above
+   him, and his status bubble says what Claude is doing.
 
 Run `./install.sh` again any time to update.
 
@@ -101,16 +105,16 @@ the new one as above:
 | Drag him | Dangles from your cursor; shake him and he gets dizzy |
 | Double-click | Hops |
 | Click a window | Notices, with a little "!" |
-| Right-click | Tricks, Behavior, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Enter a code…, Quit |
+| Right-click | Tricks, Behavior, Skin, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Enter a code…, Quit |
 
-| Claude Code is… | Clawd | Status bubble |
+| Claude Code is… | Cappy | Status bubble |
 | --- | --- | --- |
-| Thinking | Hand on chin, a spinning star | Opens for each new plan step |
+| Thinking | Looks about, a spinning star | Opens for each new plan step |
 | Editing | Writing on a page: new lines in green, an old one scratched out in red | Lines added and removed |
 | Running a command | Presses Enter on a little terminal, then watches the output scroll | The command and how long it's run |
-| Waiting on you | Hand up, hopping, glowing | Stays open until you answer |
+| Waiting on you | A paw up, hopping, glowing | Stays open until you answer |
 | Done | A happy hop and confetti | Opens briefly: files and commands this turn |
-| Stopped on an error | Arms crossed, glitching | Stays open with the reason |
+| Stopped on an error | Slumped, glitching | Stays open with the reason |
 | Quiet for half an hour | Napping | Closed |
 
 With several Claude Code sessions open he follows the one that needs you most: waiting on you, then stuck, then busy,
@@ -126,9 +130,21 @@ Right-click → **Behavior** sets how busy he is when Claude doesn't need him. Y
 | **Normal** | The default mix of wandering, fidgets, jumps to windows and trips to the screen's edges. |
 | **Erratic** | Barely sits still. Fast trots, lots of jumping, edge trips and rare tricks far more often. |
 
+### Skins
+
+Right-click → **Skin** picks who lives on your screen. Your choice is saved.
+
+| Skin | Who |
+| --- | --- |
+| **Cappy** | The default: a capybara, side on, who waves a front paw instead of a hand. |
+| **Clawd** | Fan art of Anthropic's Clawd, Claude Code's mascot. Not affiliated with or endorsed by Anthropic. |
+
+Every trick plays with either skin. The fan-pack costumes were drawn for Clawd's front-on body, so on Cappy they sit
+where Clawd's face would be.
+
 ## Tricks
 
-<img src="assets/tricks.gif" width="600" alt="Clawd on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave.">
+<img src="assets/tricks.gif" width="600" alt="The pet in its Clawd skin on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave.">
 
 Core tricks, all original: dance, juggle, cartwheel, a sneeze, a paper plane, sneaking through the screen's edge and
 climbing its side, plus everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around, peeking over the Dock).
@@ -259,7 +275,7 @@ seconds. A notarized download could come later if the project gets a developer a
 ## How it works
 
 ```text
-Claude Code ── hook events ──▶ hangabout-hook ──▶ state.json ──▶ Hangabout.app ──▶ web/pet.html (Clawd)
+Claude Code ── hook events ──▶ hangabout-hook ──▶ state.json ──▶ Hangabout.app ──▶ web/pet.html (the pet)
                                                                  │
                                        your windows, mouse, menu ┘
 ```
@@ -280,4 +296,5 @@ a browser (or run `python3 -m http.server -d web` and open <http://localhost:800
 
 ## License
 
-[MIT](LICENSE) for the code. Clawd, Claude and Claude Code are Anthropic's; fan-pack characters belong to their owners.
+[MIT](LICENSE) for the code. Clawd, Claude and Claude Code are Anthropic's (the Clawd skin is fan art); fan-pack
+characters belong to their owners.

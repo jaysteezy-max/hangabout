@@ -115,6 +115,12 @@ comes next. Keep tricks short, a few seconds at most; there's always next time.
 | `phase` | 1 | Dithered and violet, as if halfway through a wall. |
 | `<your trick's name>` | anything but `null` | Turns on your trick's draw hooks for this frame and hands them the value. |
 
+**Two skins.** Tricks play on whichever pet is on screen: Cappy, the default, or the Clawd skin (right-click → Skin, or
+the mockup's **Clawd skin** button). Cappy is a capybara drawn side on, facing the way he last went. He has no arms:
+`arms` `'up'` lifts his front paw in a wave, `'high'` lifts it higher, `hand` and `reach` push it forward, and `'cross'`
+does nothing. `face` turns him left or right, and his one eye takes the same `eyes` and `look` values as Clawd's.
+Everything else above works the same on both.
+
 ## The art grid
 
 He's drawn on a 44 × 40 grid of art pixels, each shown as 3 × 3 screen points at normal size (more or less with the
@@ -136,9 +142,10 @@ x:  0    4   6  10  14       28  33 34  37   43
 | Name | Value | Meaning |
 | --- | --- | --- |
 | `GW`, `GH` | 44, 40 | The grid size. |
-| `OX`, `OY` | 4, 20 | His offset in the grid: the front-facing body spans x `OX + 6` to `OX + 29`, y `OY` to `OY + 15`. |
+| `OX`, `OY` | 4, 20 | Clawd's offset in the grid: his front-facing body spans x `OX + 6` to `OX + 29`, y `OY` to `OY + 15`. Cappy fills about the same box side on, x 9 to 34, with his eye on y 24 and his feet on y 38. |
 | `LIFT` | 12 | `OY - 8`. Add it to a y you worked out as if he had only 8 rows of headroom above him. |
-| `BODY`, `TOP`, `SIDE`, `EYE` | hex colors | His terracotta, its lit top, its shaded side, his eyes. |
+| `BODY`, `TOP`, `SIDE`, `EYE` | hex colors | The skin's colors: its body, the lit top, the shaded side, the eyes. Cappy's brown or Clawd's terracotta, so read them from here; never hard-code them. |
+| `skin` | `'cappy'` or `'clawd'` | Which skin is on, for a trick that needs to draw differently on each. The page reloads when it changes. |
 | `C` | `{clay, peri, ok, err, dim}` | Claude Code's theme colors, light or dark to match the screen. |
 | `PH` | 120 | His footprint's height in screen points at normal size (for trips). |
 
@@ -200,7 +207,7 @@ returns steps, run in order:
 | `{go: 'drop', vy}` | Lets go: he falls from where he is (optionally already moving down at `vy`) and the trip is over. |
 
 When the steps run out he falls to whatever is below him, so a trip can end anywhere. Distances are in screen points:
-multiply your art-sized distances by `hangabout.size` so a bigger Clawd goes further. Trip helpers on `hangabout`:
+multiply your art-sized distances by `hangabout.size` so a bigger pet goes further. Trip helpers on `hangabout`:
 
 | Helper | What it gives you |
 | --- | --- |
@@ -229,7 +236,7 @@ A trip is cut short when Claude needs him or you grab him. If yours added anythi
   const g = sheet.getContext('2d'); g.imageSmoothingEnabled = false
   frames.forEach(([pose], i) => {
     const c = document.createElement('canvas'); c.width = GW; c.height = GH
-    const k = c.getContext('2d'), px = figure(pose, EYE), t = TRICKS.wobble
+    const k = c.getContext('2d'), px = figureOf(pose, EYE), t = TRICKS.wobble
     for (const [x, y, col] of px) { k.fillStyle = col; k.fillRect(x, y, 1, 1) }
     const arg = {ctx: k, d: pose.wobble, px, pose, now: 0}
     if (pose.wobble != null) { t.behind?.(arg); t.front?.(arg) }
@@ -239,6 +246,7 @@ A trip is cut short when Claude needs him or you grab him. If yours added anythi
   ```
 
   (Tilts are CSS rotations of the whole canvas, so they don't show on the sheet.)
+- **Both skins:** check it on Cappy and on Clawd (the mockup's **Clawd skin** button).
 - **Reduce motion** on (mockup button or right-click menu): he should still look right standing still.
 - **The real thing:** `./install.sh`, then right-click → Tricks.
 

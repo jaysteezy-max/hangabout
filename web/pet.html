@@ -69,25 +69,26 @@ body.native .desk{position:fixed;inset:0;height:auto;min-height:0;border-radius:
 <body>
 <main>
 <header>
-  <h1>Hangabout <span class="dim" style="font-weight:400">· Clawd</span></h1>
+  <h1>Hangabout <span class="dim" style="font-weight:400">· <span class="name">Cappy</span></span></h1>
   <div class="bar" style="margin:0">
     <button class="t" data-preset="calm">Calm</button><button class="t" data-preset="normal">Normal</button><button class="t" data-preset="erratic">Erratic</button>
     <span class="sep"></span>
     <button class="t" id="fan" aria-pressed="false">Fan pack</button>
     <button class="t" id="code">Enter a code…</button><input class="t" id="codeIn" hidden readonly aria-label="Code: arrow keys and letters, Enter to try it, Esc to cancel">
+    <button class="t" id="skin" aria-pressed="false">Clawd skin</button>
     <button class="t" id="replay">Replay entrance</button>
     <button class="t" id="reduced" aria-pressed="false">Reduced motion</button>
     <button class="t" id="sound" aria-pressed="false">Sound</button>
     <button class="t" id="light" aria-pressed="false">Light</button>
   </div>
 </header>
-<p class="intro">Clawd lives on top of every window on your screen. When you don't need him he wanders, hops onto window edges, fidgets and watches your cursor. Pick him up and drop him anywhere (shake him and he gets dizzy), double-click for a hop, click a window and he'll notice. Hover him to see what Claude is doing, click to pin his recent activity, Esc to close.</p>
+<p class="intro"><span class="name">Cappy</span> lives on top of every window on your screen. When you don't need him he wanders, hops onto window edges, fidgets and watches your cursor. Pick him up and drop him anywhere (shake him and he gets dizzy), double-click for a hop, click a window and he'll notice. Hover him to see what Claude is doing, click to pin his recent activity, Esc to close.</p>
 <div class="bar" id="states"></div>
 <div class="desk" id="desk">
   <div class="menubar"><b></b><span>Finder</span><span>File</span><span>Edit</span><span>View</span><span style="margin-left:auto">Mon 3:41 PM</span></div>
   <div class="win" style="left:3%;top:9%;width:54%;height:60%">
     <div class="tb"><i></i><i></i><i></i><span>page.mts — my-app — Code</span></div>
-    <div class="code"><span class="c">// Draw the text box beside Clawd</span>
+    <div class="code"><span class="c">// Draw the text box beside the pet</span>
 <span class="k">export function</span> <span class="f">openBox</span>(state) {
   <span class="k">const</span> lines = <span class="f">linesFor</span>(state)
   <span class="k">if</span> (state.sticky) <span class="k">return</span> <span class="f">pin</span>(lines)
@@ -112,14 +113,14 @@ nothing to commit, working tree clean
 ~/my-app $ ▍</div>
   </div>
   <div class="pet" id="pet">
-    <button aria-label="Clawd. Show recent activity"><canvas height="40"></canvas></button>
+    <button aria-label="Cappy. Show recent activity"><canvas height="40"></canvas></button>
     <svg class="elbow" viewBox="0 0 24 18"><path d="M1 1 V15 H24" stroke-dasharray="40" stroke-dashoffset="40"/></svg>
     <div class="box" role="status"><div class="hist" hidden></div><div class="l1"></div><div class="l2"></div></div>
   </div>
 </div>
 <div class="sr" aria-live="polite" id="live"></div>
 <p class="notes">Pick a state above, or watch the demo run through a real turn: thinking, editing, running a command, asking you, done. Needs you and Blocked keep the bubble open; Done and a new plan step open it briefly; tool calls never do. The trick buttons play any trick on demand; Calm, Normal and Erratic set how busy he is on his own.</p>
-<p class="notes">Put him on your real desktop: <a href="https://github.com/jaysteezy-max/hangabout" style="color:var(--clay)">github.com/jaysteezy-max/hangabout</a>. Hangabout is an unofficial fan project, not affiliated with or endorsed by Anthropic. Clawd and Claude are Anthropic's. Fan-pack tricks are fan art of other people's characters.</p>
+<p class="notes">Put him on your real desktop: <a href="https://github.com/jaysteezy-max/hangabout" style="color:var(--clay)">github.com/jaysteezy-max/hangabout</a>. Hangabout is an unofficial fan project, not affiliated with or endorsed by Anthropic. The Clawd skin is fan art of Anthropic's Clawd; Clawd and Claude are Anthropic's. Fan-pack tricks are fan art of other people's characters.</p>
 </main>
 <script>
 // In the Hangabout app this page is a transparent layer over your whole screen; in a browser it's the mockup desktop.
@@ -129,9 +130,14 @@ const GW = 44, GH = 40, OX = 4, OY = 20 // room above his head for big hair and 
 const LIFT = OY - 8 // effects around him were laid out for 8 rows of headroom
 const PAD = 12 // spare columns each side of his grid, for the page or terminal he works at
 
-// ---- Clawd's palette: Claude Code clay, dark eyes always ----
-// Flat terracotta. SIDE shows only when he turns: the side of him that faces away.
-const BODY = '#D77757', TOP = '#EB9F7F', SIDE = '#B5603F', EYE = '#1F1410'
+// ---- who he is: Cappy the capybara, or the Clawd skin (fan art of Anthropic's Clawd) if you pick it ----
+// The app sets window.hangaboutSkin before the page loads; the mockup takes ?skin=clawd. Tricks read his colors once,
+// as they load, so changing skin reloads the page.
+const SKIN = (window.hangaboutSkin ?? new URLSearchParams(location.search).get('skin')) === 'clawd' ? 'clawd' : 'cappy'
+const NAME = SKIN === 'clawd' ? 'Clawd' : 'Cappy'
+// Clawd: flat Claude Code terracotta; SIDE shows only when he turns, the side of him that faces away.
+// Cappy: capybara brown; TOP is the top of his head, SIDE his shaded rump.
+const [BODY, TOP, SIDE, EYE] = SKIN === 'clawd' ? ['#D77757', '#EB9F7F', '#B5603F', '#1F1410'] : ['#C27A55', '#C9825C', '#9C5644', '#0E0809']
 let C = {}
 const readTheme = () => { const s = getComputedStyle(document.body); for (const k of ['clay', 'peri', 'ok', 'err', 'dim']) C[k] = s.getPropertyValue('--' + k).trim() }
 
@@ -346,6 +352,64 @@ function figure(pose, eyeColor){
   return pose.ox ? px.map(([x, y, c]) => [x + pose.ox, y, c]) : px // ox: slid sideways within his canvas (a dash)
 }
 
+// ---- Cappy: a capybara loaf, side on, drawn facing left (facing right is the mirror image) ----
+// Rows of his body; his eye and feet are added per pose. F is his snout, K the line of his mouth, R inside his ears.
+const CAPPY = [
+  '.........BB....BB.........',
+  '.........RB....RB.........',
+  '......LLLLLLLLBBBBB.......',
+  '.....GLLLLLLLBBBBBBB......',
+  '....GGGLLLLLBBBBBBBBB.....',
+  '...FGGGGBBBBBBBBBBBBBB....',
+  '..FFGGGGGBBBBBBBBBBBBBB...',
+  '.FKFFFFFFBBBBBBBBBBBBBBB..',
+  '.FFFFFFFFBBBBBBBBBBBBBBB..',
+  '.FKFFFFFFBBBBBBBBBBBBBBS..',
+  '.FKFFFFFFBBBBBBBBBBBBBBS..',
+  '.FKFFFFFFBBBBBBBBBBBBBBS..',
+  '.FKFFFFFFBBBBBBBBBBBBBBS..',
+  '.FKFFFFFFBBBBBBBBBBBBBBS..',
+  '..KFFFFFFBBBBBBBBBBBBBBS..',
+  '....FFFFFBBBBBBBBBBBBBBS..',
+  '........SBBBBBBBBBBBBBBS..',
+  '........SBBBBBBBBBBBBBSS..',
+  '........SSBBBBBBBBBBBSS...',
+]
+const CAPPY_LINE = '#1C1214', CAPPY_FOOT = '#7A3A3E'
+const CAPPY_INK = {B: BODY, L: TOP, S: SIDE, F: '#86655F', G: '#8F6F69', K: CAPPY_LINE, R: '#8C463E'}
+const CAPPY_FEET = [18, 22, 26, 30] // each foot's left x, front foot first
+const PAW_LIMB = [[16, 36], [15, 36], [15, 35], [14, 35], [14, 34], [13, 34], [13, 33], [12, 33], [12, 32], [11, 32], [11, 31], [10, 31]]
+// His front leg off the ground, from his chest forward: [how much of PAW_LIMB, where his toes are]. Reaching out low, up (a wave), high.
+const CAPPY_PAW = {1: [0, [[16, 37], [15, 37], [14, 37], [13, 37], [12, 37], [12, 36]]], 2: [8, [[12, 32], [11, 32]]], 3: [12, [[9, 30], [10, 30]]]}
+/** Cappy in a pose: squashed or stretched through the middle, feet stepping or tucked, a front paw up instead of a hand, outlined, then his eye. */
+function cappy(pose, eyeColor){
+  const rows = CAPPY.slice(), sq = pose.squash || 0, st = pose.stretch || 0
+  rows.splice(10, sq); for (let i = 0; i < st; i++) rows.splice(10, 0, rows[10]) // shorter or taller through the middle, so his face keeps its shape
+  const dy = pose.dy || 0, top = 38 - rows.length + dy, px = [], seen = new Set() // his feet are on row 38
+  const put = (x, y, c) => { px.push([x, y, c]); seen.add(x + ',' + y) }
+  rows.forEach((r, j) => [...r].forEach((ch, i) => { if (CAPPY_INK[ch]) put(9 + i, top + j, CAPPY_INK[ch]) }))
+  const arms = pose.arms || [], paw = pose.hand != null || pose.reach ? 1 : arms.includes('high') ? 3 : arms.includes('up') ? 2 : 0
+  CAPPY_FEET.forEach((x, n) => {
+    if (n === 0 && paw) { const [reach, toes] = CAPPY_PAW[paw]; for (const [x, y] of PAW_LIMB.slice(0, reach)) put(x, y + dy, BODY); for (const [x, y] of toes) put(x, y + dy, CAPPY_FOOT) }
+    else if (!pose.tuck && !pose.lift?.includes(n) && pose.tapLeg !== n) { put(x, 38 + dy, CAPPY_FOOT); put(x + 1, 38 + dy, CAPPY_FOOT) }
+  })
+  for (const [x, y] of px.slice()) for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!seen.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, CAPPY_LINE)
+  const right = pose.face > 0, out = right ? px.map(([x, y, c]) => [GW - 1 - x, y, c]) : px
+  // His eye, a dash: it looks about with the same keys as Clawd's (screen directions), and keeps his expressions.
+  const kind = pose.eyes || 'open', ex = right ? 22 : 20, ey = top + 5
+  const lx = Math.max(-1, Math.min(1, kind === 'side' ? pose.look ?? 1 : pose.dx ?? pose.lookX ?? 0)), ly = kind === 'up' ? -1 : kind === 'down' ? 1 : pose.lookY || 0
+  const eye = (pts, c = eyeColor) => { for (const [x, y] of pts) out.push([ex + x, ey + y, c]) }
+  if (kind === 'blink') eye([[0, 0], [1, 0]], SIDE)
+  else if (kind === 'happy') eye([[0, 0], [1, -1], [2, 0]])
+  else if (kind === 'sad') eye([[0, 1], [1, 1]])
+  else if (kind === 'dizzy') eye([[0, -1], [2, -1], [1, 0], [0, 1], [2, 1]])
+  else if (kind === 'strain') eye([[0, -1], [1, 0], [0, 1]])
+  else if (kind === 'angry') eye([[0, 0], [1, 0], [right ? 0 : 1, -1]])
+  else eye([[lx, ly], [lx + 1, ly]])
+  return pose.ox ? out.map(([x, y, c]) => [x + pose.ox, y, c]) : out
+}
+for (const pose of [{}, {squash: 2}, {stretch: 2}]) console.assert(CAPPY.every(r => r.length === 26) && Math.max(...cappy(pose, EYE).map(p => p[1])) === 39, 'Cappy stands on row 38 (his outline on 39) however he bends')
+
 // ---- glyphs ----
 const GLYPH = {
   '?': ['##.', '..#', '.#.', '...', '.#.'], check: ['....#', '...#.', '#.#..', '.#...'],
@@ -427,7 +491,7 @@ const WHOLE = [-PAD, 0, GW + 2 * PAD, GH] // the whole canvas, in art pixels
 const path = petEl.querySelector('path'), box = petEl.querySelector('.box'), hist = petEl.querySelector('.hist'), l1 = petEl.querySelector('.l1'), l2 = petEl.querySelector('.l2')
 const live = document.getElementById('live')
 const pet = {id: 'idle', since: 0, open: false, openedAt: 0, closedAt: -1e9, pinned: false, hover: false, hoverTimer: 0, x: 0, y: 0, drag: null, swing: 0,
-  face: 0, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0}
+  face: 0, heading: -1, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0}
 
 // An optional soft two-note chirp when he needs you. Off until you turn it on.
 const sound = {on: false, ctx: null}
@@ -826,7 +890,7 @@ const FIGURES = new Map(), RINGS = new WeakMap()
 function figureOf(pose, eye){
   const key = JSON.stringify(pose) + eye
   let px = FIGURES.get(key)
-  if (!px) { if (FIGURES.size > 500) FIGURES.clear(); FIGURES.set(key, px = figure(pose, eye)) }
+  if (!px) { if (FIGURES.size > 500) FIGURES.clear(); FIGURES.set(key, px = (SKIN === 'cappy' ? cappy : figure)(pose, eye)) } // figure draws Clawd
   return px
 }
 function draw(now, dt){
@@ -844,6 +908,9 @@ function draw(now, dt){
     // Reacting to you: a happy wiggle when you hover him, dizzy after a good shake.
     if (now - pet.wiggleAt < 500) pose = {...pose, tilt: Math.sin((now - pet.wiggleAt) / 500 * Math.PI * 3) * 6, eyes: 'happy'}
     if (now < pet.dizzyUntil || pet.drag?.dizzy) pose = {...pose, eyes: 'dizzy', tilt: (pose.tilt || 0) + Math.sin(now / 130) * 5}
+    // Cappy is side on, so he keeps facing the way he last turned; Clawd turns back to face you.
+    if (pose.face) pet.heading = pose.face
+    else if (SKIN === 'cappy') pose = {...pose, face: pet.heading}
     // Turning: one half-turned frame between facing you and facing sideways.
     const faceNow = pose.face || 0
     if (faceNow !== pet.face) { pet.turnFrom = pet.face; pet.face = faceNow; pet.turnAt = now }
@@ -953,7 +1020,7 @@ function draw(now, dt){
   canvas.style.translate = sink ? `0 ${sink}px` : ''
   canvas.style.clipPath = pet.clip ? portalClip() : sink && pose.clip ? `inset(0 0 ${sink}px 0)` : ''
   // A soft shadow so he reads over any window, light or dark; a faint phosphor glow on dark.
-  const lift = 'drop-shadow(0 3px 4px rgba(0,0,0,.35))', glow = dark ? ' drop-shadow(0 0 2px rgba(215,119,87,.45))' : ''
+  const lift = 'drop-shadow(0 3px 4px rgba(0,0,0,.35))', glow = dark ? ` drop-shadow(0 0 2px ${BODY}73)` : ''
   const trickGlow = tricks.map(k => { try { return k.glow?.(pose[k.name], pose) || '' } catch { return '' } }).join('') // a saber's red, a power-up's gold
   canvas.style.filter = lift + glow + (auraOn ? ' drop-shadow(0 0 3px rgba(255,255,255,.75))' : '') + trickGlow + (pet.id === 'blocked' && t > 600 ? ' brightness(.6)' : '')
   canvas.style.opacity = pet.id === 'nap' ? .6 : 1
@@ -1140,6 +1207,7 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   // For tricks: register, the art grid and his colors, drawing helpers, and what trips need to move him about.
   trick: registerTrick,
   GW, GH, OX, OY, LIFT, PH, BODY, TOP, SIDE, EYE, C,
+  skin: SKIN, // 'cappy' (side on, no arms) or 'clawd'
   thickLine, paint, mix, recolor, rand, pick,
   feet, putFeet, surfaces, edges, scr, desk,
   clip(c){ pet.clip = c }, // hides part of him until he lands: {x, dir} or {y} (see portalClip)
@@ -1245,6 +1313,12 @@ codeIn.onkeydown = e => {
   else return
   e.preventDefault()
 }
+// The other skin: a reload, since tricks read his colors as they load. In the app it's right-click → Skin.
+const skinButton = document.getElementById('skin')
+skinButton.setAttribute('aria-pressed', String(SKIN === 'clawd'))
+skinButton.onclick = () => { location.search = SKIN === 'clawd' ? '' : '?skin=clawd' }
+for (const e of document.querySelectorAll('.name')) e.textContent = NAME
+button.setAttribute('aria-label', NAME + '. Show recent activity')
 toggle('light', () => { const on = document.body.classList.toggle('light'); readTheme(); return on })
 addEventListener('resize', () => place(pet.x, pet.y))
 

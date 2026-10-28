@@ -1,5 +1,5 @@
-// Hangabout: a desktop pet for Claude Code. A transparent layer over your whole main screen that Clawd lives on.
-// Clicks pass straight through it everywhere except Clawd himself and his open bubble.
+// Hangabout: a desktop pet for Claude Code. A transparent layer over your whole main screen that the pet lives on.
+// Clicks pass straight through it everywhere except the pet himself and his open bubble.
 // He shows what Claude Code is doing from state.json next to this app, which hangabout-hook keeps from Claude Code's hooks.
 import Cocoa
 import WebKit
@@ -8,8 +8,9 @@ let dir = Bundle.main.bundleURL.deletingLastPathComponent() // the install folde
 let stateURL = dir.appendingPathComponent("state.json")
 let pidURL = dir.appendingPathComponent("hangabout.pid")
 let presets = [("calm", "Calm"), ("normal", "Normal"), ("erratic", "Erratic")]
+let skins = [("cappy", "Cappy"), ("clawd", "Clawd (fan art)")]
 
-/// Catches the mouse while it's over Clawd (the window ignores it everywhere else) and hands it to the page.
+/// Catches the mouse while it's over the pet (the window ignores it everywhere else) and hands it to the page.
 final class Handle: NSView {
     var send: (String) -> Void = { _ in }
     var makeMenu: () -> NSMenu = { NSMenu() }
@@ -59,7 +60,7 @@ final class KeyField: NSView {
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
     var panel: NSPanel!
     var web: WKWebView!
-    /// Where Clawd and his open bubble are, in page coordinates (top-left origin).
+    /// Where the pet and his open bubble are, in page coordinates (top-left origin).
     var hitRects: [NSRect] = []
     var holding = false
     var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
@@ -87,6 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
         let config = WKWebViewConfiguration()
         config.userContentController.add(self, name: "hangabout")
+        config.userContentController.addUserScript(skinScript())
         config.mediaTypesRequiringUserActionForPlayback = [] // the chirp plays without a click on the page
         web = WKWebView(frame: .zero, configuration: config)
         web.setValue(false, forKey: "drawsBackground")
@@ -126,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         web.evaluateJavaScript("hangabout.screen(\(Int(top)),\(Int(bottom)))")
     }
 
-    /// Takes the mouse only while it's over Clawd or his open bubble; everywhere else clicks go straight through.
+    /// Takes the mouse only while it's over the pet or his open bubble; everywhere else clicks go straight through.
     func trackPointer() {
         let mouse = NSEvent.mouseLocation, frame = panel.frame
         let point = NSPoint(x: mouse.x - frame.minX, y: frame.maxY - mouse.y)
@@ -213,6 +215,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     var scale: Double { prefs.object(forKey: "scale") as? Double ?? 1 }
     var preset: String { prefs.string(forKey: "preset").flatMap { p in presets.contains { $0.0 == p } ? p : nil } ?? "normal" }
+    var skin: String { prefs.string(forKey: "skin") == "clawd" ? "clawd" : "cappy" }
+
+    /// Tells the page who to draw before it loads: tricks read his colors as they load, so a new skin means a reload.
+    func skinScript() -> WKUserScript {
+        WKUserScript(source: "window.hangaboutSkin = '\(skin)'", injectionTime: .atDocumentStart, forMainFrameOnly: true)
+    }
 
     /// The secret tricks you've found, by name.
     var found: [String] { prefs.stringArray(forKey: "found") ?? [] }
@@ -272,6 +280,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             item.state = key == preset ? .on : .off
         }
         menu.addItem(withTitle: "Behavior", action: nil, keyEquivalent: "").submenu = behavior
+        let skinMenu = NSMenu()
+        for (key, title) in skins {
+            let item = skinMenu.addItem(withTitle: title, action: #selector(chooseSkin(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = key
+            item.state = key == skin ? .on : .off
+        }
+        menu.addItem(withTitle: "Skin", action: nil, keyEquivalent: "").submenu = skinMenu
         menu.addItem(.separator())
         menu.addItem(sizeItem())
         menu.addItem(.separator())
@@ -315,6 +331,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     @objc func choosePreset(_ item: NSMenuItem) {
         prefs.set(item.representedObject as? String, forKey: "preset")
         sendSettings()
+    }
+
+    @objc func chooseSkin(_ item: NSMenuItem) {
+        guard let key = item.representedObject as? String, key != skin else { return }
+        prefs.set(key, forKey: "skin")
+        web.configuration.userContentController.removeAllUserScripts()
+        web.configuration.userContentController.addUserScript(skinScript())
+        web.reload() // didFinish sends the screen, settings, windows and Claude's state again
     }
 
     @objc func toggle(_ item: NSMenuItem) {
