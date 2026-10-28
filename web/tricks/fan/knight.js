@@ -9,13 +9,11 @@ if (hangabout.skin === 'knight') {
   const dot = (ctx, x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
   /** Ice breaking up: bits flying out from (x, y) and falling, k from 0 (whole) to 1 (gone). */
   const burst = (ctx, x, y, k) => {
-    ctx.globalAlpha = 1 - k * .7
     for (let i = 0; i < 10; i++) {
-      const a = i / 10 * Math.PI * 2, r = 3 + k * 12
-      ctx.fillStyle = i % 3 ? ICE.L : ICE.W
-      ctx.fillRect(Math.round(x + Math.cos(a) * r), Math.round(y + Math.sin(a) * r * .7 + k * k * 10), 2, 2)
+      const a = i / 10 * Math.PI * 2, r = 3 + k * 12, n = k < .6 ? 2 : 1 // solid chunks, breaking smaller as they fall
+      ctx.fillStyle = [ICE.W, ICE.L, ICE.B][i % 3]
+      ctx.fillRect(Math.round(x + Math.cos(a) * r), Math.round(y + Math.sin(a) * r * .7 + k * k * 10), n, n)
     }
-    ctx.globalAlpha = 1
   }
   /** Gold sparkles round him, k their strength. */
   const sparkles = (ctx, now, k) => {
@@ -27,6 +25,8 @@ if (hangabout.skin === 'knight') {
     ctx.globalAlpha = 1
   }
 
+  const BURST = ['W..L..W', '.L.W.L.', '..LWL..', 'LWWWWWL', '..LWL..', '.L.W.L.', 'W..L..W'] // ice going to pieces
+  const STAR = ['...W...', '...W...', '..WLW..', 'WWLWLWW', '..WLW..', '...W...', '...W...'] // a flash
   // Projectiles cross the screen as page elements of their own (as the paper plane does).
   document.head.insertAdjacentHTML('beforeend', '<style>.knightShot{position:absolute;pointer-events:none;z-index:11;image-rendering:pixelated;transition:opacity .5s}</style>')
   let live = [] // still on screen: cleared if a move is cut short
@@ -52,45 +52,64 @@ if (hangabout.skin === 'knight') {
   /** Turns toward the room when he's too near the edge he faces, as the paper plane does. */
   const roomward = (x, dir) => (dir > 0 ? hangabout.width - x : x) < hangabout.width / 3 ? -dir : dir
 
-  // Ice Fist, his magic jump: a giant fist of ice punches up out of the ground under him and launches him; at the top it
-  // shatters and he comes down into a crouch.
-  const FIST = [ // knuckles up, wider than he is; its wrist is the last row, repeated down to the ground
-    '..OOOO.OOOO.OOO..',
-    '.OWWLLOWLLLOWLLO.',
-    'OWLLBLLLLBLLLLBLO',
-    'OLLBBLLLLBBLLBBLO',
-    'OLLLLLLLLLLLLLLLO',
-    'OBLLLLLLLLLLLLLBO',
-    '.OBBLLLLLLLLLBBO.',
-    '..OBBBBBBBBBBBO..',
+  // Ice Fist, his magic jump: a giant fist of ice punches up out of the ground under him and carries him up on its
+  // knuckles; at the top he raises his sword, it shatters, and he drops back down into a crouch. The fist is a page
+  // element under his boots, so it can be bigger than his canvas. A trip that stays put.
+  const FIST = [ // knuckles up, wider than he is, its thumb across the front; its wrist is the last row, repeated down to the ground
+    '...OOOOO.OOOOO.OOOOO.OOOO...',
+    '..OWWLLLOWWLLLOWWLLLOWWLLO..',
+    '.OWWLLLBOWLLLBOWLLLBOWLLLBO.',
+    '.OWLLLLBOLLLLBOLLLLBOLLLLBO.',
+    '.OLLLLBBOLLLBBOLLLBBOLLLBBO.',
+    '.ODDDDDDODDDDDDODDDDDODDDDO.',
+    '.OLLLLLBOLLLLBOLLLLBOLLLLBO.',
+    'OOOOOOOOOOOOLLBOLLLBOLLLBBO.',
+    'OWWWWWWWWLLLOOBOLLBBOLLBBO..',
+    'OWLLLLLLLLLLLLOOLBBDOLBBDO..',
+    'OLLLLLLLLLLLLLBOOBDDOBDDO...',
+    'OBBLLLLLLLLLLBBBOODDODDO....',
+    '.OBBBBBBBBBBBBBBBDOOOOO.....',
+    '..OOODBBBBBBBBBBBDDO........',
+    '....OBLLLLLLLLLLLBDO........',
   ]
   hangabout.trick({
     name: 'iceFist', label: 'Ice Fist ❄', rarity: 'rare', pack: 'fan', on: {cleanFinish: .25},
-    frames: [
-      [{squash: 2, eyes: 'angry', iceFist: {h: 0}}, 180],
-      [{squash: 2, eyes: 'angry', iceFist: {h: 3}}, 70], // it breaks the ground under him
-      [{dy: -3, tuck: 1, eyes: 'strain', iceFist: {h: 6}}, 70],
-      [{dy: -6, tuck: 1, eyes: 'strain', iceFist: {h: 9}}, 90],
-      [{dy: -6, sword: 'raise', eyes: 'happy', iceFist: {h: 9}}, 220], // up he goes on it, sword high
-      [{dy: -6, sword: 'raise', eyes: 'happy', iceFist: {shatter: .35}}, 90],
-      [{dy: -5, eyes: 'happy', iceFist: {shatter: .7}}, 90],
-      [{dy: -2, iceFist: {shatter: 1}}, 80],
-      [{squash: 2}, 130], [{squash: 1}, 140], [{}, 200],
-    ],
-    front({ctx, d}){ // in front of his boots, its knuckles under his feet
-      if (d.h) {
-        const top = 40 - d.h
-        FIST.forEach((r, j) => { if (top + j < 40) paint(ctx, [r], 13, top + j, ICE) })
-        for (let y = top + FIST.length; y < 40; y++) paint(ctx, [FIST.at(-1)], 13, y, ICE)
+    trip({x, y}){
+      const s = hangabout.size, a = 3 * s, H = 22, w = FIST[0].length * a // H: how high it lifts him, in his pixels
+      const el = document.createElement('canvas'), g = el.getContext('2d')
+      el.className = 'knightShot'; el.width = FIST[0].length
+      let h = 0
+      const rise = n => { // the fist n pixels out of the ground, its knuckles under his boots, and him on them
+        h = n; el.height = n
+        paint(g, [...FIST, ...Array(Math.max(0, n - FIST.length)).fill(FIST.at(-1))].slice(0, n), 0, 0, ICE)
+        Object.assign(el.style, {width: w + 'px', height: n * a + 'px', left: x - w / 2 + 'px', top: y - n * a + 'px'})
+        hangabout.putFeet(x, y - n * a)
       }
-      if (d.shatter) { burst(ctx, 17, 35, d.shatter); burst(ctx, 26, 36, d.shatter) }
+      const shatter = () => {
+        el.remove()
+        for (const [dx, dy] of [[-.3, .2], [0, .55], [.3, .3]]) {
+          const b = sprite(BURST, ICE, a, 1), bw = BURST[0].length * a
+          Object.assign(b.style, {left: x + dx * w - bw / 2 + 'px', top: y - dy * H * a - bw / 2 + 'px'})
+          fadeOut(b, 200)
+        }
+      }
+      return [
+        {go: 'hold', T: 260, pose: {squash: 2, eyes: 'angry'}}, // gathers the cold
+        {go: 'do', fn: () => { desk.append(el); live.push(el); rise(2) }}, // it breaks the ground
+        {go: 'move', fn: t => { rise(Math.min(H, 2 + Math.round(t / 9))); return h >= H }, pose: {squash: 2, eyes: 'strain'}}, // and up he goes
+        {go: 'hold', T: 140, pose: {squash: 1, eyes: 'strain'}},
+        {go: 'hold', T: 460, pose: {sword: 'raise', stretch: 1, eyes: 'happy'}}, // on top of it, sword high
+        {go: 'do', fn: shatter},
+        {go: 'move', fn: t => { const fy = Math.min(y, y - H * a + .0025 * s * t * t); hangabout.putFeet(x, fy); return fy >= y }, pose: {tuck: 1, eyes: 'up'}},
+        {go: 'hold', T: 140, pose: {squash: 2}}, {go: 'hold', T: 140, pose: {squash: 1}}, {go: 'hold', T: 200, pose: {}},
+      ]
     },
+    end: clear,
   })
 
   // Ice Bolt, his magic projectile: he gathers cold round his free gauntlet, thrusts it and fires a pointed bolt of ice
   // that flies off across the screen and shatters at its edge. A trip that stays put; the bolt is a page element.
   const BOLT = ['.....LW...', '..BBBLWWW.', 'OBBLLLWWWW', '..BBBLWWW.', '.....LW...']
-  const BURST = ['W..L..W', '.L.W.L.', '..LWL..', 'LWWWWWL', '..LWL..', '.L.W.L.', 'W..L..W']
   hangabout.trick({
     name: 'iceBolt', label: 'Ice Bolt ➹', rarity: 'rare', pack: 'fan', on: {forcePush: 1},
     trip({x, y, dir}){
@@ -107,24 +126,24 @@ if (hangabout.skin === 'knight') {
         {go: 'hold', T: 300, pose: {face: dir, hand: 7, eyes: 'angry', iceBolt: {charge: 1}}},
         {go: 'hold', T: 140, pose: {face: dir, squash: 1, hand: 7, eyes: 'angry', iceBolt: {charge: 2}}},
         {go: 'do', fn: () => (shot = shoot(BOLT, ICE, x + dir * 45 * s, y - 38 * s, dir, 1.6, land))}, // from his fist's front (art 37, 27)
-        {go: 'move', fn: t => shot.fly(t), pose: t => ({face: dir, hand: 6, reach: 2, dy: t < 120 ? -1 : 0, eyes: 'side', look: dir})},
+        {go: 'move', fn: t => shot.fly(t), pose: t => ({face: dir, hand: 6, reach: 2, dy: t < 120 ? -1 : 0, eyes: 'side', look: dir, iceBolt: {star: t < 110}})},
         {go: 'hold', T: 400, pose: {face: dir, eyes: 'happy'}},
         {go: 'hold', T: 200, pose: {}},
       ]
     },
     end: clear,
     front({ctx, d, pose, now}){
-      facing(ctx, pose, () => { // the cold gathering round his front fist
-        for (let i = 0; i < 4 * d.charge; i++) {
-          const a = now / 90 + i * 1.6
-          dot(ctx, Math.round(9 + Math.cos(a) * 4), Math.round(27 + (pose.squash || 0) + Math.sin(a) * 3), i % 2 ? ICE.W : ICE.B)
-        }
+      facing(ctx, pose, () => { // the cold gathering into an orb in his front fist, flickering; a flash as the bolt leaves it
+        const y = 27 + (pose.squash || 0), hot = Math.floor(now / 80) % 2 ? ICE.W : ICE.L
+        if (d.charge === 1) paint(ctx, ['.B.', 'BWB', '.B.'], 5, y - 1, {...ICE, W: hot})
+        if (d.charge === 2) paint(ctx, ['.LBL.', 'LBWBL', 'BWWWB', 'LBWBL', '.LBL.'], 3, y - 2, {...ICE, W: hot})
+        if (d.star) paint(ctx, STAR, 0, y - 3, ICE)
       })
     },
   })
 
   // Ice Shards, his splash magic: he raises his sword and shards of ice rain down all round him, shattering on the ground.
-  const SHARD = ['OBO', 'BLB', 'BLB', '.L.', '.W.'] // point down
+  const SHARD = ['OOOOO', 'OWLBO', 'OWLBO', '.OLO.', '.OLO.', '..O..'] // an icicle, point down
   const DROPS = [[-6, 0], [3, .15], [12, .05], [31, .2], [40, .1], [49, .25], [20, .35], [-2, .45], [45, .5]] // [x, when it starts to fall]
   hangabout.trick({
     name: 'iceShards', label: 'Ice Shards ✲', rarity: 'rare', pack: 'fan', on: {failStreak: .5},
@@ -137,7 +156,7 @@ if (hangabout.skin === 'knight') {
     front({ctx, d}){
       for (const [x, at] of DROPS) {
         const u = (d - at) / .45 // each one falls for 45% of the rain
-        if (u > 0 && u < 1) paint(ctx, SHARD, x, Math.round(-5 + u * 39), ICE) // from above his canvas to the ground
+        if (u > 0 && u < 1) paint(ctx, SHARD, x - 1, Math.round(-6 + u * 39), ICE) // from above his canvas to the ground
         else if (u >= 1 && u < 1.4) burst(ctx, x + 1, 37, (u - 1) / .4)
       }
     },
@@ -182,7 +201,7 @@ if (hangabout.skin === 'knight') {
       [{sword: 'forward', eyes: 'angry', swordCombo: {whoosh: 1}}, 120], [{eyes: 'angry'}, 100],
       [{sword: 'forward', dy: -1, eyes: 'angry', swordCombo: {whoosh: 1}}, 120], [{eyes: 'angry'}, 100],
       [{sword: 'raise', stretch: 2, eyes: 'angry'}, 240], // winds up
-      [{sword: 'down', squash: 2, eyes: 'strain', shake: 1, swordCombo: {dust: .2}}, 130], // slam
+      [{sword: 'down', squash: 2, eyes: 'strain', shake: 1, swordCombo: {dust: .2, star: 1}}, 130], // slam
       [{sword: 'down', squash: 1, eyes: 'angry', swordCombo: {dust: .6}}, 160],
       [{sword: 'down', eyes: 'happy', swordCombo: {dust: 1}}, 240],
       [{}, 200],
@@ -194,6 +213,7 @@ if (hangabout.skin === 'knight') {
           for (const [y, len] of [[28, 6], [30, 9], [32, 5]]) ctx.fillRect(-1 - len, y + (pose.dy || 0), len, 1)
           ctx.globalAlpha = 1
         }
+        if (d.star) paint(ctx, STAR, -2, 32, {W: '#FFFFFF', L: '#FFD84D'}) // a flash at its tip as it hits
         if (d.dust) { // where the sword hit the ground: round puffs, billowing out and fading
           ctx.globalAlpha = 1 - d.dust * .8
           for (const [cx, r, c] of [[3, 2, '#9E978A'], [8, 3, '#BDB6A8'], [13, 2, '#D6D0C4']]) {
@@ -223,7 +243,7 @@ if (hangabout.skin === 'knight') {
         {go: 'hold', T: 450, pose: {...down, hand: 7, pull: 1, squash: 1, eyes: 'angry', bowShot: {pull: 1}}}, // draws
         {go: 'do', fn: () => (shot = shoot(ARROW, FLIGHT, x + dir * 54 * s, y - 38 * s, dir, 2.2, el => fadeOut(el, 2000)))}, // from the bow (art 40, 27)
         {go: 'move', fn: t => shot.fly(t), pose: {...down, hand: 7, eyes: 'side', look: dir, bowShot: {pull: 0}}},
-        {go: 'hold', T: 500, pose: {...down, eyes: 'happy', arms: dir > 0 ? ['mid', 'high'] : ['high', 'mid']}}, // a hit!
+        {go: 'hold', T: 500, pose: {...down, hand: 7, eyes: 'happy', arms: dir > 0 ? ['high', 'mid'] : ['mid', 'high'], bowShot: {pull: 0}}}, // a hit! his other fist up
         {go: 'hold', T: 220, pose: {sword: 'poof', eyes: 'happy'}},
         {go: 'hold', T: 200, pose: {}},
       ]
@@ -260,8 +280,8 @@ if (hangabout.skin === 'knight') {
     ],
     front({ctx, d, pose, now}){
       facing(ctx, pose, () => {
-        const cols = 8 - 3 * (d.bites || 0) // bitten from the end nearest him
-        if (cols > 0 && !d.beefy) { const [x, y] = d.mouth ? [12, 22] : [1, 22]; paint(ctx, SANDWICH.map(r => r.slice(0, cols)), x, y + (pose.dy || 0), FILLING) }
+        const cols = 8 - 3 * (d.bites || 0), cut = d.mouth ? 0 : 8 - cols // bitten from the end at his mouth; what's left stays in his fist
+        if (cols > 0 && !d.beefy) { const [x, y] = d.mouth ? [12, 22] : [1, 22]; paint(ctx, SANDWICH.map(r => r.slice(cut, cut + cols)), x + cut, y + (pose.dy || 0), FILLING) }
         if (d.mouth) for (const [x, y] of [[16, 29], [18, 31]]) dot(ctx, x, y, FILLING.b) // crumbs
       })
       if (d.beefy) sparkles(ctx, now, d.beefy)

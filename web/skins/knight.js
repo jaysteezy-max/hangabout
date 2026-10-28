@@ -60,9 +60,10 @@
   const DANCE = [...[1, -1, 1, -1].flatMap(face => [[{face, squash: 1, tilt: face * 4, notes: 1}, 190], [{face, dy: -2, sword: 'raise', tilt: -face * 4, notes: 1}, 190]]),
     [{squash: 2, notes: 1}, 120], [{dy: -5, tuck: 1, arms: ['high', 'high'], eyes: 'happy', notes: 1}, 200], [{squash: 2, eyes: 'happy', notes: 1}, 140],
     [{sword: 'raise', eyes: 'happy', notes: 1}, 450], [{}, 200]]
-  // Instead of a cartwheel he rolls: crouches, tucks up behind his shield, sword hugged in, somersaults twice and comes up.
+  // Instead of a cartwheel he rolls: crouches, tucks into a ball behind his shield, sword hugged in, somersaults twice a
+  // quarter turn at a time (his own pixels turned, never the canvas, so he stays on the grid) and comes up.
   const ROLL = [[{squash: 2, sword: 'hug'}, 140], [{squash: 2, tuck: 1, sword: 'hug', eyes: 'blink'}, 90],
-    ...[...Array(16)].map((_, i) => [{squash: 2, tuck: 1, sword: 'hug', eyes: 'blink', tilt: (i + 1) * 45, glide: 160}, 70]),
+    ...[...Array(8)].map((_, i) => [{roll: (i + 1) % 4, tilt: 0, glide: 160}, 80]),
     [{squash: 2, sword: 'hug'}, 160], [{squash: 1, eyes: 'happy'}, 300], [{}, 200]]
   // His trip: a toe catches, his sword and shield fly out of his hands, he faceplants and they clatter down on his back;
   // he pops up, they slide off onto the ground, he checks nobody saw, and they're back in his hands.
@@ -70,11 +71,11 @@
   const TRIP = [STEP(0), STEP(1),
     [{lift: [1], arms: ['high', 'high'], eyes: 'up', sword: 'flung', tilt: 10, glide: 70}, 110],
     [{tuck: 1, arms: ['high', 'high'], eyes: 'strain', sword: 'flung', tilt: 20, glide: 80}, 90],
-    [{prone: 1, eyes: 'strain', sword: 'flung', glide: 40}, 100], // splat
-    [{prone: 1, eyes: 'blink', sword: 'onBack', glide: 20}, 160], // clang
-    [{prone: 1, eyes: 'blink', sword: 'onBack', glide: 1}, 800],
+    [{prone: 1, eyes: 'strain', sword: 'flung', tilt: 0, glide: 40}, 100], // splat
+    [{prone: 1, eyes: 'blink', sword: 'onBack', tilt: 0, glide: 20}, 160], // clang
+    [{prone: 1, eyes: 'blink', sword: 'onBack', tilt: 0, glide: 1}, 800],
     [{dy: -4, stretch: 1, tuck: 1, arms: ['up', 'up'], eyes: 'up', sword: 'dropped'}, 130], [{squash: 2, sword: 'dropped'}, 110],
-    [{eyes: 'side', look: -1, sword: 'dropped'}, 420], [{eyes: 'side', look: 1, sword: 'dropped'}, 420], [{sword: 'poof', eyes: 'happy'}, 220],
+    [{eyes: 'side', look: -1, sweat: 1, sword: 'dropped'}, 420], [{eyes: 'side', look: 1, sweat: 1, sword: 'dropped'}, 420], [{sword: 'poof', eyes: 'happy'}, 220],
     ...[0, 1, 2, 3].map(STEP), [{}, 200]]
   const COSTUMES = ['guts', 'vader', 'thorfinn', 'spidey', 'portal', 'moonwalk', 'surfer', 'ghost', 'engram'] // fan tricks that dress him up (the power-up keeps his sword)
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]], X = 6
@@ -182,7 +183,7 @@
         ready: [() => sword(8, 33 + y0, 1, 0, 9, 24), [1, 29 + y0], [21, 29 + y0]],
         forward: [() => sword(14, 30 + y0, 1, 0, 9, 22), [4, 28 + y0]], // thrust ahead in his near hand, as he swings in the game
         raise: [() => sword(-1, 18 + y0, 0, -1, 3, 17 + y0), [-3, 16 + y0]], // straight up through his near fist, the pommel below it
-        down: [() => sword(22, 30 + y0, 1, 1, 2, Math.min(7, ground - 30 - y0)), [19, 27 + y0]], // swung down in front of him
+        down: [() => sword(14, ground - 1, 1, 0, 6, 20), [8, ground - 5]], // slammed down flat on the ground ahead of him, full length
         lean: [() => sword(4, 33 + y0, 0, 1, 3, ground - 35 - y0), [1, 29 + y0]], // point down close at his side, his fist on the grip
       }
       HELD.poof = HELD.ready
@@ -195,9 +196,23 @@
         planted: () => over(sword(-2, 22, 0, 1, 2, ground - 23)), // stuck in the ground beside him
       }
 
-      if (pose.prone) { // face down on the ground: his empty-handed standing self given a quarter turn forward, feet behind him
-        for (const [x, y, c] of this.draw({eyes: pose.eyes, face: 1, sword: 'none'}, eyeColor)) put(42 - y, x - X + 14, c)
+      if (pose.prone) { // face down where he fell, his boots kicked up behind him: his empty-handed self, legs off, given a quarter turn forward
+        for (const [x, far] of [[1, 1], [5, 0]]) { // each leg bent up at the hip, its boot kicked back, sole to the sky; the far one behind
+          const leg = []
+          for (let y = 16; y < 23; y++) leg.push([x, y, INK.a], [x + 1, y, y === 18 ? INK.A : far ? INK.k : INK.a], [x + 2, y, INK.a])
+          under([...leg, ...cells(['tkkkk', '.AAkk'], x - 2, 14)])
+        }
+        for (const [x, y, c] of this.draw({eyes: pose.eyes, face: 1, sword: 'none', arms: ['high', 'mid']}, eyeColor)) if (y < 35 || y === 35 && c === LINE) put(42 - y, x - X + 14, c) // his near arm flung out ahead
         gear[hold]?.()
+      } else if (pose.roll != null) { // a ball behind his shield, turned a quarter at a time about its middle, on the ground; speed lines behind
+        let ball = this.draw({squash: 2, tuck: 1, sword: 'hug', eyes: 'blink', face: 1}, eyeColor).map(([x, y, c]) => [x - X, y, c])
+        const box = ps => [Math.min(...ps.map(p => p[0])), Math.max(...ps.map(p => p[0])), Math.max(...ps.map(p => p[1]))]
+        const [x0, x1] = box(ball)
+        for (let q = 0; q < pose.roll % 4; q++) ball = ball.map(([x, y, c]) => [-y, x, c]) // a quarter turn forward: his top goes ahead
+        const [r0, r1, bottom] = box(ball), sx = Math.round((x0 + x1 - r0 - r1) / 2)
+        for (const [x, y, c] of ball) put(x + sx, y - bottom + 39, c)
+        const back = r0 + sx, top = Math.min(...ball.map(p => p[1])) - bottom + 39
+        for (const [y, len] of [[top + 4, 3], [Math.round((top + 39) / 2), 5], [35, 3]]) for (let i = 1; i <= len; i++) put(back - 1 - i, y, L)
       } else {
       if (hold === 'planted' || hold === 'dropped') gear[hold]()
       if (shieldUp) over(cells(SHIELD(Math.max(4, ground - 25 - y0)), 27, 23 + y0))
@@ -246,6 +261,7 @@
         for (const [x, y] of b) put(20 + Math.max(0, ox) + x, ey + oy + y, eyeColor) // never back into the slit
       }
       if (pose.cry) { for (const [x, y] of [[16, 25], [17, 25]]) put(x, y + y0, LINE); put(13, 25 + y0, TEAR); put(13, 26 + y0, TEAR) } // crying: mouth open, a tear
+      if (pose.sweat) over([[5, 8 + y0, TEAR], [4, 9 + y0, TEAR], [5, 9 + y0, '#FFFFFF'], [4, 10 + y0, TEAR], [5, 10 + y0, TEAR]]) // a sweat drop off the back of his helmet: did anyone see that?
       }
 
       const out = [...m.values()].map(([x, y, c]) => [right ? x + X : GW - 1 - x - X, y, c])

@@ -9,7 +9,8 @@
   const GREEN = '#3D6B4F', LIT = '#558A66', SHADE = '#27462F', TUFT = '#1A3122', WOOD = '#3A2314'
   const STONE = '#8B857C', MORTAR = '#6A645C', STONE_LIT = '#A9A398', SOOT = '#160D09', MANTEL = '#5A3822', MANTEL_LIT = '#7A5236'
   const FLAME = ['#FFF2B0', '#FFD04A', '#FF9A2A', '#E8501C'] // hottest at the base
-  const [LEG, LEG_SHADE] = hangabout.skin === 'knight' ? ['#4A4A4A', '#383838'] : [BODY, SIDE] // the knight's legs are in armor
+  const KNIGHT = hangabout.skin === 'knight'
+  const [LEG, LEG_SHADE] = KNIGHT ? ['#4A4A4A', '#383838'] : [BODY, SIDE] // the knight's legs are in armor
 
   /** +1 puts the fireplace on his right, -1 on his left: away from his status bubble, unless that runs off the screen. */
   function side(){
@@ -106,9 +107,12 @@
         return off < open ? c : off < open + 2 ? SATIN : ROBE
       }
       let out = px.map(([x, y, c]) => [c === EYE ? x + look : x, y, mix(c, robe(x, y, c), d.k)])
+      if (KNIGHT && look) out = [...px.filter(([, , c]) => c === EYE).map(([x, y]) => [x, y, '#FFFFFF']), ...out] // the knight's eyes move about on his white faceplate: where they were stays white
       if (d.k < 1) return out
       const add = (x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) out.push([x + i, y + j, c]) }
-      out = out.filter(([, y]) => y < bottom)
+      // His legs go (crossed ones come next); the knight's sword and shield stay on the floor where he put them, outline and all.
+      const gear = new Set(KNIGHT ? px.filter(([, y, c]) => y >= bottom && !['#4A4A4A', '#7A7A7A', '#383838', '#5E5E5E', '#000000'].includes(c)).map(([x, y]) => x + ',' + y) : [])
+      out = out.filter(([x, y, c]) => y < bottom || gear.has(x + ',' + y) || c === '#000000' && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([i, j]) => gear.has(x + i + ',' + (y + j))))
       add(x0 + 1, bottom, x1 - x0 - 1, 2, ROBE); add(x0 + 1, bottom + 2, x1 - x0 - 1, 1, HEM) // draped over the seat
       add(25, collar + 4, 2, 2, SATIN); add(25, collar + 6, 1, 3, SATIN); add(27, collar + 6, 1, 2, SATIN) // the sash's knot and ends
       if (!d.cross) for (const x of [12, 16, 26, 30]) add(x, bottom + 3, 2, 3, LEG)
