@@ -125,6 +125,13 @@ he last went. He has no arms:
 does nothing. `face` turns him left or right, and his one eye takes the same `eyes` and `look` values as Clawd's.
 Everything else above works the same on both.
 
+Clay, a clay soldier, is drawn three-quarters and also keeps facing the way he last went. His arms work like
+Clawd's: `arms` for each (by screen side), `swing`, and `hand` and `reach` for the one in front. He has two legs, so
+`lift` raises one, the first listed: an even index his far leg, an odd one his near leg (walking's `[0, 3]` and
+`[1, 2]` still alternate). He has no face: `'happy'` stands him taller, `'sad'` slumps him, `'dizzy'` wobbles his head,
+and nothing is ever drawn in `EYE`, so a trick that finds his eyes by their color finds none. With no eye he has no
+`head()` either: costumes dress him the way they dress Clawd.
+
 ## The art grid
 
 He's drawn on a 44 × 40 grid of art pixels, each shown as 3 × 3 screen points at normal size (more or less with the
