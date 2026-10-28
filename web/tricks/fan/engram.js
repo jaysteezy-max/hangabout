@@ -2,12 +2,12 @@
 // It drops in on a loot beam; he catches it overhead, it decrypts in rolling gold rings, bursts, and he's holding up
 // a Gjallarhorn, glowing; then it goes to his inventory and he hops for joy.
 {
-  const {GW, GH, BODY, TOP, SIDE, recolor} = hookpet
+  const {GW, GH, BODY, TOP, SIDE, recolor} = hangabout
   const LIT = {[BODY]: '#FFFFFF', [TOP]: '#FFFFFF', [SIDE]: '#FFFFFF'}
   const ENGRAM = ['..###..', '.#####.', '###*###', '#######', '###*###', '.#####.', '..###..']
   const HIGH = ['high', 'high']
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'engram', label: 'Exotic engram ◆', rarity: 'rare', pack: 'fan',
     frames: [
       ...[-6, -2, 2, 6].map(y => [{eyes: 'up', engram: {y, beam: 1}}, 150]),

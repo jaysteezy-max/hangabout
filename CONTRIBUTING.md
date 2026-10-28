@@ -7,7 +7,7 @@ Thanks for wanting to make Clawd better. New tricks, fixes, and ideas are all we
 You need a Mac with Apple's command line tools (`xcode-select --install`). No other dependencies.
 
 ```bash
-git clone https://github.com/jaysteezy-max/hookpet.git && cd hookpet
+git clone https://github.com/jaysteezy-max/hangabout.git && cd hangabout
 python3 -m http.server -d web   # then open http://localhost:8000/pet.html
 ```
 
@@ -33,7 +33,7 @@ on.
 - The mockup's console is free of errors, your trick plays from its button, and it still looks right with Reduce
   motion on.
 - Match the code around you: small, plain, with comments that say why rather than what.
-- Keep hookpet local: no network requests, no telemetry, and nothing that slows down or changes what Claude Code does.
+- Keep Hangabout local: no network requests, no telemetry, and nothing that slows down or changes what Claude Code does.
   The hook must keep printing nothing and exiting 0.
 - One topic per pull request, with a sentence or two on what it does and how you checked it. A GIF or screenshot of a
   new trick helps a lot.
@@ -41,7 +41,7 @@ on.
 ## Reporting bugs
 
 Open an issue with your macOS version, what you did, what you expected, and what happened. If it's about what the status
-bubble says, the last few lines of `~/.claude/hookpet/state.json` help (check them for anything private first).
+bubble says, the last few lines of `~/.hangabout/state.json` help (check them for anything private first).
 
 ## Be kind
 

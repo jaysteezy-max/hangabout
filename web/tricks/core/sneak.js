@@ -1,11 +1,11 @@
 // Sneak through the screen's edge: out the near side, shimmering as he goes; maybe his head pops in up the sides;
 // one eye round the far side, a duck back, a grin, then in he comes. A trip: steps, not frames.
 {
-  const {feet, putFeet, rand, scr} = hookpet
+  const {feet, putFeet, rand, scr} = hangabout
 
   /** His head pokes in sideways from the side of the screen at height y: looks up and down the edge, grins, ducks back out. */
   function sidePeek(side, y){
-    const W = hookpet.width, s = hookpet.size, rot = side === 'right' ? -90 : 90
+    const W = hangabout.width, s = hangabout.size, rot = side === 'right' ? -90 : 90
     const out = side === 'right' ? W + 70 * s : -70 * s, peek = side === 'right' ? W + 36 * s : -36 * s // 36: just his head and eyes show
     return [
       {go: 'do', fn: () => putFeet(out, y, rot)},
@@ -19,10 +19,10 @@
     ]
   }
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'sneak', label: 'Sneak through ↔', rarity: 'edge', weight: 1.2,
     trip({x, y}){
-      const W = hookpet.width, s = hookpet.size, right = x > W / 2, inward = right ? 1 : -1
+      const W = hangabout.width, s = hangabout.size, right = x > W / 2, inward = right ? 1 : -1
       const away = right ? -80 * s : W + 80 * s, oneEye = right ? -6 * s : W + 6 * s // -6: the edge cuts him just past his near eye
       const steps = [{go: 'walk', to: right ? W + 80 * s : -80 * s, speed: 70, phase: 1}]
       if (Math.random() < .5) { // first his head pops in up the sides, once or twice

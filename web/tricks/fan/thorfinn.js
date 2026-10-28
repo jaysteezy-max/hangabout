@@ -2,11 +2,11 @@
 // Shaggy blond hair and a scar; twin daggers in reverse grip, dashes with afterimages, an aerial flip into an X-slash.
 // Then the farmer: the blades go away and a little sprout grows at his feet.
 {
-  const {OX, OY, GH} = hookpet
+  const {OX, OY, GH} = hangabout
   const BLADE = '#DCE1E8', STEEL = '#8E96A3', ARM = {down: 12, mid: 8, up: 4, high: -2}
   const DOWN = ['down', 'down']
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'thorfinn', label: 'Thorfinn 🗡', rarity: 'rare', pack: 'fan',
     frames: [
       [{eyes: 'angry', thorfinn: {hair: 1, daggers: 1, glint: 1}}, 320],

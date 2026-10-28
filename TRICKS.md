@@ -1,6 +1,6 @@
 # Writing a trick
 
-A trick is one JavaScript file in `web/tricks/` that calls `hookpet.trick({...})`. Most tricks are a list of poses with
+A trick is one JavaScript file in `web/tricks/` that calls `hangabout.trick({...})`. Most tricks are a list of poses with
 timings; some also draw extra things (a sword, juggling balls) or take him places (up the side of the screen). This guide
 covers all of it. The core tricks are short and worth reading alongside it: `core/dance.js` is frames only,
 `core/juggle.js` adds drawing, `core/climb.js` is a trip.
@@ -11,7 +11,7 @@ covers all of it. The core tricks are short and worth reading alongside it: `cor
 
    ```js
    // Wobble: he rocks side to side and settles.
-   hookpet.trick({
+   hangabout.trick({
      name: 'wobble', label: 'Wobble ~', rarity: 'rare',
      frames: [
        [{squash: 1}, 120],
@@ -24,7 +24,7 @@ covers all of it. The core tricks are short and worth reading alongside it: `cor
 2. Load it: add `<script src="tricks/mine/wobble.js"></script>` with the other trick scripts at the bottom of
    `web/pet.html`.
 3. Try it: open `web/pet.html` in a browser (or `python3 -m http.server -d web`, then
-   <http://localhost:8000/pet.html>). Your trick has a button because it has a label, or type `hookpet.perform('wobble')`
+   <http://localhost:8000/pet.html>). Your trick has a button because it has a label, or type `hangabout.perform('wobble')`
    in the console.
 4. Use it for real: run `./install.sh` again. It rebuilds, and the trick is in the right-click Tricks menu.
 
@@ -45,7 +45,7 @@ covers all of it. The core tricks are short and worth reading alongside it: `cor
 How often each rarity comes up is set by the behavior presets (`PRESETS` in `web/pet.html`): `chance.move` is how
 often he does a trick at all, and `odds.rare` how many of those are rare.
 
-`hookpet.trick()` throws a clear error for a missing name, an unknown rarity, or malformed frames, so check the console.
+`hangabout.trick()` throws a clear error for a missing name, an unknown rarity, or malformed frames, so check the console.
 
 ## Frames and poses
 
@@ -81,7 +81,7 @@ comes next. Keep tricks short, a few seconds at most; there's always next time.
 ## The art grid
 
 He's drawn on a 44 × 40 grid of art pixels, each shown as 3 × 3 screen points at normal size (more or less with the
-Size slider). `(0, 0)` is the top-left. The helpers below are all on `window.hookpet`.
+Size slider). `(0, 0)` is the top-left. The helpers below are all on `window.hangabout`.
 
 ```text
 x:  0    4   6  10  14       28  33 34  37   43
@@ -163,7 +163,7 @@ returns steps, run in order:
 | `{go: 'drop', vy}` | Lets go: he falls from where he is (optionally already moving down at `vy`) and the trip is over. |
 
 When the steps run out he falls to whatever is below him, so a trip can end anywhere. Distances are in screen points:
-multiply your art-sized distances by `hookpet.size` so a bigger Clawd goes further. Trip helpers on `hookpet`:
+multiply your art-sized distances by `hangabout.size` so a bigger Clawd goes further. Trip helpers on `hangabout`:
 
 | Helper | What it gives you |
 | --- | --- |

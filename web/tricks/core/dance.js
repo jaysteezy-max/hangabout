@@ -1,5 +1,5 @@
 // A little dance: side steps turning left and right, a hop, music notes floating up. Frames only, no drawing.
-hookpet.trick({
+hangabout.trick({
   name: 'dance', label: 'Dance ♪', rarity: 'rare',
   frames: [
     ...[-1, 1, -1, 1].flatMap(face => [

@@ -1,8 +1,8 @@
 // Up the side of the screen like a gecko: hops onto the wall, climbs, looks about and waves, then climbs down or lets go.
-hookpet.trick({
+hangabout.trick({
   name: 'climb', label: 'Climb the side ↕', rarity: 'edge',
   trip({x, y}){
-    const {rand, scr} = hookpet, W = hookpet.width, s = hookpet.size
+    const {rand, scr} = hangabout, W = hangabout.width, s = hangabout.size
     const right = x > W / 2, wall = right ? W : 0, rot = right ? -90 : 90
     const low = y - 54 * s - 4, high = rand(scr.top + 90 * s, Math.max(scr.top + 90 * s, y - 260 * s)), off = right ? W - 62 * s : 62 * s
     const steps = [

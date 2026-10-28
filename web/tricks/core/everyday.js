@@ -11,17 +11,17 @@
     sit: [[{squash: 2, tuck: 1}, 220], [{squash: 2, tuck: 1, eyes: 'blink'}, 1600], [{squash: 2, tuck: 1}, 1100], [{squash: 1}, 220]],
     wave: [...WAVE, ...WAVE, ...WAVE, [{}, 200]],
   }
-  for (const [name, frames] of Object.entries(EVERYDAY)) hookpet.trick({name, rarity: 'common', frames})
+  for (const [name, frames] of Object.entries(EVERYDAY)) hangabout.trick({name, rarity: 'common', frames})
 
   // On a window: he sinks behind its top edge until only his eyes peek over, looks around, and comes back up.
-  hookpet.trick({name: 'peek', rarity: 'perched', weight: 2, frames: [
+  hangabout.trick({name: 'peek', rarity: 'perched', weight: 2, frames: [
     [{sink: 12, clip: 1}, 90], [{sink: 24, clip: 1}, 90], [{sink: 36, clip: 1}, 500],
     [{sink: 36, clip: 1, eyes: 'side', look: -1}, 650], [{sink: 36, clip: 1, eyes: 'side', look: 1}, 650],
     [{sink: 36, clip: 1, eyes: 'blink'}, 120], [{sink: 36, clip: 1}, 450],
     [{sink: 24, clip: 1}, 90], [{sink: 12, clip: 1}, 90], [{}, 250],
   ]})
   // On a window: he sits on its edge, legs dangling over the front and swinging.
-  hookpet.trick({name: 'ledgeSit', rarity: 'perched', weight: 2, frames: [
+  hangabout.trick({name: 'ledgeSit', rarity: 'perched', weight: 2, frames: [
     [{sink: 6}, 120], [{sink: 12, arms: ['down', 'down']}, 300],
     ...[...Array(8)].map((_, i) => [{sink: 12, arms: ['down', 'down'], lift: i % 2 ? [0, 2] : [1, 3], eyes: i === 5 ? 'blink' : 'open'}, 380]),
     [{sink: 6}, 120], [{}, 200],

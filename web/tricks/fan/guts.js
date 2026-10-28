@@ -1,10 +1,10 @@
 // Fan pack: Guts, after Berserk. Fan-made, unofficial, not affiliated with its rights holders.
 // Cloak, the Brand, one scarred eye; he draws a sword taller than he is, slashes, and shoulders it.
 {
-  const {OX, OY, GH, BODY, EYE, thickLine} = hookpet
+  const {OX, OY, GH, BODY, EYE, thickLine} = hangabout
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
 
-  hookpet.trick({
+  hangabout.trick({
     name: 'guts', label: 'Guts ⚔', rarity: 'rare', pack: 'fan',
     frames: [
       [{eyes: 'angry', guts: {cape: 1, aura: 1}}, 260],

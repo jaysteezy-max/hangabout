@@ -1,5 +1,5 @@
 {
-  "description": "hookpet: tells the desktop pet what Claude Code is doing. Prints nothing, always exits 0.",
+  "description": "Hangabout: tells the desktop pet what Claude Code is doing. Prints nothing, always exits 0.",
   "hooks": {
     "SessionStart": [
       {

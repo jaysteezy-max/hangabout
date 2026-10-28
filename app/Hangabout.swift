@@ -1,12 +1,12 @@
-// hookpet: a desktop pet for Claude Code. A transparent layer over your whole main screen that Clawd lives on.
+// Hangabout: a desktop pet for Claude Code. A transparent layer over your whole main screen that Clawd lives on.
 // Clicks pass straight through it everywhere except Clawd himself and his open bubble.
-// He shows what Claude Code is doing from state.json next to this app, which hookpet-hook keeps from Claude Code's hooks.
+// He shows what Claude Code is doing from state.json next to this app, which hangabout-hook keeps from Claude Code's hooks.
 import Cocoa
 import WebKit
 
-let dir = Bundle.main.bundleURL.deletingLastPathComponent() // the install folder: Hookpet.app, hookpet-hook and their state live together
+let dir = Bundle.main.bundleURL.deletingLastPathComponent() // the install folder: Hangabout.app, hangabout-hook and their state live together
 let stateURL = dir.appendingPathComponent("state.json")
-let pidURL = dir.appendingPathComponent("hookpet.pid")
+let pidURL = dir.appendingPathComponent("hangabout.pid")
 let presets = [("calm", "Calm"), ("normal", "Normal"), ("erratic", "Erratic")]
 
 /// Catches the mouse while it's over Clawd (the window ignores it everywhere else) and hands it to the page.
@@ -20,11 +20,11 @@ final class Handle: NSView {
         return "\(Int(p.x)),\(Int(p.y))"
     }
     override func mouseDown(with e: NSEvent) {
-        send("hookpet.pointer('down',\(at(e)))")
-        if e.clickCount == 2 { send("hookpet.pointer('dbl',\(at(e)))") }
+        send("hangabout.pointer('down',\(at(e)))")
+        if e.clickCount == 2 { send("hangabout.pointer('dbl',\(at(e)))") }
     }
-    override func mouseDragged(with e: NSEvent) { send("hookpet.pointer('move',\(at(e)))") }
-    override func mouseUp(with e: NSEvent) { send("hookpet.pointer('up',\(at(e)))") }
+    override func mouseDragged(with e: NSEvent) { send("hangabout.pointer('move',\(at(e)))") }
+    override func mouseUp(with e: NSEvent) { send("hangabout.pointer('up',\(at(e)))") }
     override func rightMouseDown(with e: NSEvent) { NSMenu.popUpContextMenu(makeMenu(), with: e, for: self) }
 }
 
@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var hitRects: [NSRect] = []
     var holding = false
     var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
-    /// Each busy session's transcript as of the last time hookpet-hook looked at it.
+    /// Each busy session's transcript as of the last time hangabout-hook looked at it.
     var checked: [String: Date] = [:]
     let sizeLabel = NSTextField(labelWithString: "")
     let prefs = UserDefaults.standard
@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     func applicationDidFinishLaunching(_ note: Notification) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        try? "\(getpid())".write(to: pidURL, atomically: true, encoding: .utf8) // tells hookpet-hook he's already running
+        try? "\(getpid())".write(to: pidURL, atomically: true, encoding: .utf8) // tells hangabout-hook he's already running
 
         panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.level = .statusBar // above every app window, below menus
@@ -56,7 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         panel.ignoresMouseEvents = true
 
         let config = WKWebViewConfiguration()
-        config.userContentController.add(self, name: "hookpet")
+        config.userContentController.add(self, name: "hangabout")
         config.mediaTypesRequiringUserActionForPlayback = [] // the chirp plays without a click on the page
         web = WKWebView(frame: .zero, configuration: config)
         web.setValue(false, forKey: "drawsBackground")
@@ -93,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         panel.setFrame(screen.frame, display: true)
         for view in panel.contentView?.subviews ?? [] { view.frame = panel.contentView!.bounds }
         let top = screen.frame.maxY - screen.visibleFrame.maxY, bottom = screen.visibleFrame.minY - screen.frame.minY
-        web.evaluateJavaScript("hookpet.screen(\(Int(top)),\(Int(bottom)))")
+        web.evaluateJavaScript("hangabout.screen(\(Int(top)),\(Int(bottom)))")
     }
 
     /// Takes the mouse only while it's over Clawd or his open bubble; everywhere else clicks go straight through.
@@ -104,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let near = hitRects.first.map { hypot(point.x - $0.midX, point.y - $0.midY) < 500 } ?? true
         if point != lastCursor, near || cursorWasNear {
             lastCursor = point
-            web.evaluateJavaScript("hookpet.cursor(\(Int(point.x)),\(Int(point.y)))")
+            web.evaluateJavaScript("hangabout.cursor(\(Int(point.x)),\(Int(point.y)))")
         }
         cursorWasNear = near
         let over = hitRects.contains { $0.contains(point) }
@@ -112,12 +112,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard take != holding else { return }
         holding = take
         panel.ignoresMouseEvents = !take
-        web.evaluateJavaScript("hookpet.hover(\(take))")
+        web.evaluateJavaScript("hangabout.hover(\(take))")
     }
 
     func clickedElsewhere() {
         let mouse = NSEvent.mouseLocation, frame = panel.frame
-        web.evaluateJavaScript("hookpet.click(\(Int(mouse.x - frame.minX)),\(Int(frame.maxY - mouse.y)))")
+        web.evaluateJavaScript("hangabout.click(\(Int(mouse.x - frame.minX)),\(Int(frame.maxY - mouse.y)))")
     }
 
     /// The top edges of your windows that aren't hidden behind a window in front, for him to walk on, with each window's size (for webs to stick to).
@@ -144,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let json = "[\(tops.joined(separator: ","))]"
         guard force || json != lastTops else { return }
         lastTops = json
-        web.evaluateJavaScript("hookpet.windows(\(json))")
+        web.evaluateJavaScript("hangabout.windows(\(json))")
     }
 
     func sendState(force: Bool = false) {
@@ -152,11 +152,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard force || stamp != lastState, let data = try? Data(contentsOf: stateURL),
               let json = String(data: data, encoding: .utf8) else { return }
         lastState = stamp
-        web.evaluateJavaScript("hookpet.claude(\(json))")
+        web.evaluateJavaScript("hangabout.claude(\(json))")
     }
 
     /// Claude Code sends no hook when you interrupt it, only writes it into the transcript. So when a busy session's
-    /// transcript changes after its last hook, hookpet-hook gets a look (it stops him if that change was an interrupt).
+    /// transcript changes after its last hook, hangabout-hook gets a look (it stops him if that change was an interrupt).
     func checkTranscripts() {
         guard let data = try? Data(contentsOf: stateURL),
               let sessions = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["sessions"] as? [String: [String: Any]] else { return }
@@ -166,7 +166,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
                   changed.timeIntervalSince1970 > s["ts"] as? Double ?? 0, changed != checked[id] else { continue }
             checked[id] = changed
             let hook = Process(), input = Pipe(), event = try! JSONSerialization.data(withJSONObject: ["hook_event_name": "TranscriptChanged", "session_id": id])
-            hook.executableURL = dir.appendingPathComponent("hookpet-hook")
+            hook.executableURL = dir.appendingPathComponent("hangabout-hook")
             hook.standardInput = input
             guard (try? hook.run()) != nil else { continue }
             input.fileHandleForWriting.write(event)
@@ -178,7 +178,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var preset: String { prefs.string(forKey: "preset").flatMap { p in presets.contains { $0.0 == p } ? p : nil } ?? "normal" }
 
     func sendSettings() {
-        web.evaluateJavaScript("hookpet.settings({sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale), preset: '\(preset)', fan: \(prefs.bool(forKey: "fan"))})")
+        web.evaluateJavaScript("hangabout.settings({sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale), preset: '\(preset)', fan: \(prefs.bool(forKey: "fan"))})")
     }
 
     /// A Size slider for the menu. Its stops are sixths: at those, each of his art pixels covers whole screen pixels, so he stays crisp.
@@ -233,12 +233,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             item.state = prefs.bool(forKey: key) ? .on : .off
         }
         menu.addItem(.separator())
-        menu.addItem(withTitle: "hookpet: unofficial, not affiliated with Anthropic", action: nil, keyEquivalent: "").isEnabled = false
-        menu.addItem(withTitle: "Quit hookpet", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "Hangabout: unofficial, not affiliated with Anthropic", action: nil, keyEquivalent: "").isEnabled = false
+        menu.addItem(withTitle: "Quit Hangabout", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         return menu
     }
 
-    @objc func trick(_ item: NSMenuItem) { web.evaluateJavaScript("hookpet.perform('\(item.representedObject as? String ?? "")')") }
+    @objc func trick(_ item: NSMenuItem) { web.evaluateJavaScript("hangabout.perform('\(item.representedObject as? String ?? "")')") }
 
     @objc func choosePreset(_ item: NSMenuItem) {
         prefs.set(item.representedObject as? String, forKey: "preset")

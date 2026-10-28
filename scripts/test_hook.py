@@ -1,4 +1,4 @@
-"""Plays Claude Code turns through the real hookpet-hook and checks what Clawd would show, interrupts included.
+"""Plays Claude Code turns through the real hangabout-hook and checks what Clawd would show, interrupts included.
 
     python3 scripts/test_hook.py
 
@@ -10,8 +10,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 MARK, TOOL_MARK = '[Request interrupted by user]', '[Request interrupted by user for tool use]'
 
 with tempfile.TemporaryDirectory() as d:
-    hook = os.path.join(d, 'hookpet-hook')
-    subprocess.run(['swiftc', '-o', hook, os.path.join(HERE, '..', 'app', 'HookpetHook.swift')], check=True)
+    hook = os.path.join(d, 'hangabout-hook')
+    subprocess.run(['swiftc', '-o', hook, os.path.join(HERE, '..', 'app', 'HangaboutHook.swift')], check=True)
     transcript = os.path.join(d, 'transcript.jsonl')
 
     def send(name, **extra):
@@ -88,4 +88,4 @@ with tempfile.TemporaryDirectory() as d:
     turn(); send('PreToolUse', tool_name='Bash', tool_input={'command': 'sleep 99'})
     send('PostToolUseFailure', tool_name='Bash', tool_input={'command': 'sleep 99'}, is_interrupt=True)
     assert state()['mood'] == 'idle' and state()['detail'] == 'interrupted', state()
-print('hookpet-hook: ok')
+print('hangabout-hook: ok')
