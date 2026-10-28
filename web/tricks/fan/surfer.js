@@ -7,7 +7,7 @@
   const ON = {cosmic: 1, chrome: 1, board: 1}
 
   hangabout.trick({
-    name: 'surfer', label: 'Silver Surfer 🏄', rarity: 'rare', pack: 'fan',
+    name: 'surfer', label: 'Silver Surfer 🏄', rarity: 'rare', pack: 'fan', on: {windowSurf: 1}, // you drag his window fast
     frames: [
       [{eyes: 'up', surfer: {cosmic: .5, chrome: .3}}, 260],
       [{eyes: 'up', surfer: {cosmic: 1, chrome: .7}}, 200],

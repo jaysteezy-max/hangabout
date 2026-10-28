@@ -30,7 +30,7 @@
 
   const DOWN = ['down', 'down']
   hangabout.trick({
-    name: 'powerUp', label: 'Power up ⚡', rarity: 'rare', pack: 'fan',
+    name: 'powerUp', label: 'Power up ⚡', rarity: 'rare', pack: 'fan', on: {comeback: 1}, // tests pass after failing
     frames: [
       [{squash: 1, arms: DOWN, eyes: 'strain', powerUp: 'charge'}, 250],
       [{squash: 2, arms: DOWN, eyes: 'strain', powerUp: 'charge'}, 400],

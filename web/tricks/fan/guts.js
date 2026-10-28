@@ -5,7 +5,7 @@
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
 
   hangabout.trick({
-    name: 'guts', label: 'Guts ⚔', rarity: 'rare', pack: 'fan',
+    name: 'guts', label: 'Guts ⚔', rarity: 'rare', pack: 'fan', on: {failStreak: 1}, // three failures in a row
     frames: [
       [{eyes: 'angry', guts: {cape: 1, aura: 1}}, 260],
       [{squash: 1, eyes: 'angry', guts: {cape: 1, aura: 1, sword: .35}}, 110],

@@ -17,7 +17,7 @@
   const scan = Array.from({length: 29}, (_, i) => lying({at: [R(18 + 10 * Math.sin(i / 14 * 2 * Math.PI)), 6], look: 1, scan: 1}, 55)) // twice back and forth over him
 
   hangabout.trick({
-    name: 'ghost', label: 'Ghost revive ✦', rarity: 'rare', pack: 'fan',
+    name: 'ghost', label: 'Ghost revive ✦', rarity: 'rare', pack: 'fan', on: {bigDrop: 1}, // dropped from way up
     frames: [
       [{squash: 1, eyes: 'strain', ghost: {hit: 1}}, 120],
       [{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], // keels over

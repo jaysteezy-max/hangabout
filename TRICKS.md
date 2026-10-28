@@ -35,12 +35,12 @@ covers all of it. The core tricks are short and worth reading alongside it: `cor
 | `name` | yes | Unique id: letters, digits, `-`, `_`. Also the pose key that turns on your draw hooks (see below). |
 | `rarity` | yes | When he picks it on his own: `common` (an everyday fidget), `rare` (now and then), `edge` (a trip to the screen's edges), `manual` (never on his own; menu, `perform()` and `on` only). The old `perched` still works and means `common` with `where: 'ledge'`. |
 | `where` | no | `'floor'` (the Dock or the bottom of the screen) or `'ledge'` (the top of a window). He only picks it, or answers with it, while he's there; asked for from the menu somewhere else, he leaps there first. Leave it out for anywhere. |
-| `on` | no | Things that happen that it answers, each with the chance it does: `{back: 1}` always, `{cleanFinish: .25}` one time in four. See [Moments](#moments). |
+| `on` | no | Things that happen that it answers, each with the chance it does: `{back: 1}` always, `{cleanFinish: .25}` one time in four. A chance can also be a function returning one, asked each time the moment comes: `{today: () => isHalloween() ? 1 : 0}`. See [Moments](#moments). |
 | `frames` | one of these | `[[pose, ms], ...]`, played once on the spot. |
 | `trip` | one of these | `({now, here, x, y, dir}) => steps`, an outing that moves him around. See [Trips](#trips). |
 | `label` | no | Text for the Tricks menu and the mockup's button. Without one the trick still plays on its own, but isn't listed. |
 | `weight` | no | How likely it is next to others of the same rarity. Default 1. A function returning a number makes it likelier at some times than others, e.g. `() => new Date().getHours() >= 22 ? 3 : 1`. |
-| `pack` | no | `'fan'` for fan art of other people's characters. Fan tricks only play while the Fan pack setting is on. |
+| `pack` | no | `'fan'` for fan art of other people's characters. Fan tricks only play while the Fan pack setting is on, and each is a secret until it's found. See [Secrets](#secrets). |
 | `pixels`, `behind`, `front`, `glow` | no | Draw hooks. See [Drawing](#drawing). |
 | `end` | no | Called when a trip is cut short (Claude needs him, or you grab him). Tidy up anything you added to the page. |
 
@@ -63,9 +63,24 @@ one of these moments comes and its chance comes up (if several tricks pass, one 
 | `midWalk` | He's halfway through a walk of more than 120 points, while he's free to roam. |
 | `longFinish` | Claude finished a turn that took 15 minutes or more, while you're here. |
 | `finishedWhileAway` | Claude finished a turn while you were away from your Mac. `hangabout.away` says whether you still are. |
+| `today` | Once a day: the first time he's free to roam while you're at your Mac, so soon after he starts. For tricks tied to a date: give it a function chance that's 1 on the day. |
+| `comeback` | A command Claude ran with `test` in it succeeds, and the last test command before it in that session failed. |
+| `failStreak` | Three of Claude's tool calls in a row failed in one session. Once per streak: a call that works ends it. |
+| `forcePush` | Claude ran `git push` with `--force`, `--force-with-lease` or `-f`. |
+| `windowSurf` | In the app: the window he's standing on is dragged fast (over 1,500 points a second). Once per drag. |
+| `bigDrop` | He lands after you let go of him more than half the screen's height above where he lands. |
+| `thrown` | You let go of him mid-fling, hard to the side (the pointer going over 2,000 points a second). He answers once he lands. |
+| `highUp` | He's on a window ledge more than half the screen above the floor and decides to get down. A trick that answers takes him down instead of his usual jump. |
+| `dizzyAgain` | You've shaken him dizzy for the third time today, and his head has just cleared. |
+| `beat` | Four clicks on him in an even rhythm, slower than a double-click: each gap 500 to 1,000 ms, all within 20% of their average. |
 
-To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console. Run
-`hangabout.left()` first to have `hangabout.away` say you're away, and `hangabout.back()` to end it.
+`comeback`, `failStreak` and `forcePush` come from the session's log of Claude's last 8 tool calls, and each call is
+looked at once, when it's logged. Calls already logged when the page loads don't count.
+
+To try one in the mockup, type `hangabout.back()` (or another moment's name in `fire('…')`) in the console. `fire`
+returns `true` if a trick answered. Run `hangabout.left()` first to have `hangabout.away` say you're away, and
+`hangabout.back()` to end it. For the Claude moments, feed it a log, then the same log with a call added:
+`hangabout.claude({sessions: {s: {mood: 'running', ts: Date.now() / 1000, log: [{ok: false, call: 'Bash(npm test)', out: ''}]}}})`.
 
 `hangabout.trick()` throws a clear error for a missing name, an unknown rarity, or malformed frames, so check the console.
 
@@ -240,3 +255,14 @@ A trip is cut short when Claude needs him or you grab him. If yours added anythi
 Tricks that depict other people's characters go in `web/tricks/fan/` with `pack: 'fan'`, and start with a comment
 naming the source and saying it's fan-made and unofficial. Draw original pixel art: no traced or copied sprites, logos
 or sounds. If a rights holder asks for a trick to be removed, it will be.
+
+### Secrets
+
+Every `pack: 'fan'` trick is a secret. Until it's found, right-click → Tricks shows it as `???` and counts how many of
+them you've found, and he picks it on his own at a twentieth of its weight, so every secret still turns up in the end.
+It's found the first time it plays for any reason: a moment it answers, a random pick, or its button in the mockup.
+From then on it's listed by name and he picks it at its normal weight. The app remembers what you've found.
+
+Give each secret an `on` moment that fits it, so it's found by something you do rather than only by waiting.
+`hangabout.code(text)` (right-click → **Enter a code…**, or the mockup's button) finds them all at once and turns the
+Fan pack on.

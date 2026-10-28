@@ -29,6 +29,34 @@ final class Handle: NSView {
     override func rightMouseDown(with e: NSEvent) { NSMenu.popUpContextMenu(makeMenu(), with: e, for: self) }
 }
 
+/// The code dialog's field: records arrow keys as ↑ ↓ ← → and letters as A-Z, and shows them as you go. Delete steps back.
+final class KeyField: NSView {
+    private(set) var typed: [String] = []
+    private let label = NSTextField(labelWithString: "")
+    override var acceptsFirstResponder: Bool { true }
+    init() {
+        super.init(frame: NSRect(x: 0, y: 0, width: 260, height: 28))
+        label.frame = bounds
+        label.alignment = .center
+        label.isBezeled = true
+        label.drawsBackground = true
+        addSubview(label)
+        show()
+    }
+    required init?(coder: NSCoder) { fatalError() }
+    private func show() { label.stringValue = typed.isEmpty ? "Press the keys" : typed.joined(separator: " ") }
+    override func keyDown(with e: NSEvent) {
+        if e.isARepeat || !e.modifierFlags.isDisjoint(with: [.command, .control, .option]) { return } // chords and held keys aren't part of a code
+        let arrows: [UInt16: String] = [126: "↑", 125: "↓", 123: "←", 124: "→"]
+        if let arrow = arrows[e.keyCode] { typed.append(arrow) }
+        else if e.keyCode == 51 { _ = typed.popLast() }
+        else if e.keyCode == 36 || e.keyCode == 76 { NSApp.stopModal(withCode: .alertFirstButtonReturn) } // Return, Enter
+        else if e.keyCode == 53 { NSApp.stopModal(withCode: .alertSecondButtonReturn) } // Escape
+        else if let c = e.charactersIgnoringModifiers?.uppercased(), c.utf8.count == 1, ("A"..."Z").contains(c) { typed.append(c) } // one ASCII char, so no accented look-alikes
+        show()
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
     var panel: NSPanel!
     var web: WKWebView!
@@ -194,8 +222,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         WKUserScript(source: "window.hangaboutSkin = '\(skin)'", injectionTime: .atDocumentStart, forMainFrameOnly: true)
     }
 
+    /// The secret tricks you've found, by name.
+    var found: [String] { prefs.stringArray(forKey: "found") ?? [] }
+
     func sendSettings() {
-        web.evaluateJavaScript("hangabout.settings({sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale), preset: '\(preset)', fan: \(prefs.bool(forKey: "fan"))})")
+        let list = (try? JSONSerialization.data(withJSONObject: found)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]" // JSON, so names can't break the script
+        web.evaluateJavaScript("hangabout.settings({sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale), preset: '\(preset)', fan: \(prefs.bool(forKey: "fan")), found: \(list)})")
     }
 
     /// A Size slider for the menu. Its stops are sixths: at those, each of his art pixels covers whole screen pixels, so he stays crisp.
@@ -224,9 +256,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func menu() -> NSMenu {
         let menu = NSMenu()
         let tricksMenu = NSMenu()
-        let fan = prefs.bool(forKey: "fan")
+        let fan = prefs.bool(forKey: "fan"), found = self.found
+        let secrets = tricks.filter { $0.2 }
         for (name, title, fanMade) in tricks where !fanMade || fan {
-            if fanMade && !tricksMenu.items.contains(where: { $0.isSeparatorItem }) { tricksMenu.addItem(.separator()) } // fan pack below the core ones
+            if fanMade && !tricksMenu.items.contains(where: { $0.isSeparatorItem }) { // fan pack below the core ones
+                tricksMenu.addItem(.separator())
+                tricksMenu.addItem(withTitle: "Secrets: \(secrets.filter { found.contains($0.0) }.count) of \(secrets.count) found", action: nil, keyEquivalent: "").isEnabled = false
+            }
+            if fanMade && !found.contains(name) { // still a mystery: don't give the name away
+                tricksMenu.addItem(withTitle: "???", action: nil, keyEquivalent: "").isEnabled = false
+                continue
+            }
             let item = tricksMenu.addItem(withTitle: title, action: #selector(trick(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = name
@@ -257,6 +297,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             item.representedObject = key
             item.state = prefs.bool(forKey: key) ? .on : .off
         }
+        menu.addItem(withTitle: "Enter a code…", action: #selector(enterCode), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Hangabout: unofficial, not affiliated with Anthropic", action: nil, keyEquivalent: "").isEnabled = false
         menu.addItem(withTitle: "Quit Hangabout", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
@@ -264,6 +305,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     @objc func trick(_ item: NSMenuItem) { web.evaluateJavaScript("hangabout.perform('\(item.representedObject as? String ?? "")')") }
+
+    /// Records a code from the keys you press and hands it to the page, which knows if it's the one.
+    @objc func enterCode() {
+        let field = KeyField()
+        let alert = NSAlert()
+        alert.messageText = "Enter a code"
+        alert.informativeText = "Press arrow keys and letters. Delete steps back."
+        alert.accessoryView = field
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.initialFirstResponder = field
+        let previous = NSWorkspace.shared.frontmostApplication // an accessory app doesn't hand focus back by itself
+        NSApp.activate(ignoringOtherApps: true) // so the dialog takes keys
+        panel.ignoresMouseEvents = true // trackPointer's timer doesn't fire during the modal, so the pet layer would eat the dialog's clicks
+        let answer = alert.runModal()
+        panel.ignoresMouseEvents = !holding // back to what trackPointer last decided; its next tick re-syncs
+        previous?.activate(options: [])
+        guard answer == .alertFirstButtonReturn else { return }
+        web.evaluateJavaScript("hangabout.code('\(field.typed.joined())')") { result, _ in
+            if result as? Bool == false { NSSound.beep() } // the page does the celebrating; a wrong code just gets a beep
+        }
+    }
 
     @objc func choosePreset(_ item: NSMenuItem) {
         prefs.set(item.representedObject as? String, forKey: "preset")
@@ -294,8 +357,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { webView.reload() }
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-        if let list = (message.body as? [String: Any])?["tricks"] as? [[String: Any]] {
+        let body = message.body as? [String: Any]
+        if let list = body?["tricks"] as? [[String: Any]] {
             tricks = list.compactMap { t in (t["name"] as? String).map { ($0, t["label"] as? String ?? $0, t["fan"] as? Bool ?? false) } }
+            return
+        }
+        if let names = body?["found"] as? [String] { // a secret turned up, or the cheat code unlocked them all
+            var all = found
+            for name in names where !all.contains(name) { all.append(name) }
+            prefs.set(all, forKey: "found")
+            if body?["fan"] as? Bool == true {
+                prefs.set(true, forKey: "fan")
+                sendSettings()
+            }
             return
         }
         guard let rects = message.body as? [[Double]] else { return }
