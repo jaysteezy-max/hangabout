@@ -22,6 +22,9 @@
   // The chicken turns to the water and holds the rod in his wing (held out, it wraps round the grip at x 29 to 38): the
   // wing at the butt's height, and the reel just above it. It can't wave, so he clucks goodbye.
   const CHICKEN = hangabout.skin === 'chicken', GRIP = {up: 9, out: 12}, WING = ['#FFF050', '#B8960F']
+  // The slime turns to the water and holds the rod's butt in its goo arm's tip. It has no legs to swing and can't wave
+  // while it holds the rod, so it jiggles instead: a squash for each swing of the legs, each wave.
+  const SLIME = hangabout.skin === 'slime', GOO = {up: 7, out: 9}
   const BOBBER = [['.r.', 'rrr', 'www', '.w.'], {r: '#E5484D', w: '#F4F1EA'}]
   const CATCH = [
     [['..f..', '.fff.', '.fef.', 'dfff.', '.fff.', '..f..', '.ddd.', 'dd.dd'], {f: '#6EC1E4', d: '#3E8FB8', e: '#1F1410'}], // a fish, hooked by the lip
@@ -44,7 +47,7 @@
       const s = hangabout.size, a = 3 * s
       const side = x - 66 < (here.x0 + here.x1) / 2 ? 1 : -1 // casts toward the middle of the window
       const hands = (rod, free) => side > 0 ? [free, rod] : [rod, free]
-      const sit = (o, f) => ({sink: 12, arms: hands('mid', 'down'), ...PUSHEEN && {face: side, ...!o?.arms && {hand: 6}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, fishing: {rod: 'out', side, ...f}})
+      const sit = (o, f) => ({sink: 12, arms: hands('mid', 'down'), ...PUSHEEN && {face: side, ...!o?.arms && {hand: 6}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, fishing: {rod: 'out', side, ...f}})
       const cast = () => {
         const [, , tx, ty] = ROD.out
         line = document.createElement('div'); line.className = 'fishline'
@@ -65,7 +68,7 @@
         {go: 'hold', T: 1400, pose: sit({eyes: 'strain', tuck: 1}, {reel: 1})},
         {go: 'hold', T: 1200, pose: t => sit({eyes: 'happy', arms: hands('mid', 'up'), lift: Math.floor(t / 200) % 2 ? [0, 2] : [1, 3]})}, // what a beauty
         {go: 'do', fn: () => line.lastChild.classList.add('free')},
-        {go: 'hold', T: 900, pose: t => { const k = Math.floor(t / 200) % 2; return sit({dx: side, lookY: 1, arms: hands('mid', k ? 'up' : 'high'), ...CHICKEN && k && {beak: 'open'}}) }}, // bye, little one
+        {go: 'hold', T: 900, pose: t => { const k = Math.floor(t / 200) % 2; return sit({dx: side, lookY: 1, arms: hands('mid', k ? 'up' : 'high'), ...CHICKEN && k && {beak: 'open'}, ...SLIME && {squash: k}}) }}, // bye, little one
         {go: 'hold', T: 400, pose: sit()},
         {go: 'do', fn: reelIn},
         {go: 'hold', T: 140, pose: {sink: 6}},

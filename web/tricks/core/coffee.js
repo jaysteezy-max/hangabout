@@ -20,12 +20,17 @@
 
   // The chicken has no lap or crossed legs: he settles in like a hen on eggs, turned to the fire, and holds the mug in his
   // wing, at his breast or tipped up to his beak. His robe is his own (see hen()).
-  const CHICKEN = hangabout.skin === 'chicken', HOLD = CHICKEN ? {hand: 12} : {}
-  const SIT = {dy: -4, ...CHICKEN ? {tuck: 1, ...HOLD} : {arms: ['mid', 'down']}} // up on the seat, the mug in his lap
-  // Where the mug is: [x, y, tilted to his lips]; on the chicken, from the top-left of his wing (x 5) and with its handle in it.
-  const [LAP, LOW, SIP] = CHICKEN ? [[2, -3], [2, -3], [6, -3, 1]] : [[29, 27], [29, 28], [30, 21, 1]]
-  const FIRE = CHICKEN ? {dx: 0, lookY: 1} : {eyes: 'side', look: 1}, SIPPING = {...CHICKEN ? {hand: 9} : {arms: ['mid', 'up']}, eyes: 'blink'}
+  // The slime has neither: it sinks into the cushion turned to the fire, the robe wrapped round its plain side and under its
+  // face (see jelly()), and holds the mug out in its goo arm's tip, then up by its face to sip.
+  const CHICKEN = hangabout.skin === 'chicken', SLIME = hangabout.skin === 'slime', HOLD = CHICKEN ? {hand: 12} : SLIME ? {hand: 9} : {}
+  const SIT = {dy: -4, ...CHICKEN ? {tuck: 1, ...HOLD} : SLIME ? HOLD : {arms: ['mid', 'down']}} // up on the seat, the mug in his lap
+  // Where the mug is: [x, y, tilted to his lips]; on the chicken, from the top-left of his wing (x 5) and with its handle in
+  // it; on the slime, from its face's edge and the top of its goo arm (see goo()), turned right.
+  const [LAP, LOW, SIP] = CHICKEN ? [[2, -3], [2, -3], [6, -3, 1]] : SLIME ? [[5, -1], [5, 0], [-1, -1, 1]] : [[29, 27], [29, 28], [30, 21, 1]]
+  const FIRE = CHICKEN || SLIME ? {dx: 0, lookY: 1} : {eyes: 'side', look: 1}, SIPPING = {...CHICKEN ? {hand: 9} : !SLIME && {arms: ['mid', 'up']}, eyes: 'blink'}
   const wing = pose => Math.max(18, Math.min(30, 17 + pose.hand)) + (pose.dy || 0) // the top of the chicken's wing held out (web/skins/chicken.js)
+  /** The slime's face edge and the top row of its goo arm, as it faces right (web/skins/slime.js: hand 9 is its rows 11 to 15). */
+  const goo = pose => { const {y, nose} = hangabout.head(pose); return [GW - 1 - nose, y + pose.hand - 7] }
   const WING = ['#FFF050', '#B8960F'], WATTLE = ['#44AEF6', '#0060A0'], TOES = '#F2BE2E', LINE = '#16161A' // the chicken's own colors, which recolor leaves alone
   const toLeft = ([x, y, c]) => [GW - 1 - x, y, c]
   /** The chicken, turned to the fire, in a robe that fits an egg: velvet from under his beak down, its satin collar rising over his back and edging the opening round his wattle, a sash with its knot at his side. Laid out on him facing left. */
@@ -46,6 +51,20 @@
     }
     const out = px.map(([x, y, c]) => [x, y, mix(c, robe(x, y, c), d.k)])
     if (d.k === 1) for (const [x, y, h] of [[21, sash + 1, 2], [22, sash + 1, 4], [24, sash + 1, 3]]) for (let j = 0; j < h; j++) out.push([x, y + j, SATIN]) // the sash's knot and ends
+    return side() > 0 ? out.map(toLeft) : out
+  }
+  /** The slime, turned to the fire, in a robe that fits a cube: velvet over its plain side and under its cheeks, a satin lapel up its front seam and along under its face, outlined in the hem's red; a velvet sleeve and satin cuff on its goo arm. Laid out on it facing left. */
+  function jelly(d, px, pose){
+    if (pose.face > 0) px = px.map(toLeft)
+    const {y, nose} = hangabout.head(pose), GOO_LINE = '#6A9D23', CHEEK = '#EC9291' // its own colors (web/skins/slime.js)
+    const top = x => x > 21 ? y - (x - 22 >> 1) : y + 8 // past its front seam (x 21) from under its top face; on its face side, under its cheeks
+    const robe = (x, yy, c) => {
+      if (c === EYE || c === CHEEK) return c
+      if (x < nose) return x < nose - 2 ? c : x === nose - 2 ? SATIN : c === GOO_LINE ? HEM : ROBE // its arm: goo out of the cuff
+      if (yy < top(x)) return c
+      return c === GOO_LINE ? HEM : x === 22 || x < 22 && yy === top(x) ? SATIN : ROBE
+    }
+    const out = px.map(([x, yy, c]) => [x, yy, mix(c, robe(x, yy, c), d.k)])
     return side() > 0 ? out.map(toLeft) : out
   }
   const sit = (pose, mug = LAP) => ({...SIT, ...pose, coffee: {k: 1, mug, cross: 1}})
@@ -73,6 +92,7 @@
     /** The robe: velvet sleeves with satin cuffs, a satin shawl collar opening in a V, a sash; his legs crossed under the hem. */
     pixels({d, px, pose}){
       if (CHICKEN) return hen(d, px, pose)
+      if (SLIME) return jelly(d, px, pose)
       const dy = pose.dy || 0, sq = pose.squash || 0, wide = sq >= 2 ? 1 : 0
       const x0 = OX + 6 - wide, x1 = OX + 29 + wide, bottom = OY + 16 + dy, collar = OY + 8 + dy + sq
       const look = pose.eyes === 'side' ? side() - pose.look : 0 // the frames say right; he looks whichever way the fire is
@@ -125,8 +145,8 @@
         let [mx, my, tilt] = d.mug
         const f = side(), wy = CHICKEN && wing(pose), dot = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(mx + x, my + y - (tilt && x > 1 ? 1 : 0), 1, 1) }
         ctx.save()
-        if (CHICKEN) { // in his wing, its handle away from his beak: mirrored while he faces left, so its steam drifts off ahead of him
-          mx = GW - 9 - mx; my += wy
+        if (CHICKEN || SLIME) { // in his wing (the slime's goo arm), its handle away from his beak: mirrored while he faces left, so its steam drifts off ahead of him
+          if (CHICKEN) { mx = GW - 9 - mx; my += wy } else { const [ex, gy] = goo(pose); mx += ex; my += gy }
           if (f < 0) { ctx.translate(GW, 0); ctx.scale(-1, 1) }
         }
         ctx.globalAlpha = d.k

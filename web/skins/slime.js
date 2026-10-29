@@ -144,6 +144,7 @@
     tricks: {
       hop: [...HOP.map(([p, ms]) => [{...p, eyes: p.squash ? 'blink' : 'happy'}, ms * 1.4]), [{}, 220]], // its own hop, a happy one
       yawn: [[{squash: 1, eyes: 'blink'}, 260], [{stretch: 2, eyes: 'blink', mouth: 'yawn'}, 950], [{squash: 1, eyes: 'blink'}, 200], ...JIGGLE],
+      ledgeSit: [[{sink: 6}, 120], [{sink: 12, squash: 1}, 300], ...[...Array(8)].map((_, i) => [{sink: 12, ...[{squash: 1}, {}, {squash: 2}, {}][i % 4], eyes: i === 5 ? 'blink' : 'open'}, 380]), [{sink: 6}, 120], [{}, 200]], // no legs to swing: it settles over the edge and wobbles
     },
     // Claude's states as it'd do them (see MOODS in pet.html): it wobbles now and then while idle, sways as it thinks,
     // hops for your attention with a nub up, sulks half melted when it's stuck, and naps settled low, breathing deep.
