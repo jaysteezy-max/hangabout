@@ -62,7 +62,7 @@
     [{sword: 'raise', eyes: 'happy', notes: 1}, 450], [{}, 200]]
   // Instead of a cartwheel he rolls: crouches, tucks into a ball behind his shield, sword hugged in, somersaults twice a
   // quarter turn at a time (his own pixels turned, never the canvas, so he stays on the grid) and comes up.
-  const ROLL = [[{squash: 2, sword: 'hug'}, 140], [{squash: 2, tuck: 1, sword: 'hug', eyes: 'blink'}, 90],
+  const ROLL = [[{squash: 2, sword: 'hug'}, 140], [{roll: 0}, 90],
     ...[...Array(8)].map((_, i) => [{roll: (i + 1) % 4, tilt: 0, glide: 160}, 80]),
     [{squash: 2, sword: 'hug'}, 160], [{squash: 1, eyes: 'happy'}, 300], [{}, 200]]
   // His trip: a toe catches, his sword and shield fly out of his hands, he faceplants and they clatter down on his back;
@@ -78,6 +78,7 @@
     [{eyes: 'side', look: -1, sweat: 1, sword: 'dropped'}, 420], [{eyes: 'side', look: 1, sweat: 1, sword: 'dropped'}, 420], [{sword: 'poof', eyes: 'happy'}, 220],
     ...[0, 1, 2, 3].map(STEP), [{}, 200]]
   const COSTUMES = ['guts', 'vader', 'thorfinn', 'spidey', 'portal', 'moonwalk', 'surfer', 'ghost', 'engram'] // fan tricks that dress him up (the power-up keeps his sword)
+  const BALL = ['...LLLLLL...', '.LLBBBBBBLL.', '.LBBBBBBBBL.', 'LBBBBDDBBBBL', 'LBBBBDDBBBBL', 'LBBDDDDDDBBL', 'LBBDDDDDDBBL', 'LBBBBDDBBBBL', 'LBBBBDDBBBBL', '.LBBBBBBBBL.', '.LLBBBBBBLL.', '...LLLLLL...'] // his shield, face on, for the roll
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]], X = 6
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
   const lift = pose => { // how far his upper body moves: hops, crouches and stretches, his helmet never above row 1
@@ -145,7 +146,7 @@
       const costume = COSTUMES.some(k => pose[k] != null) // dressed up as someone else, he's put his own gear away
       const hold = pose.sword ?? (costume ? 'none' : crossed ? 'dropped' : up(near) ? 'raise' : 'ready')
       const holding = hold === 'ready' || hold === 'poof', farFree = holding && !up(far) && !reaching && !pose.chin
-      const shieldUp = holding || ['raise', 'forward', 'down', 'lean', 'planted'].includes(hold)
+      const shieldUp = holding || ['raise', 'forward', 'lean', 'planted'].includes(hold) // slamming, it's on his far arm behind him
 
       // His sheathed sword from the grip at (x, y) along (dx, dy): the pommel behind the grip, a small crossguard, then
       // the scabbard, a row fatter than the grip (a diagonal one three wide, to look as thick), with a band near its throat.
@@ -162,18 +163,19 @@
       }
       // A gauntlet (n 0 his near arm, 1 his far one): its arm from the pauldron to a fist whose top-left is (fx, fy), short
       // and chunky; the pauldron over it, so a raised arm keeps its shoulder.
-      const SHOULDER = [[1, 25], [20, 26]]
+      // Beefy (a sandwich did it): his chest 2 px broader each side, and his far arm as big as his near one.
+      const big = pose.beefy, SHOULDER = big ? [[-1, 25], [22, 26]] : [[1, 25], [20, 26]], kit = n => big ? 0 : n
       const limb = (n, fx, fy) => {
         const [sx, sy] = SHOULDER[n], pts = [], from = [sx + 2, sy + 3 + y0], to = [fx + 1, fy + 1]
         for (let i = 0, k = Math.max(Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1])); i <= k; i++) {
           const x = Math.round(from[0] + (to[0] - from[0]) * i / (k || 1)), y = Math.round(from[1] + (to[1] - from[1]) * i / (k || 1))
-          for (let w = 0; w < 4 - n; w++) pts.push([x + w, y, INK.a])
+          for (let w = 0; w < 4 - kit(n); w++) pts.push([x + w, y, INK.a])
         }
-        return [...pts, ...cells(PAULDRON[n], sx, sy + y0)]
+        return [...pts, ...cells(PAULDRON[kit(n)], sx, sy + y0)]
       }
-      const fist = (n, fx, fy) => over(cells(FIST[n], fx, clamp(fy, 1, ground - FIST[n].length)))
-      const arm = (n, fx, fy) => { over(limb(n, fx, clamp(fy, 1, ground - FIST[n].length))); fist(n, fx, fy) }
-      const shoulder = n => over(cells(PAULDRON[n], SHOULDER[n][0], SHOULDER[n][1] + y0))
+      const fist = (n, fx, fy) => over(cells(FIST[kit(n)], fx, clamp(fy, 1, ground - FIST[kit(n)].length)))
+      const arm = (n, fx, fy) => { over(limb(n, fx, clamp(fy, 1, ground - FIST[kit(n)].length))); fist(n, fx, fy) }
+      const shoulder = n => over(cells(PAULDRON[kit(n)], SHOULDER[n][0], SHOULDER[n][1] + y0))
       // Where each fist goes when it isn't on the sword: stubby arms, so up is beside his helmet's lower half and high
       // beside its upper half; out in front for props (hand, reach).
       const farFist = reaching ? [26 + (pose.reach || 0), clamp(19 + (pose.hand ?? 8), 18, 33) + y0] : far === 'high' ? [27, 15 + y0] : far === 'up' ? [25, 21 + y0] : [20, 30 + y0]
@@ -183,7 +185,7 @@
         ready: [() => sword(8, 33 + y0, 1, 0, 9, 24), [1, 29 + y0], [21, 29 + y0]],
         forward: [() => sword(14, 30 + y0, 1, 0, 9, 22), [4, 28 + y0]], // thrust ahead in his near hand, as he swings in the game
         raise: [() => sword(-1, 18 + y0, 0, -1, 3, 17 + y0), [-3, 16 + y0]], // straight up through his near fist, the pommel below it
-        down: [() => sword(14, ground - 1, 1, 0, 6, 20), [8, ground - 5]], // slammed down flat on the ground ahead of him, full length
+        down: [() => sword(21, ground - 1, 1, 0, 6, 15), [14, ground - 5]], // slammed down flat on the ground, the blade ahead of his boots
         lean: [() => sword(4, 33 + y0, 0, 1, 3, ground - 35 - y0), [1, 29 + y0]], // point down close at his side, his fist on the grip
       }
       HELD.poof = HELD.ready
@@ -191,8 +193,8 @@
       const sk = Math.round((pose.sink || 0) / 3) // on the ground means the ledge, even while he sinks below it
       const gear = { // his sword and shield when they're not in his hands
         dropped: () => { over(cells(['LLLLLLLLL', 'BBBBBBBBB'], -4, 37 - sk)); over(sword(26, 37 - sk, 1, 0, 3, 10)) }, // lying on the ground beside him
-        flung: () => { over(sword(24, 12, 1, -1, 2, 6)); over(cells(['.DD.', 'DLBD', 'DBBD', '.DD.'], 31, 14)) }, // in the air
-        onBack: () => { over(sword(10, 12, 1, 0, 3, 18)); over(cells(['LLLLLLLL', 'BBBBBBBB'], 14, 9)) }, // clattered down on his back
+        flung: () => { over(sword(24, 7, 1, -1, 2, 5)); over(cells(['.LLLLL.', 'LBBBBBL', 'LBBDBBL', 'LBBBBBL', '.LBBBL.', '..LLL..'], 30, 1)) }, // tumbling in the air
+        onBack: () => { over(sword(20, 19, 1, 0, 3, 14)); over(cells(['LLLLLLLL', 'BBBBBBBB'], 24, 16)) }, // clattered down onto the back of his helmet
         planted: () => over(sword(-2, 22, 0, 1, 2, ground - 23)), // stuck in the ground beside him
       }
 
@@ -205,7 +207,9 @@
         for (const [x, y, c] of this.draw({eyes: pose.eyes, face: 1, sword: 'none', arms: ['high', 'mid']}, eyeColor)) if (y < 35 || y === 35 && c === LINE) put(42 - y, x - X + 14, c) // his near arm flung out ahead
         gear[hold]?.()
       } else if (pose.roll != null) { // a ball behind his shield, turned a quarter at a time about its middle, on the ground; speed lines behind
-        let ball = this.draw({squash: 2, tuck: 1, sword: 'hug', eyes: 'blink', face: 1}, eyeColor).map(([x, y, c]) => [x - X, y, c])
+        over(cells(HELMET.filter((_, j) => j < 4 || j > 8), 8, 20)) // his helmet, squashed down (five rows out of its plain middle)
+        over(cells(BALL, 13, 25)); over(cells(FIST[0], 8, 30)); under(cells(['AAkk.', 'kkkkt'], 12, 37)) // the shield over his face and chest, his fist on its rim, a boot tucked under
+        let ball = [...m.values()]; m.clear()
         const box = ps => [Math.min(...ps.map(p => p[0])), Math.max(...ps.map(p => p[0])), Math.max(...ps.map(p => p[1]))]
         const [x0, x1] = box(ball)
         for (let q = 0; q < pose.roll % 4; q++) ball = ball.map(([x, y, c]) => [-y, x, c]) // a quarter turn forward: his top goes ahead
@@ -219,7 +223,7 @@
       const farHolds = farGrip && farFree
       if (farHolds || pose.chin) shoulder(1) // his far arm comes round in front of him, later
       else arm(1, ...farFist)
-      over(cells(TORSO, 9, 28 + y0))
+      over(big ? cells(TORSO.map(r => r.slice(0, 3) + r[3].repeat(2) + r.slice(3, -3) + r.at(-4).repeat(2) + r.slice(-3)), 7, 28 + y0) : cells(TORSO, 9, 28 + y0))
       // Two short legs, set wide, under his hem down to his boots. Striding, the lifted boot comes up and well forward and
       // the other pushes back; tucked, both come up under him. Of a stride's pairs the first index lifts: even his near leg.
       const step = lifted.length ? lifted[0] % 2 : pose.tapLeg != null ? pose.tapLeg % 2 : -1

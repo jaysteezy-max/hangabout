@@ -85,12 +85,15 @@ if (hangabout.skin === 'knight') {
         Object.assign(el.style, {width: w + 'px', height: n * a + 'px', left: x - w / 2 + 'px', top: y - n * a + 'px'})
         hangabout.putFeet(x, y - n * a)
       }
-      const shatter = () => {
+      const shatter = () => { // it breaks into its own pieces (four knuckles, thumb, fingers, wrist), flung out and dropping to the ground, gone as he lands
+        const rows = [...FIST, ...Array(Math.max(0, h - FIST.length)).fill(FIST.at(-1))], top = y - h * a
         el.remove()
-        for (const [dx, dy] of [[-.3, .2], [0, .55], [.3, .3]]) {
-          const b = sprite(BURST, ICE, a, 1), bw = BURST[0].length * a
-          Object.assign(b.style, {left: x + dx * w - bw / 2 + 'px', top: y - dy * H * a - bw / 2 + 'px'})
-          fadeOut(b, 200)
+        for (const [cx, cy, cw, ch] of [[0, 0, 8, 7], [8, 0, 6, 7], [14, 0, 6, 7], [20, 0, 8, 7], [0, 7, 14, 6], [14, 7, 14, 6], [3, 13, 17, h - 13]]) {
+          const b = sprite(rows.slice(cy, cy + ch).map(r => r.slice(cx, cx + cw)), ICE, a, 1), out = (cx + cw / 2 - 14) / 14
+          Object.assign(b.style, {left: x - w / 2 + cx * a + 'px', top: top + cy * a + 'px', transition: 'transform .17s ease-in, opacity .17s ease-in'})
+          b.getBoundingClientRect() // lay it out where it was, so the fall below animates
+          Object.assign(b.style, {transform: `translate(${Math.round(out * 4) * a}px, ${(h - cy - ch) * a}px)`, opacity: 0})
+          setTimeout(() => b.remove(), 220)
         }
       }
       return [
@@ -126,7 +129,7 @@ if (hangabout.skin === 'knight') {
         {go: 'hold', T: 300, pose: {face: dir, hand: 7, eyes: 'angry', iceBolt: {charge: 1}}},
         {go: 'hold', T: 140, pose: {face: dir, squash: 1, hand: 7, eyes: 'angry', iceBolt: {charge: 2}}},
         {go: 'do', fn: () => (shot = shoot(BOLT, ICE, x + dir * 45 * s, y - 38 * s, dir, 1.6, land))}, // from his fist's front (art 37, 27)
-        {go: 'move', fn: t => shot.fly(t), pose: t => ({face: dir, hand: 6, reach: 2, dy: t < 120 ? -1 : 0, eyes: 'side', look: dir, iceBolt: {star: t < 110}})},
+        {go: 'move', fn: t => shot.fly(t), pose: t => ({face: dir, hand: 6, reach: 6, ox: t < 200 ? dir : 0, eyes: 'side', look: dir, iceBolt: {star: t < 110}})}, // thrust: arm straight out, leaning in
         {go: 'hold', T: 400, pose: {face: dir, eyes: 'happy'}},
         {go: 'hold', T: 200, pose: {}},
       ]
@@ -137,7 +140,7 @@ if (hangabout.skin === 'knight') {
         const y = 27 + (pose.squash || 0), hot = Math.floor(now / 80) % 2 ? ICE.W : ICE.L
         if (d.charge === 1) paint(ctx, ['.B.', 'BWB', '.B.'], 5, y - 1, {...ICE, W: hot})
         if (d.charge === 2) paint(ctx, ['.LBL.', 'LBWBL', 'BWWWB', 'LBWBL', '.LBL.'], 3, y - 2, {...ICE, W: hot})
-        if (d.star) paint(ctx, STAR, 0, y - 3, ICE)
+        if (d.star) paint(ctx, STAR, -5, y - 4, ICE) // ahead of his fist, thrust out
       })
     },
   })
@@ -214,15 +217,17 @@ if (hangabout.skin === 'knight') {
           ctx.globalAlpha = 1
         }
         if (d.star) paint(ctx, STAR, -2, 32, {W: '#FFFFFF', L: '#FFD84D'}) // a flash at its tip as it hits
-        if (d.dust) { // where the sword hit the ground: round puffs, billowing out and fading
-          ctx.globalAlpha = 1 - d.dust * .8
-          for (const [cx, r, c] of [[3, 2, '#9E978A'], [8, 3, '#BDB6A8'], [13, 2, '#D6D0C4']]) {
-            const R = r + d.dust * 2, x0 = cx - Math.round(d.dust * 2 * (cx < 8 ? 1 : cx > 8 ? -1 : 0))
-            ctx.fillStyle = c
-            for (let y = -Math.ceil(R); y <= 0; y++) { const w = Math.round(Math.sqrt(Math.max(0, R * R - y * y))); ctx.fillRect(x0 - w, 38 + y, 2 * w + 1, 1) }
-          }
-          ctx.globalAlpha = 1
+      })
+    },
+    behind({ctx, d, pose}){ // under the sword: dust kicked up past its tip, two puffs billowing out and fading
+      if (d.dust) facing(ctx, pose, () => {
+        ctx.globalAlpha = 1 - d.dust * .7
+        for (const [cx, r, c] of [[-4, 3, '#BDB6A8'], [-10, 2, '#9E978A']]) {
+          const R = r + d.dust * 2, x0 = cx - Math.round(d.dust * 2)
+          ctx.fillStyle = c
+          for (let y = -Math.ceil(R); y <= 0; y++) { const w = Math.round(Math.sqrt(Math.max(0, R * R - y * y))); ctx.fillRect(x0 - w, 38 + y, 2 * w + 1, 1) }
         }
+        ctx.globalAlpha = 1
       })
     },
   })
@@ -273,9 +278,9 @@ if (hangabout.skin === 'knight') {
         [{sword: 'dropped', hand: 6, eyes: 'happy', sandwich: {bites}}, bites < 3 ? 240 : 120],
       ]),
       [{squash: 2, sword: 'dropped', eyes: 'strain'}, 240], // whoa
-      [{stretch: 2, sword: 'dropped', arms: ['high', 'high'], eyes: 'angry', shake: 1, sandwich: {beefy: 1}}, 520], // beefy!
-      [{squash: 1, sword: 'dropped', arms: ['up', 'up'], eyes: 'happy', sandwich: {beefy: .7}}, 260],
-      [{stretch: 1, sword: 'dropped', arms: ['high', 'high'], eyes: 'happy', sandwich: {beefy: .4}}, 260],
+      [{stretch: 1, beefy: 1, sword: 'dropped', arms: ['up', 'up'], eyes: 'angry', shake: 1, sandwich: {beefy: 1}}, 560], // Beefy! a flex, fists up, elbows out
+      [{squash: 1, beefy: 1, sword: 'dropped', arms: ['high', 'high'], eyes: 'happy', sandwich: {beefy: .7}}, 300],
+      [{beefy: 1, sword: 'dropped', arms: ['up', 'up'], eyes: 'happy', sandwich: {beefy: .4}}, 260],
       [{sword: 'poof', eyes: 'happy'}, 220], [{}, 200],
     ],
     front({ctx, d, pose, now}){
