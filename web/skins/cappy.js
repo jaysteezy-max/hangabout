@@ -1,4 +1,5 @@
-// Cappy: the default pet. A capybara loaf drawn side on, facing left (facing right is the mirror image). Original art.
+// Cappy: the default pet. A capybara loaf drawn side on, facing left (facing right is the mirror image). Original art,
+// drawn closely from the owner's own reference.
 // A skin adds itself to SKINS (see "Skins" in TRICKS.md). Rows of his body; his eye and feet are added per pose:
 // F is his snout, K the lines of his nose and mouth, S the dark red inside his near ear, under his chin and round his haunch.
 // His far ear sits behind his head; his near ear opens into it.
@@ -18,7 +19,7 @@
     '...FKFFFFFFBBBBBBBBBBBB...',
     '...FKFFFFFFBBBBBBBBBBBB...',
     '......FFFFFBBBBBBBBBBBB...',
-    '..........BBBBBBBBBBBBB...',
+    '..........BBBBBBBBBBBBS...',
     '........SBBBBBBBBBBBBBS...',
     '........BBBBBBBBBBBBBS....',
     '........BBBBBBBBBBSSS.....',
@@ -27,12 +28,12 @@
   const LINE = '#1C1214', FOOT = '#7A3A3E', LID = '#5A322C'
   const INK = {B: COLORS[0], L: COLORS[1], S: COLORS[2], F: '#86655F', G: '#8F6F69', K: LINE, P: FOOT}
   const FEET = [17, 20, 25, 27] // each foot's left x: his front pair, then his hind pair under his haunch
-  // His front leg off the ground, drawn over him with an outline of its own: [left x, top y, rows], P his toes.
-  // Reaching out low (a jab reaches further), up to his chin, and high in front of his face.
+  // His front leg off the ground, drawn over him with an outline of its own: [left x, top y, rows], P his toes. Reaching
+  // out low (a jab reaches further, its leg longer behind his toes), up to his chin, and high in front of his face, from his chest.
   const PAW = {
-    1: [12, 35, ['PBBBB', 'PBBBB']],
-    2: [11, 30, ['.PP...', 'PBBB..', 'PBBBB.', '.BBBBB', '..BBBB']],
-    3: [8, 26, ['.PP....', 'PBBB...', 'PBBBB..', '.BBBB..', '..BBBB.', '...BBBB', '....BBB']],
+    1: [12, 35, ['.PBBB', 'PPBBB']],
+    2: [11, 32, ['.PP...', 'PBBB..', 'PBBBB.', '.BBBBB']],
+    3: [8, 26, ['.PP....', 'PBBB...', 'PBBBB..', '.BBBB..', '..BBBB.', '...BBBB', '....BBB', '.....BBB', '......BBB', '.......BB']],
   }
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
   const settled = pose => pose.tuck && !(pose.dy < 0) ? 1 : 0 // feet tucked on the ground, his loaf rests on the floor (in the air it doesn't)
@@ -52,14 +53,14 @@
       const dy = (pose.dy || 0) + settled(pose), top = 38 - rows.length + dy, px = [], seen = new Set() // his feet are on row 38
       const put = (x, y, c) => { px.push([x, y, c]); seen.add(x + ',' + y) }
       rows.forEach((r, j) => [...r].forEach((ch, i) => { if (INK[ch]) put(9 + i, top + j, INK[ch]) }))
-      const arms = pose.arms || [], paw = pose.hand != null || pose.reach ? 1 : arms.includes('high') ? 3 : arms.includes('up') ? 2 : 0
+      const arms = pose.arms || [], paw = pose.hand <= 4 ? 2 : pose.hand != null || pose.reach ? 1 : arms.includes('high') ? 3 : arms.includes('up') ? 2 : 0
       FEET.forEach((x, n) => {
         if (!(n === 0 && paw) && !pose.tuck && !pose.lift?.includes(n) && pose.tapLeg !== n) { put(x, 38 + dy, FOOT); put(x + 1, 38 + dy, FOOT) }
       })
       for (const [x, y] of px.slice()) for (const [ax, ay] of N4) if (!seen.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, LINE)
       if (paw) {
-        const r = paw === 1 ? Math.min(3, pose.reach || 0) : 0, [x0, y0, art] = PAW[paw], limb = []
-        art.forEach((row, j) => [...row[0] + 'B'.repeat(r) + row.slice(1)].forEach((ch, i) => { if (INK[ch]) limb.push([x0 - r + i, y0 + j + dy, INK[ch]]) }))
+        const r = paw === 1 ? Math.min(3, pose.reach || 0) : 0, [x0, y0, art] = PAW[paw], limb = [], at = paw === 1 ? dy : top - 20 // a raised paw keeps to his face
+        art.forEach((row, j) => [...row.slice(0, 2) + 'B'.repeat(r) + row.slice(2)].forEach((ch, i) => { if (INK[ch]) limb.push([x0 - r + i, y0 + j + at, INK[ch]]) }))
         const mine = new Set(limb.map(([x, y]) => x + ',' + y))
         for (const [x, y] of limb) for (const [ax, ay] of N4) if (!mine.has(x + ax + ',' + (y + ay))) px.push([x + ax, y + ay, LINE])
         px.push(...limb)
