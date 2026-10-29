@@ -85,15 +85,16 @@ if (hangabout.skin === 'knight') {
         Object.assign(el.style, {width: w + 'px', height: n * a + 'px', left: x - w / 2 + 'px', top: y - n * a + 'px'})
         hangabout.putFeet(x, y - n * a)
       }
-      const shatter = () => { // it breaks into its own pieces (four knuckles, thumb, fingers, wrist), flung out and dropping to the ground, gone as he lands
+      const crack = () => { for (const pts of [[[5, 1], [7, 4], [5, 8], [7, 11]], [[14, 1], [12, 5], [15, 9], [13, 13]], [[22, 2], [20, 6], [23, 10]]]) for (let i = 1; i < pts.length; i++) thickLine(g, ...pts[i - 1], ...pts[i], 1, ICE.O) } // cracks spread across it
+      const shatter = () => { // it breaks into its own pieces (four knuckles, thumb, fingers, wrist), flung out whole and dropping to the ground, then gone
         const rows = [...FIST, ...Array(Math.max(0, h - FIST.length)).fill(FIST.at(-1))], top = y - h * a
         el.remove()
         for (const [cx, cy, cw, ch] of [[0, 0, 8, 7], [8, 0, 6, 7], [14, 0, 6, 7], [20, 0, 8, 7], [0, 7, 14, 6], [14, 7, 14, 6], [3, 13, 17, h - 13]]) {
           const b = sprite(rows.slice(cy, cy + ch).map(r => r.slice(cx, cx + cw)), ICE, a, 1), out = (cx + cw / 2 - 14) / 14
-          Object.assign(b.style, {left: x - w / 2 + cx * a + 'px', top: top + cy * a + 'px', transition: 'transform .17s ease-in, opacity .17s ease-in'})
+          Object.assign(b.style, {left: x - w / 2 + cx * a + 'px', top: top + cy * a + 'px', transition: 'transform .26s ease-in, opacity .1s linear .16s'})
           b.getBoundingClientRect() // lay it out where it was, so the fall below animates
-          Object.assign(b.style, {transform: `translate(${Math.round(out * 4) * a}px, ${(h - cy - ch) * a}px)`, opacity: 0})
-          setTimeout(() => b.remove(), 220)
+          Object.assign(b.style, {transform: `translate(${Math.sign(out) * (4 + Math.round(Math.abs(out) * 4)) * a}px, ${(h - cy - ch) * a}px)`, opacity: 0})
+          setTimeout(() => b.remove(), 300)
         }
       }
       return [
@@ -102,6 +103,7 @@ if (hangabout.skin === 'knight') {
         {go: 'move', fn: t => { rise(Math.min(H, 2 + Math.round(t / 9))); return h >= H }, pose: {squash: 2, eyes: 'strain'}}, // and up he goes
         {go: 'hold', T: 140, pose: {squash: 1, eyes: 'strain'}},
         {go: 'hold', T: 460, pose: {sword: 'raise', stretch: 1, eyes: 'happy'}}, // on top of it, sword high
+        {go: 'do', fn: crack}, {go: 'hold', T: 130, pose: {sword: 'raise', eyes: 'strain'}}, // it cracks under him
         {go: 'do', fn: shatter},
         {go: 'move', fn: t => { const fy = Math.min(y, y - H * a + .0025 * s * t * t); hangabout.putFeet(x, fy); return fy >= y }, pose: {tuck: 1, eyes: 'up'}},
         {go: 'hold', T: 140, pose: {squash: 2}}, {go: 'hold', T: 140, pose: {squash: 1}}, {go: 'hold', T: 200, pose: {}},
@@ -216,7 +218,7 @@ if (hangabout.skin === 'knight') {
           for (const [y, len] of [[28, 6], [30, 9], [32, 5]]) ctx.fillRect(-1 - len, y + (pose.dy || 0), len, 1)
           ctx.globalAlpha = 1
         }
-        if (d.star) paint(ctx, STAR, -2, 32, {W: '#FFFFFF', L: '#FFD84D'}) // a flash at its tip as it hits
+        if (d.star) paint(ctx, STAR, -6, 32, {W: '#FFFFFF', L: '#FFD84D'}) // a flash just past its tip as it hits
       })
     },
     behind({ctx, d, pose}){ // under the sword: dust kicked up past its tip, two puffs billowing out and fading
