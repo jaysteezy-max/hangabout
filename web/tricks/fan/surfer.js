@@ -6,6 +6,8 @@
   const CHROME = {[BODY]: '#C3CCD6', [TOP]: '#EEF3F8', [SIDE]: '#8793A1', [EYE]: '#3B4654'}
   const CHICKEN = hangabout.skin === 'chicken' // his crest, wattle and tail, beak and wing, toes and mouth chromed too (web/skins/chicken.js); the glint only on his body, inside his outline
   if (CHICKEN) Object.assign(CHROME, {'#44AEF6': '#A4AFBC', '#0060A0': '#626E7D', '#FFF050': '#E2E8EF', '#B8960F': '#7D8896', '#F2BE2E': '#B8C2CE', '#6B2020': '#3B4654'})
+  // The slime's outline, glints and cheeks chromed too (web/skins/slime.js), so it's silver all over, not green-rimmed.
+  if (hangabout.skin === 'slime') Object.assign(CHROME, {'#6A9D23': '#4F5A67', '#DCF9B6': '#E2E8EF', '#EC9291': '#AEB8C4'})
   const ON = {cosmic: 1, chrome: 1, board: 1}
 
   hangabout.trick({
