@@ -146,11 +146,12 @@
       yawn: [[{squash: 1, eyes: 'blink'}, 260], [{stretch: 2, eyes: 'blink', mouth: 'yawn'}, 950], [{squash: 1, eyes: 'blink'}, 200], ...JIGGLE],
     },
     // Claude's states as it'd do them (see MOODS in pet.html): it wobbles now and then while idle, sways as it thinks,
-    // hops for your attention with a nub up, and naps settled low, breathing deep.
+    // hops for your attention with a nub up, sulks half melted when it's stuck, and naps settled low, breathing deep.
     moods: {
       idle: loop([[{}, 3000], [{eyes: 'blink'}, 130], [{}, 2200], ...JIGGLE, [{}, 2400], [{eyes: 'blink'}, 120], [{}, 180], [{eyes: 'blink'}, 120], [{}, 1800], [{squash: 1}, 520]]),
       thinking: {intro: [...PONDER, ...PONDER, [{eyes: 'blink'}, 120], [{eyes: 'up'}, 400]], loops: 3, rest: [[{eyes: 'up'}, 2600], ...PONDER, [{eyes: 'blink'}, 120]]},
       needs: {rest: ASK_HOP},
+      blocked: {intro: [[{squash: 2, eyes: 'sad'}, 300], [{puddle: 1, eyes: 'sad'}, 2500], [{puddle: 1, eyes: 'blink'}, 450]], loops: 1, rest: [[{puddle: 1, eyes: 'sad'}, 2800], [{puddle: 1, eyes: 'blink'}, 450]]},
       nap: loop([[{eyes: 'blink', squash: 1}, 2400], [{eyes: 'blink', squash: 2}, 2400]]),
     },
     /** Hovered: a jelly wobble, not the usual tilt, at t ms into the half second. */
