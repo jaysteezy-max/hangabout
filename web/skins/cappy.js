@@ -36,10 +36,24 @@
     3: [8, 26, ['.PP....', 'PBBB...', 'PBBBB..', '.BBBB..', '..BBBB.', '...BBBB', '....BBB', '.....BBB', '......BBB', '.......BB']],
   }
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+  const YAWN = [[12, -3], [12, -2], [12, -1], [13, -2], [14, -1]] // his mouth open, from his chin up, a tongue at its bottom
   const settled = pose => pose.tuck && !(pose.dy < 0) ? 1 : 0 // feet tucked on the ground, his loaf rests on the floor (in the air it doesn't)
   console.assert(ROWS.every(r => r.length === 26), 'Cappy: every row is 26 wide')
 
+  // How he moves his own way (see "Skins" in TRICKS.md): a capybara's bow of a stretch, a yawn with his nose up, and lying
+  // flat on the floor when he's stuck or dozing. glide turns a tilt the way he faces.
+  const SLUMP = [[{squash: 2, tuck: 1, eyes: 'sad'}, 2800], [{squash: 1, tuck: 1, eyes: 'sad'}, 300], [{squash: 2, tuck: 1, eyes: 'blink'}, 450]] // flat on the floor, glum, a sigh now and then
+  const NAP = [[{squash: 2, tuck: 1, eyes: 'blink'}, 2400], [{squash: 1, tuck: 1, eyes: 'blink'}, 2400]] // a loaf on the floor, breathing
+  const MOVES = {
+    tricks: {
+      stretch: [[{squash: 1}, 160], [{tilt: 6, glide: 1, reach: 2, eyes: 'blink'}, 750], [{stretch: 1, eyes: 'blink'}, 180], [{squash: 1}, 220], [{}, 300]], // down on his front, a paw reaching out
+      yawn: [[{squash: 1, eyes: 'blink'}, 260], [{stretch: 1, tilt: -5, glide: 1, eyes: 'blink', mouth: 'yawn'}, 950], [{squash: 1, eyes: 'blink'}, 200], [{}, 250]],
+    },
+    moods: {blocked: {intro: SLUMP, rest: SLUMP}, nap: {intro: NAP, rest: NAP}},
+  }
+
   SKINS.cappy = {
+    ...MOVES,
     name: 'Cappy', colors: COLORS, sideOn: true,
     /** Where costumes find his face, as drawn facing left: his eye (x, y: its left pixel), the top of his head between his ears, and the front of his snout. */
     head(pose){
@@ -65,6 +79,7 @@
         for (const [x, y] of limb) for (const [ax, ay] of N4) if (!mine.has(x + ax + ',' + (y + ay))) px.push([x + ax, y + ay, LINE])
         px.push(...limb)
       }
+      if (pose.mouth === 'yawn') { const chin = 33 + dy - st; for (const [x, y] of YAWN) px.push([x, chin + y, LINE]); px.push([13, chin - 1, INK.S]) }
       const right = pose.face > 0, out = right ? px.map(([x, y, c]) => [GW - 1 - x, y, c]) : px
       // His eye, a dash: it looks about with the same keys as Clawd's (screen directions), and keeps his expressions.
       const kind = pose.eyes || 'open', ex = right ? 22 : 20, ey = top + 5
