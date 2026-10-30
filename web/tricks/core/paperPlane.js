@@ -5,7 +5,7 @@
 {
   const {OY, PH, GW, paint, surfaces, desk, rand, pick} = hangabout
   const PUSHEEN = hangabout.skin === 'pusheen' // a loaf cat: she folds it on the floor in front of her, patting it with a paw, and aims it from her raised paw
-  const AIM = PUSHEEN ? [{x: 31, y: OY + 5}, {x: 29, y: OY + 6}] : [{x: 33, y: OY}, {x: 31, y: OY + 1}]
+  const AIM = PUSHEEN ? [{x: 31, y: OY + 5}, {x: 29, y: OY + 6}] : hangabout.skin === 'cappy' ? [{x: 32, y: 26}, {x: 31, y: 27}] : [{x: 33, y: OY}, {x: 31, y: OY + 1}]
   const INK = {W: '#F4F4F1', L: '#C9CDD3', F: '#8F959E'} // paper, its shaded underside, the fold
   const SHEET = ['WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'LLLLLLL']
   const POINTED = ['...W...', '..WFW..', '.WWFWW.', 'WWWFWWW', 'WWWFWWW', 'LLLFLLL'] // top corners folded in

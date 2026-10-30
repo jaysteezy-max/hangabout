@@ -25,7 +25,7 @@
       [{squash: 1, eyes: 'angry', arms: ['mid', 'down'], guts: {cape: 1, low: 1, brand: 1}}, 300],
       [{eyes: 'angry', guts: {cape: 1, shoulder: 1, brand: 1, aura: 1}}, 1500], // rests it on his shoulder
       [{guts: {cape: .5, shoulder: .5}}, 160], [{guts: {cape: .25, shoulder: .25}}, 160], [{}, 200],
-    ].map(([p, ms]) => [CAPPY && p.guts ? p.guts.shoulder || p.guts.sword ? {...p, arms: ['mid', 'high']} : p : // Cappy's paw on its grip
+    ].map(([p, ms]) => [CAPPY && p.guts ? p.guts.shoulder || p.guts.sword ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: 6} : p : // Cappy's paw on its grip
       !CHICKEN || !p.guts ? p : p.guts.shoulder ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: 4} : p.guts.sword ? {...p, hand: 10} : p, ms]), // the chicken's wing on its grip
     /** Behind him: the dark aura, the cloak's flaps, and the sword when it's upright or on his shoulder. */
     behind({ctx, d: g, px, now, pose}){

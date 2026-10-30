@@ -47,6 +47,10 @@
     tricks: {
       stretch: [[{squash: 1}, 160], [{tilt: 6, glide: 1, reach: 2, eyes: 'blink'}, 750], [{stretch: 1, eyes: 'blink'}, 180], [{squash: 1}, 220], [{}, 300]], // down on his front, a paw reaching out
       yawn: [[{squash: 1, eyes: 'blink'}, 260], [{stretch: 1, tilt: -5, glide: 1, eyes: 'blink', mouth: 'yawn'}, 950], [{squash: 1, eyes: 'blink'}, 200], [{}, 250]],
+      lookAround: [[{eyes: 'side', look: -1, tilt: 3, glide: 1}, 650], [{eyes: 'side', look: 1, tilt: -3, glide: 1}, 650], [{eyes: 'up', stretch: 1, tilt: -5, glide: 1}, 450], [{}, 200]], // his head goes with his eye
+      scratch: [...Array(4)].flatMap(() => [[{arms: ['up', 'up'], tilt: -4, glide: 1, eyes: 'blink'}, 170], [{arms: ['up', 'up'], squash: 1, tilt: -2, glide: 1, eyes: 'happy'}, 170]]), // his chin rubbed on his paw
+      ledgeSit: [[{sink: 3}, 120], [{sink: 6, flat: 2, tuck: 1}, 300], // lounging on the ledge, a front paw dangling over it
+        ...[...Array(8)].map((_, i) => [{sink: 6, flat: 2, tuck: 1, hand: 6, reach: i % 2 ? 2 : 0, eyes: i === 5 ? 'blink' : 'open'}, 380]), [{sink: 3}, 120], [{}, 200]],
     },
     moods: {blocked: {intro: SLUMP, rest: SLUMP}, nap: {intro: NAP, rest: NAP}},
   }
