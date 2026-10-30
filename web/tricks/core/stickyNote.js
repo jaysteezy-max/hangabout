@@ -7,7 +7,10 @@
   const {GW, GH, OY, desk, edges, feet, paint, thickLine} = hangabout
   const STAY = 20000 // ms it stays once you're here
   const REACH = 30 // art pixels: how far from his hand he'll go to put it on a window, from the floor
-  const NX = 38, NY = 22, N = 12, LOW = 26 // the note in his hand (drawn as if he faces right), its size, and the top of it once stuck beside him
+  // Cappy has no hands: he holds the note up on the toes of his front paw, out low in front of his snout (by his chin as
+  // he winds up), writes on it with the pen in his mouth, nodding as he scribbles, and slaps it on with that paw.
+  const CAPPY = hangabout.skin === 'cappy'
+  const [NX, NY] = CAPPY ? [34, 23] : [38, 22], N = 12, LOW = 26 // the note in his hand (drawn as if he faces right), its size, and the top of it once stuck beside him
   const YELLOW = '#FFD84D', LEAD = '#6B5E3C', TICK = '#2C7A39'
   const NOTE = [ // a, b: two scribbled lines; c, k: the tick, written last; f: a corner folded up
     'yyyyyyyyyyyy',
@@ -74,7 +77,8 @@
   }
 
   const CHICKEN = hangabout.skin === 'chicken', RAISE = CHICKEN ? 4 : 0 // the chicken's wing held out higher, by his beak, clear of his wattle
-  const at = (pose, ms, d = {stuck: 1}) => [{face: 1, eyes: 'side', look: 1, ...pose, ...pose.hand != null && {hand: pose.hand - RAISE}, stickyNote: d}, ms] // turned to the note
+  const paw = (pose, d) => pose.hand > 4 ? {reach: pose.reach ?? 3, ...d.pen && pose.hand > 8 && {squash: 1}} : {} // Cappy's paw out to the note, and his nod
+  const at = (pose, ms, d = {stuck: 1}) => [{face: 1, eyes: 'side', look: 1, ...pose, ...pose.hand != null && {hand: pose.hand - RAISE}, ...CAPPY && paw(pose, d), stickyNote: d}, ms] // turned to the note
   hangabout.trick({
     name: 'stickyNote', label: 'Sticky note ✓', rarity: 'manual', on: {finishedWhileAway: 1},
     frames: [
@@ -99,12 +103,12 @@
     /** The note in his hand, and the pen from his hand to where he's writing. */
     front({ctx, d, pose}){
       if (d.marks == null) return
-      const x = side > 0 ? NX : GW - NX - N, y = NY - (d.up ? 4 : 0)
+      const [nx, y] = CAPPY && d.up ? [33, 20] : [NX, NY - (d.up ? 4 : 0)], x = side > 0 ? nx : GW - nx - N // Cappy's held up on his chin paw
       if (CHICKEN) { ctx.fillStyle = '#16161A'; ctx.fillRect(x - 1, y - 1, N + 2, N + 2) } // outlined like him, so it doesn't run into his yellow wing
       paint(ctx, NOTE, x, y, ink(d.marks))
       if (!d.pen) return
-      const [tx, ty] = TIP[d.marks - 1], hy = OY + pose.hand + 1
-      thickLine(ctx, side > 0 ? 36 : GW - 37, hy, x + tx - side, y + ty, 1, '#3F51B5') // a blue pen: a pencil wouldn't show on yellow
+      const [tx, ty] = TIP[d.marks - 1], [hx, hy] = CAPPY ? [30, 32] : [36, OY + pose.hand + 1] // from his hand, or the corner of Cappy's mouth
+      thickLine(ctx, side > 0 ? hx : GW - 1 - hx, hy, x + tx - side, y + ty, 1, '#3F51B5') // a blue pen: a pencil wouldn't show on yellow
       ctx.fillStyle = '#2B2B2B'; ctx.fillRect(x + tx, y + ty, 1, 1)
     },
   })
