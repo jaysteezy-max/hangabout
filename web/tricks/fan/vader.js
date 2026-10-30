@@ -7,12 +7,14 @@
   const HATTY = hangabout.skin === 'hatty' // the helmet in place of his top hat, his suit gone black, the saber in his cane hand
   const CHICKEN = hangabout.skin === 'chicken' // a dome of a helmet over his crest, his blue and toes gone black, the cape down his back, the saber in his wing
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out of a side-on loaf: the dome over both ears, a lens on each eye
+  const CAPPY = hangabout.skin === 'cappy' // his snout and toes gone black too, his front paw out low to the hilt
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
   if (PUSHEEN) ARMOR['#8B8B90'] = '#111115' // and her paws (web/skins/pusheen.js)
   if (HATTY) Object.assign(ARMOR, {'#915544': '#1E1E24', '#4E4E4E': '#111115', '#9B225D': '#2C2D35', '#4BA2CE': '#1E1E24'}) // and his jacket, trousers, tie and tears (web/skins/hatty.js)
   if (CHICKEN) Object.assign(ARMOR, {'#F2BE2E': '#2C2D35', '#6B2020': '#111115'}) // his toes (web/skins/chicken.js)
+  if (CAPPY) Object.assign(ARMOR, {'#86655F': '#2C2D35', '#8F6F69': '#3C3D47', '#7A3A3E': '#2C2D35'}) // his snout, its highlight and his toes (web/skins/cappy.js)
   const SUITED = {'#44AEF6': '#1E1E24', '#0060A0': '#111115', '#FFF050': '#3C3D47', '#B8960F': '#111115'} // the chicken's blue and yellow, gone black all but his beak and tail (see pixels)
-  const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid'], HOLD = {arms: MID, ...CHICKEN && {hand: 7}} // the chicken's wing round the hilt
+  const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid'], HOLD = {arms: MID, ...(CHICKEN || CAPPY) && {hand: 7}} // the chicken's wing round the hilt, Cappy's paw
   const maythe4th = () => { const d = new Date(); return d.getMonth() === 4 && d.getDate() === 4 ? 1 : 0 } // your local date
 
   /** A side-on skin's last column at his back, as drawn facing left: just in from his outline. */
@@ -71,11 +73,12 @@
         ctx.fillStyle = '#5D606B'; for (let i = 0; i < 5; i++) ctx.fillRect(17 - i, h.y + 1 + i, 1, 1) // the cheek, down to the grille
       }
       ctx.translate(n - k, 0) // the grille, the chest panel and the saber by his snout
+      const m = h.y - (CAPPY ? 2 : 0) // Cappy's snout ends higher: his grille and chest panel come up with it
       if (v.mask) {
-        if (!CHICKEN) for (const [y, x0, x1] of [[h.y + 6, 10, 12], [h.y + 7, 10, 13], [h.y + 8, 10, 14], [h.y + 9, 11, 14]]) for (let x = x0; x <= x1; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille
-        row(h.y + 11, 17, 26, '#4F525C'); row(h.y + 12, 17, 26, '#4F525C') // chest panel, its lights blinking
+        if (!CHICKEN) for (const [y, x0, x1] of [[m + 6, 10, 12], [m + 7, 10, 13], [m + 8, 10, 14], [m + 9, 11, 14]]) for (let x = x0; x <= x1; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille
+        row(m + 11, 17, 26, '#4F525C'); row(m + 12, 17, 26, '#4F525C') // chest panel, its lights blinking
         const on = Math.floor(now / 350)
-        ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(18 + i * 2, h.y + 11 + (i % 2), 1, 1) } })
+        ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(18 + i * 2, m + 11 + (i % 2), 1, 1) } })
       }
       saber(ctx, v, now, 8, h.y + 8)
     })
