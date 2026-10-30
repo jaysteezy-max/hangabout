@@ -17,7 +17,6 @@
     '...FKFFFFFFBBBBBBBBBBBB...',
     '...FKFFFFFFBBBBBBBBBBBB...',
     '...FKFFFFFFBBBBBBBBBBBB...',
-    '...FKFFFFFFBBBBBBBBBBBB...',
     '......FFFFFBBBBBBBBBBBB...',
     '..........BBBBBBBBBBBBS...',
     '........SBBBBBBBBBBBBBS...',
@@ -27,13 +26,13 @@
   const COLORS = ['#C27A55', '#C9825C', '#8D4241', '#0E0809'] // BODY, TOP (the top of his head), SIDE (his inner ear and haunch), EYE
   const LINE = '#1C1214', FOOT = '#7A3A3E', LID = '#5A322C'
   const INK = {B: COLORS[0], L: COLORS[1], S: COLORS[2], F: '#86655F', G: '#8F6F69', K: LINE, P: FOOT}
-  const FEET = [17, 20, 25, 27] // each foot's left x: his front pair, then his hind pair under his haunch
+  const FEET = [17, 20, 26, 27] // each foot's left x: his front pair, then his hind pair under his haunch
   // His front leg off the ground, drawn over him with an outline of its own: [left x, top y, rows], P his toes. Reaching
   // out low (a jab reaches further, its leg longer behind his toes), up to his chin, and high in front of his face, from his chest.
   const PAW = {
-    1: [12, 35, ['.PBBB', 'PPBBB']],
+    1: [12, 34, ['.PBBB', 'PPBBB']],
     2: [11, 32, ['.PP...', 'PBBB..', 'PBBBB.', '.BBBBB']],
-    3: [8, 26, ['.PP....', 'PBBB...', 'PBBBB..', '.BBBB..', '..BBBB.', '...BBBB', '....BBB', '.....BBB', '......BBB', '.......BB']],
+    3: [7, 28, ['.PP.......', 'PBBB......', 'PBBBB.....', '.BBBBB....', '..BBBBB...', '...BBBBBB.', '.....BBBBB']],
   }
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
   const YAWN = [[12, -3], [12, -2], [12, -1], [13, -2], [14, -1]] // his mouth open, from his chin up, a tongue at its bottom
@@ -73,7 +72,7 @@
       })
       for (const [x, y] of px.slice()) for (const [ax, ay] of N4) if (!seen.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, LINE)
       if (paw) {
-        const r = paw === 1 ? Math.min(3, pose.reach || 0) : 0, [x0, y0, art] = PAW[paw], limb = [], at = paw === 1 ? dy : top - 20 // a raised paw keeps to his face
+        const r = paw === 1 ? Math.min(3, pose.reach || 0) : 0, [x0, y0, art] = PAW[paw], limb = [], at = dy - st // it keeps to his chin
         art.forEach((row, j) => [...row.slice(0, 2) + 'B'.repeat(r) + row.slice(2)].forEach((ch, i) => { if (INK[ch]) limb.push([x0 - r + i, y0 + j + at, INK[ch]]) }))
         const mine = new Set(limb.map(([x, y]) => x + ',' + y))
         for (const [x, y] of limb) for (const [ax, ay] of N4) if (!mine.has(x + ax + ',' + (y + ay))) px.push([x + ax, y + ay, LINE])
@@ -85,7 +84,7 @@
       const kind = pose.eyes || 'open', ex = right ? 22 : 20, ey = top + 5
       const lx = Math.max(-1, Math.min(1, kind === 'side' ? pose.look ?? 1 : pose.dx ?? pose.lookX ?? 0)), ly = kind === 'up' ? -1 : kind === 'down' ? 1 : pose.lookY || 0
       const eye = (pts, c = eyeColor) => { for (const [x, y] of pts) out.push([ex + x, ey + y, c]) }
-      if (kind === 'blink') eye([[0, 0], [1, 0]], LID)
+      if (kind === 'blink') eye([[0, 1], [1, 1]], LID) // his lid, a row under his open eye
       else if (kind === 'happy') eye([[0, 0], [1, -1], [2, 0]])
       else if (kind === 'sad') eye(right ? [[0, 1], [1, 0]] : [[0, 0], [1, 1]]) // drooping at the back
       else if (kind === 'dizzy') eye([[0, -1], [2, -1], [1, 0], [0, 1], [2, 1]])

@@ -16,7 +16,13 @@
   </style>`)
 
   // The chicken is white too: he holds the paper out in his wing, off his belly, and aims the plane from it.
-  const CHICKEN = hangabout.skin === 'chicken', SHEET_AT = CHICKEN ? {x: 37, y: 25} : PUSHEEN ? {x: 35, y: 33} : {x: 18, y: OY + 9}
+  // Cappy has no arms: the sheet lies on the floor in front of his snout, under him so his paw pats it down from his chin.
+  const CAPPY = hangabout.skin === 'cappy'
+  const CHICKEN = hangabout.skin === 'chicken', SHEET_AT = CHICKEN ? {x: 37, y: 25} : PUSHEEN ? {x: 35, y: 33} : CAPPY ? {x: 33, y: 33, under: 1} : {x: 18, y: OY + 9}
+  function paper(ctx, d, pose){
+    const left = pose.face < 0, w = d.art[0].length
+    paint(ctx, left ? d.art.map(r => [...r].reverse().join('')) : d.art, left ? GW - d.x - w : d.x, d.y, INK)
+  }
   let plane = null // the element while it's in the air; once down, it fades on its own
   const fade = (el, wait) => setTimeout(() => { el.style.opacity = 0; setTimeout(() => el.remove(), 600) }, wait)
 
@@ -57,7 +63,7 @@
     trip({x, y, dir}){
       const s = hangabout.size, W = hangabout.width
       if ((dir > 0 ? W - x : x) < W / 3) dir = -dir // too near the edge he faces: he throws toward the room
-      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {...PUSHEEN ? arms[0] === 'up' && {hand: 8} : {arms}, eyes: 'down', ...CHICKEN && {hand: arms[0] === 'up' ? 7 : 8}, paperPlane: {art, ...SHEET_AT}}})
+      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {...PUSHEEN ? arms[0] === 'up' && {hand: 8} : {arms}, ...CAPPY && arms[0] === 'up' && {reach: 3}, eyes: 'down', ...CHICKEN && {hand: arms[0] === 'up' ? 7 : 8}, paperPlane: {art, ...SHEET_AT}}})
       const cheer = (T, pose) => ({go: 'hold', T, pose: {face: dir, eyes: 'happy', ...pose}})
       let f // the flight, once it's left his hand
       return [
@@ -66,7 +72,7 @@
         {go: 'hold', T: 520, pose: {face: dir, arms: ['mid', 'up'], eyes: 'sad', ...CHICKEN && {hand: 3}, paperPlane: {art: PLANE, ...AIM[0]}}}, // squints down his arm
         {go: 'hold', T: 170, pose: {face: dir, arms: ['mid', 'up'], swing: -1, squash: 1, eyes: 'sad', ...CHICKEN && {hand: 4}, paperPlane: {art: PLANE, ...AIM[1]}}}, // draws back
         {go: 'do', fn: () => (f = launch(x + dir * 57 * s, y - 45 * s, dir))}, // from his outstretched hand (art 41, 25)
-        {go: 'move', fn: t => fly(f, t), pose: t => t < 150 ? {face: dir, hand: 5, reach: 2, dy: -1, dx: 1} // lets go
+        {go: 'move', fn: t => fly(f, t), pose: t => t < 150 ? {face: dir, ...CAPPY ? {arms: ['high', 'high']} : {hand: 5, reach: 2}, dy: -1, dx: 1} // lets go, Cappy's paw flung up past his face
           : {face: dir, dx: 1, eyes: f.y < y - 110 * s ? 'up' : f.y > y + 20 * s ? 'down' : 'open'}}, // and follows it with his eyes
         cheer(110, {squash: 1}), cheer(170, {dy: -4, tuck: 1, arms: ['mid', 'high']}), cheer(130, {dy: -2, arms: ['mid', 'high']}),
         cheer(110, {squash: 1, arms: ['mid', 'up']}), cheer(420, {arms: ['mid', 'high']}),
@@ -74,10 +80,8 @@
       ]
     },
     end(){ if (plane) fade(plane, 0); plane = null }, // cut short mid-flight: it fades where it is
-    /** The paper in his hands, mirrored when he faces left. */
-    front({ctx, d, pose}){
-      const left = pose.face < 0, w = d.art[0].length
-      paint(ctx, left ? d.art.map(r => [...r].reverse().join('')) : d.art, left ? GW - d.x - w : d.x, d.y, INK)
-    },
+    /** The paper in his hands, mirrored when he faces left (Cappy's sheet on the floor goes behind him, under his paw). */
+    front({ctx, d, pose}){ if (!d.under) paper(ctx, d, pose) },
+    behind({ctx, d, pose}){ if (d.under) paper(ctx, d, pose) },
   })
 }
