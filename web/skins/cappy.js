@@ -32,7 +32,7 @@
   const PAW = {
     1: [12, 34, ['.PBBB', 'PPBBB']],
     2: [11, 32, ['.PP...', 'PBBB..', 'PBBBB.', '.BBBBB']],
-    3: [7, 28, ['.PP.......', 'PBBB......', 'PBBBB.....', '.BBBBB....', '..BBBBB...', '...BBBBBB.', '.....BBBBB']],
+    3: [7, 28, ['.PP......', 'PBBB.....', 'PBBB.....', '.BBBB....', '..BBBB...', '...BBBBB.', '.....BBBBB']],
   }
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
   const YAWN = [[12, -3], [12, -2], [12, -1], [13, -2], [14, -1]] // his mouth open, from his chin up, a tongue at its bottom
