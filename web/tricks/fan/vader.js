@@ -9,6 +9,7 @@
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out of a side-on loaf: the dome over both ears, a lens on each eye
   const SLIME = hangabout.skin === 'slime' // a cube with its face on its side: the dome over its top face, a lens on each eye, the saber in its goo arm
   const KNIGHT = hangabout.skin === 'knight' // his own helmet is the dome: it goes black, his faceplate the mask, the saber in his front hand
+  const CLAY = hangabout.skin === 'clay' // faceless, facing you: the helmet on his round head, the mask where a face would be, the saber in his mitt
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
   if (PUSHEEN) ARMOR['#8B8B90'] = '#111115' // and her paws (web/skins/pusheen.js)
   if (HATTY) Object.assign(ARMOR, {'#915544': '#1E1E24', '#4E4E4E': '#111115', '#9B225D': '#2C2D35', '#4BA2CE': '#1E1E24'}) // and his jacket, trousers, tie and tears (web/skins/hatty.js)
@@ -27,6 +28,14 @@
     for (let y = top; y < GH; y++) {
       const edge = 35 + Math.round((y - top) * 5 / (GH - 1 - top)) // hanging out a little more toward the floor
       for (let x = 22; x <= edge; x++) if (y < GH - Math.round(1 + Math.sin(x * 1.3 + now / 260))) { ctx.fillStyle = x === edge ? '#50525E' : '#33343D'; ctx.fillRect(x, y, 1, 1) }
+    }
+  }
+  /** Clay's cape, drawn facing you: from his shoulders under the helmet's flare, spreading behind him to the floor. */
+  function clayCape(ctx, now, pose){
+    const top = SKINS.clay.at(pose).head.top + 7
+    for (let y = top; y < GH; y++) {
+      const s = Math.round((y - top) * 6 / (GH - 1 - top)), l = 15 - s, r = 28 + s
+      for (let x = l; x <= r; x++) if (y < GH - Math.round(1 + Math.sin(x * 1.3 + now / 260))) { ctx.fillStyle = x === l || x === r ? '#2A2A31' : '#0D0D10'; ctx.fillRect(x, y, 1, 1) }
     }
   }
   // The chicken's helmet, facing left, by rows down from the top of his head: [dy, x0, x1]. A dome over his head and crest,
@@ -184,6 +193,38 @@
     })
   }
 
+  /** Clay, drawn facing you: the dome over his round head, its sides down past his face flaring over his shoulders, the mask where a face would be with the grille low on his head, the chest panel, and the saber in his mitt on your right. */
+  function clayFront(ctx, v, now, pose){
+    const {head: h, hands: [, [hx, hy]]} = SKINS.clay.at(pose), row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0 + 1, 1) }
+    facing(ctx, pose, () => {
+      ctx.save(); ctx.translate(h.x - 22, 0) // laid out on his head standing (x 22 the line down its middle), moved as it leans
+      if (v.helmet != null) {
+        const t = h.top + v.helmet
+        for (const [dy, x0, x1] of [[-3, 20, 23], [-2, 18, 25], [-1, 17, 26], [0, 16, 27], [1, 16, 27], [2, 16, 27]]) row(t + dy, x0, x1, '#111114')
+        for (const [dy, l, r] of [[3, 16, 27], [4, 16, 27], [5, 15, 28], [6, 14, 29], [7, 13, 30]]) { // its sides past his face, flaring over his shoulders
+          row(t + dy, l, 17 + (dy > 5), '#111114'); row(t + dy, 26 - (dy > 5), r, '#111114')
+          if (dy > 4) { ctx.fillStyle = '#3C3D47'; ctx.fillRect(l, t + dy, 1, 1); ctx.fillRect(r, t + dy, 1, 1) } // light on the flare's edges
+        }
+        row(t - 3, 20, 23, '#3C3D47'); row(t + 2, 17, 26, '#2C2D35') // light on the crown, and the brow over the mask
+        ctx.fillStyle = '#4B4E5C'; for (const [x, y] of [[19, t - 2], [18, t - 1], [17, t], [17, t + 1]]) ctx.fillRect(x, y, 1, 1) // shine
+      }
+      if (v.mask) {
+        for (const [x0, outer] of [[18, -1], [23, 1]]) { // angled lenses, cut away at the outer bottom corner
+          row(h.y, x0, x0 + 2, '#2B0E10'); row(h.y + 1, x0 + (outer < 0), x0 + 2 - (outer > 0), '#2B0E10')
+          ctx.fillStyle = '#7A3232'; ctx.fillRect(x0 + 1, h.y, 1, 1)
+        }
+        ctx.fillStyle = '#5D606B'; ctx.fillRect(21, h.y, 2, 2) // the ridge between them
+        for (let i = 0; i < 2; i++) { ctx.fillRect(18 + i, h.y + 2 + i, 1, 1); ctx.fillRect(25 - i, h.y + 2 + i, 1, 1) } // the cheeks, down to the grille
+        for (const [y, w] of [[h.y + 2, 1], [h.y + 3, 2], [h.y + 4, 3]]) for (let x = 22 - w; x < 22 + w; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille, low on his head
+        row(h.y + 6, 18, 26, '#4F525C'); row(h.y + 7, 18, 26, '#4F525C') // chest panel, its lights blinking
+        const on = Math.floor(now / 350)
+        ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(19 + i * 2, h.y + 6 + (i % 2), 1, 1) } })
+      }
+      ctx.restore()
+      saber(ctx, v, now, hx + 1, hy - 1) // the hilt through his mitt
+    })
+  }
+
   hangabout.trick({
     name: 'vader', label: 'Darth Vader 🔴', rarity: 'rare', pack: 'fan', on: {forcePush: 1, today: maythe4th}, // a force push, and May the 4th
     frames: [
@@ -219,6 +260,7 @@
       facing(ctx, pose, () => { // side on: one, off his back; Hatty: from behind his helmet's flare
         ctx.globalAlpha = v.cape
         if (CHICKEN) { chickenCape(ctx, now, pose); ctx.globalAlpha = 1; return }
+        if (CLAY) { clayCape(ctx, now, pose); ctx.globalAlpha = 1; return }
         const top = PROFILE ? head(pose).top + 3 : HATTY ? head(pose).top + 10 : OY + 2
         for (const x0 of PROFILE ? [rump(px, pose)] : HATTY ? [10, 29] : [OX + 1, OX + 31]) for (let x = x0; x < x0 + 4; x++) {
           ctx.fillStyle = x === x0 || x === x0 + 3 ? '#2A2A31' : '#0D0D10'
@@ -234,6 +276,7 @@
       if (KNIGHT) return knightFront(ctx, v, now, pose)
       if (PROFILE) return profileFront(ctx, v, px, now, pose)
       if (HATTY) return hattyFront(ctx, v, now, pose)
+      if (CLAY) return clayFront(ctx, v, now, pose)
       const dy = pose.dy || 0, sq = pose.squash || 0, eyeY = OY + 4 + dy + sq, top = Math.min(...px.map(([, y]) => y)) + (v.helmet || 0)
       const row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0, 1) }
       if (v.helmet != null) { // a black dome, flaring out at the sides
