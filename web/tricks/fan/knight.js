@@ -91,7 +91,7 @@ if (hangabout.skin === 'knight') {
         el.remove()
         for (const [cx, cy, cw, ch] of [[0, 0, 8, 7], [8, 0, 6, 7], [14, 0, 6, 7], [20, 0, 8, 7], [0, 7, 14, 6], [14, 7, 14, 6], [3, 13, 17, h - 13]]) {
           const b = sprite(rows.slice(cy, cy + ch).map(r => r.slice(cx, cx + cw)), ICE, a, 1), out = (cx + cw / 2 - 14) / 14
-          Object.assign(b.style, {left: x - w / 2 + cx * a + 'px', top: top + cy * a + 'px', transition: 'transform .26s ease-in, opacity .1s linear .16s'})
+          Object.assign(b.style, {left: x - w / 2 + cx * a + 'px', top: top + cy * a + 'px', zIndex: 9, transition: 'transform .26s ease-in, opacity .1s linear .16s'}) // behind him (he's 10), so they don't bury his landing
           b.getBoundingClientRect() // lay it out where it was, so the fall below animates
           Object.assign(b.style, {transform: `translate(${Math.sign(out) * (4 + Math.round(Math.abs(out) * 4)) * a}px, ${(h - cy - ch) * a}px)`, opacity: 0})
           setTimeout(() => b.remove(), 300)
