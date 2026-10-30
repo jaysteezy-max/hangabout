@@ -99,7 +99,7 @@
   }
 
   SKINS.pusheen = {
-    name: 'Pusheen', label: 'Pusheen (fan art)', pack: 'fan', colors: COLORS, sideOn: true,
+    name: 'Pusheen', label: 'Pusheen (fan art)', colors: COLORS, sideOn: true,
     /** Where costumes find her face, as drawn facing left: her near eye (x, y: its left pixel), the top of her head between her ears, and the front of her face. */
     head(pose){
       const top = 38 - ROWS.length + (pose.squash || 0) - (pose.stretch || 0) + (pose.dy || 0) - (pose.legs ? 1 : 0) + settled(pose) // as draw() works it out

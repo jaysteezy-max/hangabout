@@ -71,4 +71,4 @@ fi
 
 open -g "$DEST/Hangabout.app"
 echo
-echo "Hangabout is running: Cappy is on your screen. Right-click him for tricks, behavior (Calm/Normal/Erratic), skin, size and more."
+echo "Hangabout is running: Pusheen is on your screen. Right-click her for tricks, behavior (Calm/Normal/Erratic), skin, size and more."

@@ -71,7 +71,7 @@ body.native .desk{position:fixed;inset:0;height:auto;min-height:0;border-radius:
 <body>
 <main>
 <header>
-  <h1>Hangabout <span class="dim" style="font-weight:400">· <span class="name">Cappy</span></span></h1>
+  <h1>Hangabout <span class="dim" style="font-weight:400">· <span class="name">Pusheen</span></span></h1>
   <div class="bar" style="margin:0">
     <button class="t" data-preset="calm">Calm</button><button class="t" data-preset="normal">Normal</button><button class="t" data-preset="erratic">Erratic</button>
     <span class="sep"></span>
@@ -84,7 +84,7 @@ body.native .desk{position:fixed;inset:0;height:auto;min-height:0;border-radius:
     <button class="t" id="light" aria-pressed="false">Light</button>
   </div>
 </header>
-<p class="intro"><span class="name">Cappy</span> lives on top of every window on your screen. When you don't need him he wanders, hops onto window edges, fidgets and watches your cursor. Pick him up and drop him anywhere (shake him and he gets dizzy), double-click for a hop, click a window and he'll notice. Hover him to see what Claude is doing, click to pin his recent activity, Esc to close.</p>
+<p class="intro"><span class="name">Pusheen</span> lives on top of every window on your screen. When you don't need him he wanders, hops onto window edges, fidgets and watches your cursor. Pick him up and drop him anywhere (shake him and he gets dizzy), double-click for a hop, click a window and he'll notice. Hover him to see what Claude is doing, click to pin his recent activity, Esc to close.</p>
 <div class="bar" id="states"></div>
 <div class="desk" id="desk">
   <div class="menubar"><b></b><span>Finder</span><span>File</span><span>Edit</span><span>View</span><span style="margin-left:auto">Mon 3:41 PM</span></div>
@@ -115,7 +115,7 @@ nothing to commit, working tree clean
 ~/my-app $ ▍</div>
   </div>
   <div class="pet" id="pet">
-    <button aria-label="Cappy. Show recent activity"><canvas height="40"></canvas></button>
+    <button aria-label="Pusheen. Show recent activity"><canvas height="40"></canvas></button>
     <svg class="elbow" viewBox="0 0 24 18"><path d="M1 1 V15 H24" stroke-dasharray="40" stroke-dashoffset="40"/></svg>
     <div class="box" role="status"><div class="hist" hidden></div><div class="l1"></div><div class="l2"></div></div>
   </div>
@@ -141,13 +141,13 @@ const GW = 44, GH = 40, OX = 4, OY = 20 // room above his head for big hair and 
 const LIFT = OY - 8 // effects around him were laid out for 8 rows of headroom
 const PAD = 12 // spare columns each side of his grid, for the page or terminal he works at
 
-// ---- who he is: a skin from skins/ (Cappy unless you pick another), or Clawd, drawn below (fan art of Anthropic's Clawd) ----
+// ---- who he is: a skin from skins/ (Pusheen unless you pick another), or Clawd, drawn below (fan art of Anthropic's Clawd) ----
 // The app sets window.hangaboutSkin before the page loads; the mockup takes ?skin=<name>. Tricks read his colors once,
 // as they load, so changing skin reloads the page.
 // Clawd: flat Claude Code terracotta; SIDE shows only when he turns, the side of him that faces away.
 SKINS.clawd = {name: 'Clawd', label: 'Clawd (fan art)', colors: ['#D77757', '#EB9F7F', '#B5603F', '#1F1410'], draw: (pose, eye) => figure(pose, eye)}
 const askedSkin = window.hangaboutSkin ?? new URLSearchParams(location.search).get('skin')
-const SKIN = SKINS[askedSkin] ? askedSkin : 'cappy', NAME = SKINS[SKIN].name
+const SKIN = SKINS[askedSkin] ? askedSkin : 'pusheen', NAME = SKINS[SKIN].name
 const [BODY, TOP, SIDE, EYE] = SKINS[SKIN].colors
 let C = {}
 const readTheme = () => { const s = getComputedStyle(document.body); for (const k of ['clay', 'peri', 'ok', 'err', 'dim']) C[k] = s.getPropertyValue('--' + k).trim() }
@@ -1291,7 +1291,7 @@ codeIn.onkeydown = e => {
 // Another skin: a reload, since tricks read his colors as they load. In the app it's right-click → Skin.
 const skinPicker = document.getElementById('skin')
 for (const [key, s] of Object.entries(SKINS)) skinPicker.add(new Option(s.label ?? s.name, key, false, key === SKIN))
-skinPicker.onchange = () => { location.search = skinPicker.value === 'cappy' ? '' : '?skin=' + skinPicker.value }
+skinPicker.onchange = () => { location.search = skinPicker.value === 'pusheen' ? '' : '?skin=' + skinPicker.value }
 for (const e of document.querySelectorAll('.name')) e.textContent = NAME
 button.setAttribute('aria-label', NAME + '. Show recent activity')
 toggle('light', () => { const on = document.body.classList.toggle('light'); readTheme(); return on })

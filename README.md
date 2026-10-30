@@ -11,22 +11,21 @@
 
 [Install](#install) · [Try it in your browser](https://jaysteezy-max.github.io/hangabout/) · [Tricks](#tricks) · [FAQ](#faq) · [Privacy](#privacy) · [Write a trick](TRICKS.md)
 
-<img src="assets/hero.gif" width="820" alt="Cappy the capybara standing on a terminal window. His status bubble reads 'Noodling… Step 2/5' while he thinks, then 'Update(page.mts) +12 −3' while he writes on a page with a pencil, 'Bash(npm test) Running…' while he starts a little terminal and watches its output scroll, 'Do you want to proceed?' while he lifts a front paw and glows for attention, and 'Done · 3 files · 2 commands' with confetti. Then he juggles three balls.">
+<img src="assets/hero.gif" width="820" alt="Pusheen the cat on a terminal window, showing Claude Code thinking, editing, running a command, waiting for an answer, and finishing with confetti.">
 
-<sub>Cappy, the default pet, on a window ledge, following one Claude Code turn: thinking, editing, running a command,
+<sub>Pusheen, the default pet, on a window ledge, following one Claude Code turn: thinking, editing, running a command,
 waiting on you, done.</sub>
 
 </div>
 
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude, Claude Code and Clawd
 > are Anthropic's; the optional Clawd skin is fan art of their character. The optional fan pack is fan art of other
-> people's characters (see [Fan pack](#fan-pack)).
+> people's characters (see [Fan pack](#fan-pack)). Pusheen is fan art of Pusheen Corp.'s character, not affiliated with or endorsed by Pusheen Corp.
 
-- **Cappy, or Clawd.** The pet is Cappy, a capybara, unless you'd rather have Claude Code's own mascot: right-click →
-  **Skin** → **Clawd**, a fan-art skin.
-- **Knows what Claude is doing.** A status bubble beside him says it in Claude Code's own words: the plan step, the file
+- **Pusheen by default.** Pusheen the cat is your desktop companion. Right-click → **Skin** to choose Cappy the capybara, Clawd, or another pet. Your choice is saved.
+- **Knows what Claude is doing.** A status bubble beside her says it in Claude Code's own words: the plan step, the file
   being edited, the command running, the question waiting on you. It opens by itself only when it matters.
-- **Lives on your real windows.** He walks along the Dock and the tops of your windows, rides a window you drag, climbs
+- **Lives on your real windows.** She walks along the Dock and the tops of your windows, rides a window you drag, climbs
   the sides of the screen and phases through its edges.
 - **Read-only and local.** The hook can't approve, block or change anything Claude does, and nothing leaves your Mac.
 - **Native and light.** A small Swift app that builds on your Mac in seconds. The hook takes about 5 ms per event.
@@ -41,11 +40,11 @@ and Apple's free command line tools, which the installer offers to install if th
 git clone https://github.com/jaysteezy-max/hangabout.git && cd hangabout && ./install.sh
 ```
 
-1. The installer builds Hangabout into `~/.hangabout` and starts it: Cappy appears at the bottom right of your screen.
+1. The installer builds Hangabout into `~/.hangabout` and starts it: Pusheen appears at the bottom right of your screen.
 2. It shows the hooks it wants to add to `~/.claude/settings.json` and **asks first**. If you say yes, it backs that
    file up as `settings.json.hangabout-backup-<time>` and leaves everything else in it as it was.
-3. **Check it works:** start a new Claude Code session and send a prompt. Cappy looks about while a star spins above
-   him, and his status bubble says what Claude is doing.
+3. **Check it works:** start a new Claude Code session and send a prompt. Pusheen looks about while a star spins above
+   her, and her status bubble says what Claude is doing.
 
 Run `./install.sh` again any time to update.
 
@@ -93,9 +92,9 @@ git clone https://github.com/jaysteezy-max/hangabout.git; cd hangabout; powershe
 ```
 
 It installs into `~\.hangabout` and asks before adding the same ten hooks to `~\.claude\settings.json`. Each runs
-`hangabout-hook.exe` directly (`"args": []`, no shell), so it works with or without Git Bash, and Cappy follows Claude
+`hangabout-hook.exe` directly (`"args": []`, no shell), so it works with or without Git Bash, and Pusheen follows Claude
 Code's PowerShell tool as well as Bash. To uninstall, run `powershell -ExecutionPolicy Bypass -File uninstall.ps1`. For
-now he lives on the main display above a taskbar at the bottom or top, and the plugin install is Mac-only.
+now she lives on the main display above a taskbar at the bottom or top, and the plugin install is Mac-only.
 
 </details>
 
@@ -103,7 +102,7 @@ now he lives on the main display above a taskbar at the bottom or top, and the p
 <summary>Coming from hookpet?</summary>
 
 Hangabout used to be called hookpet. In your old clone, `git pull` and run `./install.sh`: it quits the old pet, keeps
-his size and behavior settings, swaps the old hooks in `settings.json` for the new ones (after a backup) and deletes
+her size and behavior settings, swaps the old hooks in `settings.json` for the new ones (after a backup) and deletes
 `~/.claude/hookpet`. With the plugin, right-click the old pet → **Quit hookpet**, take the old plugin out, then install
 the new one as above:
 
@@ -114,18 +113,18 @@ the new one as above:
 
 </details>
 
-## Using him
+## Using her
 
-| Do this | He does this |
+| Do this | She does this |
 | --- | --- |
-| Hover him | Does a happy wiggle and shows his status bubble |
-| Click him | Pins the status bubble open with your recent tool calls; Esc or a click elsewhere closes it |
-| Drag him | Dangles from your cursor; shake him and he gets dizzy |
+| Hover her | Does a happy wiggle and shows her status bubble |
+| Click her | Pins the status bubble open with your recent tool calls; Esc or a click elsewhere closes it |
+| Drag her | Dangles from your cursor; shake her and she gets dizzy |
 | Double-click | Hops |
 | Click a window | Notices, with a little "!" |
 | Right-click | Tricks, Behavior, Skin, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Enter a code…, Quit |
 
-| Claude Code is… | Cappy | Status bubble |
+| Claude Code is… | Pusheen | Status bubble |
 | --- | --- | --- |
 | Thinking | Looks about, a spinning star | Opens for each new plan step |
 | Editing | Writing on a page: new lines in green, an old one scratched out in red | Lines added and removed |
@@ -135,12 +134,12 @@ the new one as above:
 | Stopped on an error | Slumped, glitching | Stays open with the reason |
 | Quiet for half an hour | Napping | Closed |
 
-With several Claude Code sessions open he follows the one that needs you most: waiting on you, then stuck, then busy,
+With several Claude Code sessions open she follows the one that needs you most: waiting on you, then stuck, then busy,
 then the latest.
 
 ### Behavior presets
 
-Right-click → **Behavior** sets how busy he is when Claude doesn't need him. Your choice is saved.
+Right-click → **Behavior** sets how busy she is when Claude doesn't need her. Your choice is saved.
 
 | Preset | What it's like |
 | --- | --- |
@@ -154,27 +153,27 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 
 | Skin | Who |
 | --- | --- |
-| **Cappy** | The default: a capybara, side on, who waves a front paw instead of a hand. |
+| **Pusheen** | The default pet: fan art of Pusheen the cat as her classic loaf, side on, with her striped tail tucked in. She moves like a cat: pattering on little legs, stretching, washing, napping with z's, blushing when happy, and every fan costume fitted to her face. Not affiliated with or endorsed by Pusheen Corp. Available with Fan pack off. |
+| **Cappy** | A capybara, side on, who waves a front paw instead of a hand. |
 | **Clawd** | Fan art of Anthropic's Clawd, Claude Code's mascot. Not affiliated with or endorsed by Anthropic. |
 | **Clay** | A faceless clay soldier in grey clay, after the Clay Soldiers Minecraft mod: a cube head, chunky arms and legs, drawn three-quarters. Original art. |
 | **Hatty Hattington** | Fan art of Hatty from BattleBlock Theater, front on, with his top hat, tears and cane. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
 | **Behemoth chicken** | Fan art of The Behemoth's chicken mascot, three-quarters on: a white egg with a blue crest and wattle, who flaps a wing instead of a hand. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
-| **Pusheen** | Fan art of Pusheen the cat as her classic loaf, side on, with her striped tail tucked in. She moves like a cat: pattering on little legs, stretching, washing, napping with z's, blushing when happy, and every fan costume fitted to her face. Not affiliated with or endorsed by Pusheen Corp. In the menu while Fan pack is on. |
 | **Minecraft slime** | Fan art of Minecraft's slime as a cute jelly cube, three-quarters on, with tall eyes and blush. It has no legs, so it hops everywhere, squashing and stretching like jelly, and pushes out little nubs of slime for hands. Its own tricks: it splits into three little slimes, super-bounces like a slime block, shakes off a leaf that sticks to it, and melts into a puddle now and then. Not affiliated with or endorsed by Mojang or Microsoft. In the menu while Fan pack is on. |
 | **Blue Knight** | Fan art of the Blue Knight from Castle Crashers, side on, crouched in his game idle with his sword level and his shield propped at his side. His gear has weight: he sets it down for anything that needs his hands and it pops back after. Ice magic, a sword combo, a bow shot and a sandwich of his own. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
 
 Every trick plays with any skin, and the fan-pack costumes fit Clawd front on and every side-on skin in profile. A skin
 is one file in `web/skins/` ([how to make one](TRICKS.md#skins)); fan-art skins of other people's characters show in the
-menu only while Fan pack is on.
+menu only while Fan pack is on, except Pusheen, who is always available.
 
 ## Tricks
 
-<img src="assets/tricks.gif" width="600" alt="Cappy on the Dock doing his core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave of his front paw.">
+<img src="assets/tricks.gif" width="600" alt="Pusheen on a terminal window doing her core tricks one after another: a dance with music notes, juggling three balls, two cartwheels and a wave of her front paw.">
 
 Core tricks, all original: dance, juggle, cartwheel, a sneeze, a paper plane, sneaking through the screen's edge and
 climbing its side, plus everyday fidgets (stretch, yawn, scratch, hop, sit, wave, look around, peeking over the Dock).
-On a window ledge he peeks over it, sits with his legs swinging, or goes fishing. Some moves answer what's happening: he
-waves when you come back to your Mac, yawns before he dozes off, trips now and then mid-walk, sometimes dances when
+On a window ledge she peeks over it, sits with her legs swinging, or goes fishing. Some moves answer what's happening: she
+waves when you come back to your Mac, yawns before she dozes off, trips now and then mid-walk, sometimes dances when
 Claude finishes clean, settles in by the fire with a coffee after a long turn, and leaves you a sticky note if Claude
 finishes while you're away. Pick any of them from right-click → **Tricks**.
 
@@ -186,7 +185,7 @@ through it, and in this repo you can ask Claude Code to "make a new trick" (ther
 
 Off by default. Turn it on with right-click → **Fan pack**. It adds ten fan-made tricks of other people's characters,
 and they're secrets: you find them by what you do, and right-click → **Tricks** counts how many you've found. Fix your
-failing tests, say, or drop him from way up, or keep a steady beat on him. Each one, once found, is in the Tricks menu
+failing tests, say, or drop her from way up, or keep a steady beat on her. Each one, once found, is in the Tricks menu
 and turns up on its own now and then.
 
 They're original pixel art made as homage, after Dragon Ball, Berserk, Vinland Saga, Marvel's Silver Surfer and
@@ -196,7 +195,7 @@ rights holders, and they'll be removed on request.
 ## FAQ
 
 <details>
-<summary><b>He's on screen but his status bubble only says "waiting for Claude Code".</b></summary>
+<summary><b>She's on screen but her status bubble only says "waiting for Claude Code".</b></summary>
 
 Hooks only reach Claude Code sessions started after they were added, so start a new session. If that doesn't help, run
 `./install.sh` again: it says whether the hooks are in `~/.claude/settings.json`. While Claude works,
@@ -214,7 +213,7 @@ folder (`~/.claude/plugins/data/hangabout-*/`). Some setups skip plugin hooks al
 </details>
 
 <details>
-<summary><b>There are two of him.</b></summary>
+<summary><b>There are two of her.</b></summary>
 
 Two copies are each getting Claude Code's hooks, and every new session starts any that isn't running.
 
@@ -250,9 +249,9 @@ pack on and finds every secret at once.
 </details>
 
 <details>
-<summary><b>Can he live on my other display?</b></summary>
+<summary><b>Can she live on my other display?</b></summary>
 
-Not yet: he lives on your main display (the one with the menu bar).
+Not yet: she lives on your main display (the one with the menu bar).
 
 </details>
 
@@ -289,7 +288,7 @@ Everything stays on your Mac. Hangabout makes no network requests: no telemetry,
 - **Interrupts:** Claude Code sends no hook when you stop it, only notes it at the end of the session's transcript. So
   while Claude is busy, the hook looks at the last entries there for that note, and keeps nothing it reads.
 - **The app** reads that file, the positions of your windows (to walk on them: sizes and positions only, which needs no
-  screen recording permission), and where your mouse is (so his eyes can follow it).
+  screen recording permission), and where your mouse is (so her eyes can follow it).
 
 ## Why build from source?
 

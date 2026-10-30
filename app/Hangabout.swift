@@ -72,7 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     /// The tricks the page has, for the menu: (name, label, fan pack).
     var tricks: [(String, String, Bool)] = []
     /// The skins the page has, for the menu: (name, label, fan pack). The page sends them once it loads.
-    var skins: [(String, String, Bool)] = [("cappy", "Cappy", false)]
+    var skins: [(String, String, Bool)] = [("pusheen", "Pusheen (fan art)", false)]
 
     func applicationDidFinishLaunching(_ note: Notification) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -216,8 +216,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     var scale: Double { prefs.object(forKey: "scale") as? Double ?? 1 }
     var preset: String { prefs.string(forKey: "preset").flatMap { p in presets.contains { $0.0 == p } ? p : nil } ?? "normal" }
-    /// A skin's name: letters, digits and dashes only, since it goes into the page's JavaScript. The page falls back to Cappy for one it doesn't have.
-    var skin: String { String((prefs.string(forKey: "skin") ?? "cappy").filter { $0.isLetter || $0.isNumber || $0 == "-" }) }
+    /// A skin's name: letters, digits and dashes only, since it goes into the page's JavaScript. The page falls back to Pusheen for one it doesn't have.
+    var skin: String { String((prefs.string(forKey: "skin") ?? "pusheen").filter { $0.isLetter || $0.isNumber || $0 == "-" }) }
 
     /// Tells the page who to draw before it loads: tricks read his colors as they load, so a new skin means a reload.
     func skinScript() -> WKUserScript {

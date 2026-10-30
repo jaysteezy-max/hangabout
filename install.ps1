@@ -61,4 +61,4 @@ if (-not $python) {
 
 Start-Process (Join-Path $Dest 'Hangabout\Hangabout.exe')
 Write-Host ''
-Write-Host 'Hangabout is running: Cappy is on your screen. Right-click him for tricks, behavior (Calm/Normal/Erratic), skin, size and more.'
+Write-Host 'Hangabout is running: Pusheen is on your screen. Right-click her for tricks, behavior (Calm/Normal/Erratic), skin, size and more.'
