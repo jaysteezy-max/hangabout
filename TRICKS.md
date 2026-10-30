@@ -303,6 +303,9 @@ SKINS.owl = {
   sideOn: true,                // optional: drawn side on, so he keeps facing the way he last went
   pack: 'fan',                 // optional: fan art of someone else's character; listed only while Fan pack is on
   head(pose){ return {x, y, top, nose} }, // side on: his eye, the top of his head and the front of his snout, facing left
+  views: true,                 // optional, side on: he turns round through drawn views, not a mirror flip (see Turning round below)
+  hand(pose){ return {x, y} },  // with views: where the toes of his lifted paw (or his hand) are on screen, so held props stay in it
+  feetX(view){ return x },      // with views: where his feet are centred in each view, so the page keeps them planted as he turns
   mirror: 42,                  // optional, front on (like Hatty): turned right he's drawn mirrored, x to 42 - x, and facing() turns costumes so
   draw(pose, eye){ return [[x, y, color], ...] },
   // optional, so he moves his own way, not the shared way:
@@ -327,6 +330,15 @@ Thorfinn's dagger find a front foot he's lifted by it.
 Every pet moves the way its body would. The shared walk and frames are made for a small four-legged body; give `walk`,
 `tricks` and `moods` whatever your character needs (a cat's stretch, a knight's stride, a chicken's flap). Frames you
 give a trick replace its own, so keep its pose key in them (`juggle: d`) where its draw hooks need it.
+
+**Turning round.** A side-on skin with `views: true` gets `pose.view`, -2 to 2: -2 his profile facing left, -1
+three-quarters, 0 facing you, 1 and 2 the mirror of -1 and -2. `draw` must draw -1 and 0 as art of their own, in the
+profile's palette and light, the same height, feet on row 38 (mirroring stands in only for the other side, never for a
+view in between). The page steps one view every 80 ms (a profile-to-profile turn in 320 ms) from the time it was asked
+for, so dropped frames can't stretch it; a reversal turns back from the view on screen; with Reduce Motion it jumps
+straight to the new view. Standing still while Claude needs you, he turns to face you. `feetX(view)` keeps his feet
+still through a turn, and `hand(pose)` keeps a held prop (the editing pencil) in his paw in every view. Skins without
+`views` keep the old flip. Check it with `TURN=1` (below).
 
 Pick one with right-click → Skin in the app (saved, and the page reloads), or `?skin=<key>` in the mockup.
 
