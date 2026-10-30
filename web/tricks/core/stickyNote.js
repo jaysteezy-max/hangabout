@@ -79,11 +79,14 @@
   const CHICKEN = hangabout.skin === 'chicken', RAISE = CHICKEN ? 4 : 0 // the chicken's wing held out higher, by his beak, clear of his wattle
   const paw = (pose, d) => pose.hand > 4 ? {reach: pose.reach ?? 3, ...d.pen && pose.hand > 8 && {squash: 1}} : {} // Cappy's paw out to the note, and his nod
   const BACK = hangabout.skin === 'slime' ? {stretch: 1, dy: -2} : {lift: [1, 2]} // he steps back; the slime, legless, hops
+  // Side on, he faces the note from the first frame to the last. The frames face right and are mirrored, which leaves his heading
+  // right: the last frame, unmirrored, is told the way he really faced, so he doesn't flip round as he finishes.
+  const SIDE_ON = hangabout.sideOn, LAST = {}
   const at = (pose, ms, d = {stuck: 1}) => [{face: 1, eyes: 'side', look: 1, ...pose, ...pose.hand != null && {hand: pose.hand - RAISE}, ...CAPPY && paw(pose, d), stickyNote: d}, ms] // turned to the note
   hangabout.trick({
     name: 'stickyNote', label: 'Sticky note ✓', rarity: 'manual', on: {finishedWhileAway: 1},
     frames: [
-      [{arms: ['mid', 'down'], eyes: 'down', stickyNote: {aim: 1}}, 240], // digs one out
+      [{arms: ['mid', 'down'], eyes: 'down', ...SIDE_ON && {face: 1}, stickyNote: {aim: 1}}, 240], // digs one out
       at({hand: 6}, 260, {marks: 0}),
       ...[1, 2, 3, 4].flatMap(marks => [7, 9].map(hand => at({hand}, 130, {marks, pen: 1}))), // scribbles, then ticks it
       at({stretch: 1, hand: 1}, 200, {marks: 4, up: 1}), // winds up
@@ -94,10 +97,10 @@
       ...[0, 1].flatMap(() => [at({ox: -4, squash: 1, eyes: 'down'}, 130), at({ox: -4, eyes: 'happy'}, 200)]), // a satisfied nod
       at({face: 0, ox: -4, eyes: 'happy'}, 400),
       at({face: 0, ox: -2, eyes: 'happy'}, 120),
-      [{}, 200],
+      [LAST, 200],
     ],
     pixels({d, px}){
-      if (d.aim) { plan = aim(); side = plan.side }
+      if (d.aim) { plan = aim(); side = plan.side; if (SIDE_ON) LAST.face = side }
       if (d.stuck && plan) { stick(plan); plan = null } // frames have no cue of their own: the first one drawn from the slap on puts it up
       return side > 0 ? px : px.map(([x, y, c]) => [GW - 1 - x, y, c]) // the frames face right; mirrored when the note goes left
     },

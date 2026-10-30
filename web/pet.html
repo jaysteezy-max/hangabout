@@ -743,6 +743,7 @@ function startMove(now, name, here){
   const t = ai.trick = TRICKS[name]
   lastTrick = name
   if (t.pack === 'fan' && !found.has(name)) { found.add(name); if (NATIVE) webkit.messageHandlers.hangabout.postMessage({found: [name]}) } // a secret, found
+  if (!t.trip && SKINS[SKIN].sideOn) ai.dir = pet.heading // a side-on skin glides (or leans, glide: 1) the way he already faces, not snapping round to where he last walked
   if (!t.trip) return fidget(now, SKINS[SKIN].tricks?.[name] || t.frames) // a skin may do a trick its own way
   const {x, y} = feet()
   trip(now, t.trip({now, here: here || surfaces()[0], x, y, dir: ai.dir || 1}))

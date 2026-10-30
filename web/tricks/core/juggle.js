@@ -12,10 +12,11 @@
     ;[C.peri, C.ok, '#FFD84D'].forEach((color, i) => {
       // A shower: each ball spends two thirds of the loop on a high arc from his left hand to his right, then a quick low pass back.
       // Cappy's, as drawn facing left: from just over his paw's toes up and out in front of his snout, then low back to his paw.
+      // Its base sits on his raised paw's toes (PAW 3 in cappy.js: x 8 and 9, on row 28 under their outline).
       const f = (d + i / 3) % 1, high = f < 2 / 3, u = high ? f * 1.5 : (f - 2 / 3) * 3
       if (!pass(high)) return
-      const [a, b] = CAPPY ? [h.nose - 3, h.nose - 13] : [LEFT, RIGHT], n = KNIGHT ? 3 : 2
-      const x0 = high ? a : b, x1 = high ? b : a, base = CAPPY ? h.top + 1 : OY + 2 + dy, rise = high ? (KNIGHT ? 21 : CHICKEN ? 15 : CAPPY ? 8 : 13) : 2
+      const [a, b] = CAPPY ? [h.nose - 4, h.nose - 13] : [LEFT, RIGHT], n = KNIGHT ? 3 : 2
+      const x0 = high ? a : b, x1 = high ? b : a, base = CAPPY ? 25 + dy : OY + 2 + dy, rise = high ? (KNIGHT ? 21 : CHICKEN ? 15 : CAPPY ? 8 : 13) : 2
       const bx = Math.round(x0 + (x1 - x0) * u), by = Math.round(base - rise * 4 * u * (1 - u))
       if (KNIGHT) { ctx.fillStyle = '#000000'; ctx.fillRect(bx - 1, by, n + 2, n); ctx.fillRect(bx, by - 1, n, n + 2) } // outlined, to read on his white and blue
       ctx.fillStyle = color

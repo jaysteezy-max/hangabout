@@ -5,7 +5,7 @@
 {
   const {GW, OY, desk, paint, thickLine, pick} = hangabout
   const PUSHEEN = hangabout.skin === 'pusheen' // side on, she turns to the water and holds the rod's butt in her paw
-  const CAPPY = hangabout.skin === 'cappy' // side on too: he turns to the water, lower on the ledge, the rod's butt on the toes of his paw
+  const CAPPY = hangabout.skin === 'cappy' // side on too: he turns to the water, lower on the ledge, the rod's butt on the toes of his paw, and kept there through the beauty and the goodbye (no wave: his one paw holds the rod)
   document.head.insertAdjacentHTML('beforeend', `<style>
   .fishline{position:absolute;z-index:9;width:var(--a);height:0;pointer-events:none;transition:height .45s ease-in;background:linear-gradient(90deg,transparent 33%,var(--line) 33% 67%,transparent 67%)}
   .fishline canvas{position:absolute;image-rendering:pixelated}
@@ -50,7 +50,7 @@
       const s = hangabout.size, a = 3 * s
       const side = x - 66 < (here.x0 + here.x1) / 2 ? 1 : -1 // casts toward the middle of the window
       const hands = (rod, free) => side > 0 ? [free, rod] : [rod, free]
-      const sit = (o, f) => ({sink: CAPPY ? 6 : 12, arms: hands('mid', 'down'), ...(PUSHEEN || CAPPY) && {face: side, ...!o?.arms && {hand: 6, ...CAPPY && {reach: 3}}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, ...KNIGHT && {face: side, hand: 11, sword: 'dropped'}, fishing: {rod: 'out', side, ...f}})
+      const sit = (o, f) => ({sink: CAPPY ? 6 : 12, arms: hands('mid', 'down'), ...(PUSHEEN || CAPPY) && {face: side, ...(!o?.arms || CAPPY && !f) && {hand: 6, ...CAPPY && {reach: 3}}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, ...KNIGHT && {face: side, hand: 11, sword: 'dropped'}, fishing: {rod: 'out', side, ...f}})
       const cast = () => {
         const [, , tx, ty] = ROD.out
         line = document.createElement('div'); line.className = 'fishline'
