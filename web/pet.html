@@ -432,7 +432,8 @@ const ICON = {
   'icon-file': '<svg class="ico" viewBox="0 0 10 12" aria-hidden="true"><path d="M1.5 1h4.5l2.5 2.5V11h-7zM6 1v2.5h2.5" fill="none" stroke="currentColor"/></svg>',
   'icon-term': '<svg class="ico" viewBox="0 0 12 10" aria-hidden="true"><rect x=".5" y=".5" width="11" height="9" rx="2" fill="none" stroke="currentColor"/><path d="M3 3.5 5 5 3 6.5M6 7h3" fill="none" stroke="currentColor"/></svg>',
 }
-const iconFor = tool => tool.startsWith('Bash') ? ICON['icon-term'] : ICON['icon-file']
+const isShell = call => /^(Bash|PowerShell)\b/.test(call) // a command: Bash, or PowerShell on Windows without Git Bash
+const iconFor = tool => isShell(tool) ? ICON['icon-term'] : ICON['icon-file']
 /** The box's lines, typed up to `budget` characters; while typing, a block cursor follows the text. */
 function render(segLines, budget, typing){
   let left = budget, caret = false
@@ -1050,8 +1051,8 @@ function syncClaude(now){
   const step = s?.stepAt || 0
   if (step !== cc.stepSeen) { if (cc.stepSeen) pet.stepAt = now; cc.stepSeen = step } // a new plan step opens the box for a moment
 }
-const FORCE_PUSH = /^Bash\(.*\bgit push\b[^&;|]*\s(-f|--force(-with-lease)?)(?![\w-])/
-const isTest = e => e.call.startsWith('Bash(') && e.call.includes('test')
+const FORCE_PUSH = /^(Bash|PowerShell)\(.*\bgit push\b[^&;|]*\s(-f|--force(-with-lease)?)(?![\w-])/
+const isTest = e => isShell(e.call) && e.call.includes('test')
 /** Moments in what Claude just ran: each session's log is its last 8 calls, {ok, call, out}, and each new one is looked at once. */
 function watchLogs(){
   const was = cc.seen
@@ -1075,7 +1076,7 @@ const span = sec => sec < 60 ? `${Math.max(1, Math.round(sec))}s` : `${Math.floo
 const clock = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`
 const ago = sec => sec < 60 ? 'just now' : sec < 3600 ? `${Math.floor(sec / 60)}m ago` : `${Math.floor(sec / 3600)}h ago`
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
-const iconSeg = call => [['', call.startsWith('Bash') ? 'icon-term' : 'icon-file'], [call, '']]
+const iconSeg = call => [['', isShell(call) ? 'icon-term' : 'icon-file'], [call, '']]
 /** The box's two lines for what Claude Code is doing right now, in its own words. */
 function claudeLines(now){
   const s = cc.shown, nowS = Date.now() / 1000

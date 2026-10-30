@@ -2,16 +2,23 @@
 
     python3 scripts/test_hook.py
 
-Builds the hook into a temporary folder first (a few seconds; needs Apple's command line tools).
+Builds the hook into a temporary folder first (a few seconds; needs Apple's command line tools). On Windows it builds
+and checks the C# port instead, with the C# compiler that comes with Windows.
 """
 import json, os, subprocess, sys, tempfile, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MARK, TOOL_MARK = '[Request interrupted by user]', '[Request interrupted by user for tool use]'
+CSC = os.path.join(os.environ.get('WINDIR', ''), 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe')
 
 with tempfile.TemporaryDirectory() as d:
-    hook = os.path.join(d, 'hangabout-hook')
-    subprocess.run(['swiftc', '-o', hook, os.path.join(HERE, '..', 'app', 'HangaboutHook.swift')], check=True)
+    if os.name == 'nt':
+        hook = os.path.join(d, 'hangabout-hook.exe')
+        subprocess.run([CSC, '/nologo', '/target:winexe', '/r:System.Web.Extensions.dll', '/out:' + hook,
+                        os.path.join(HERE, '..', 'app', 'win', 'HangaboutHook.cs')], check=True)
+    else:
+        hook = os.path.join(d, 'hangabout-hook')
+        subprocess.run(['swiftc', '-o', hook, os.path.join(HERE, '..', 'app', 'HangaboutHook.swift')], check=True)
     transcript = os.path.join(d, 'transcript.jsonl')
 
     def send(name, **extra):
@@ -46,6 +53,12 @@ with tempfile.TemporaryDirectory() as d:
     send('PostToolUse', tool_name='Bash', tool_input={'command': 'npm test'}, duration_ms=1200); send('Stop')
     assert state()['mood'] == 'done', state()
     assert not state()['turn'].get('fails') and state()['turn']['cmds'] == 1, state()['turn']
+
+    if os.name == 'nt':  # Windows without Git Bash: commands go through Claude Code's PowerShell tool instead
+        turn(); send('PreToolUse', tool_name='PowerShell', tool_input={'command': 'npm test'})
+        assert state()['mood'] == 'running' and state()['call'] == 'PowerShell(npm test)', state()
+        send('PostToolUse', tool_name='PowerShell', tool_input={'command': 'npm test'}, duration_ms=61000)
+        assert state()['log'][-1] == {'ok': True, 'call': 'PowerShell(npm test)', 'out': '1:01'}, state()['log']
 
     # A failed command is counted for the turn (no celebration); an interrupt isn't a failure.
     turn(); send('PreToolUse', tool_name='Bash', tool_input={'command': 'npm test'})
