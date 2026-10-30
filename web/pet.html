@@ -185,11 +185,14 @@ function pencilTip(t){
 }
 for (const [r, , to, len] of STROKES) console.assert(pencilTip(to).x === MARGIN + len - 1 && pencilTip(to).y === LINES[r] && to < PAGE_MS - 600, 'each stroke must end at its line\'s last pixel, before the page clears')
 const gripY = tip => Math.max(21, Math.min(33, Math.round(tip.y) - 5)) // his hand stays at his side; only its height follows the line
+// Where he holds the pencil, and the hand that puts his hand there. Cappy has no hand at his side: it's in his front paw
+// under his toes, by his chin for the top lines and out low for the bottom ones (PAW in skins/cappy.js, turned right).
+const grip = tip => SKIN !== 'cappy' ? {x: OX + 31, y: gripY(tip), hand: gripY(tip) - 2 - OY} : tip.y < 32 ? {x: 32, y: 33, hand: 2} : {x: 31, y: 35, hand: 8}
 const PAGE = {
   still: 3300,
   pose(t, side){
     const tt = t % PAGE_MS
-    return {face: side, eyes: tt % 2600 > 2480 ? 'blink' : 'side', look: side, hand: gripY(pencilTip(tt)) - 2 - OY}
+    return {face: side, eyes: tt % 2600 > 2480 ? 'blink' : 'side', look: side, hand: grip(pencilTip(tt)).hand}
   },
   draw(ctx, t){
     const tt = t % PAGE_MS, a = 1 - progress(tt, PAGE_MS - 600, PAGE_MS - 200)
@@ -209,7 +212,7 @@ const PAGE = {
     }
     ctx.globalAlpha = 1
     // The pencil, from his hand to its point; his body hides the end behind his hand.
-    const tip = pencilTip(tt), gx = OX + 31, gy = gripY(tip), len = Math.hypot(tip.x - gx, tip.y - gy) || 1, ux = (tip.x - gx) / len, uy = (tip.y - gy) / len
+    const tip = pencilTip(tt), {x: gx, y: gy} = grip(tip), len = Math.hypot(tip.x - gx, tip.y - gy) || 1, ux = (tip.x - gx) / len, uy = (tip.y - gy) / len
     const seg = (d0, d1, w, c) => thickLine(ctx, gx + ux * d0, gy + uy * d0, gx + ux * d1, gy + uy * d1, w, c)
     seg(-3, -2, 2, PENCIL.eraser); seg(-1, -1, 2, PENCIL.band); seg(0, len - 3, 2, PENCIL.body); seg(len - 2, len - 1, 1, PENCIL.wood)
     dot(Math.round(tip.x), Math.round(tip.y), PENCIL.lead)
@@ -433,7 +436,8 @@ const ICON = {
   'icon-file': '<svg class="ico" viewBox="0 0 10 12" aria-hidden="true"><path d="M1.5 1h4.5l2.5 2.5V11h-7zM6 1v2.5h2.5" fill="none" stroke="currentColor"/></svg>',
   'icon-term': '<svg class="ico" viewBox="0 0 12 10" aria-hidden="true"><rect x=".5" y=".5" width="11" height="9" rx="2" fill="none" stroke="currentColor"/><path d="M3 3.5 5 5 3 6.5M6 7h3" fill="none" stroke="currentColor"/></svg>',
 }
-const iconFor = tool => tool.startsWith('Bash') ? ICON['icon-term'] : ICON['icon-file']
+const isShell = call => /^(Bash|PowerShell)\b/.test(call) // a command: Bash, or PowerShell on Windows without Git Bash
+const iconFor = tool => isShell(tool) ? ICON['icon-term'] : ICON['icon-file']
 /** The box's lines, typed up to `budget` characters; while typing, a block cursor follows the text. */
 function render(segLines, budget, typing){
   let left = budget, caret = false
@@ -741,6 +745,7 @@ function startMove(now, name, here){
   const t = ai.trick = TRICKS[name]
   lastTrick = name
   if (t.pack === 'fan' && !found.has(name)) { found.add(name); if (NATIVE) webkit.messageHandlers.hangabout.postMessage({found: [name]}) } // a secret, found
+  if (!t.trip && SKINS[SKIN].sideOn) ai.dir = pet.heading // a side-on skin glides (or leans, glide: 1) the way he already faces, not snapping round to where he last walked
   if (!t.trip) return fidget(now, SKINS[SKIN].tricks?.[name] || t.frames) // a skin may do a trick its own way
   const {x, y} = feet()
   trip(now, t.trip({now, here: here || surfaces()[0], x, y, dir: ai.dir || 1}))
@@ -1051,8 +1056,8 @@ function syncClaude(now){
   const step = s?.stepAt || 0
   if (step !== cc.stepSeen) { if (cc.stepSeen) pet.stepAt = now; cc.stepSeen = step } // a new plan step opens the box for a moment
 }
-const FORCE_PUSH = /^Bash\(.*\bgit push\b[^&;|]*\s(-f|--force(-with-lease)?)(?![\w-])/
-const isTest = e => e.call.startsWith('Bash(') && e.call.includes('test')
+const FORCE_PUSH = /^(Bash|PowerShell)\(.*\bgit push\b[^&;|]*\s(-f|--force(-with-lease)?)(?![\w-])/
+const isTest = e => isShell(e.call) && e.call.includes('test')
 /** Moments in what Claude just ran: each session's log is its last 8 calls, {ok, call, out}, and each new one is looked at once. */
 function watchLogs(){
   const was = cc.seen
@@ -1076,7 +1081,7 @@ const span = sec => sec < 60 ? `${Math.max(1, Math.round(sec))}s` : `${Math.floo
 const clock = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`
 const ago = sec => sec < 60 ? 'just now' : sec < 3600 ? `${Math.floor(sec / 60)}m ago` : `${Math.floor(sec / 3600)}h ago`
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
-const iconSeg = call => [['', call.startsWith('Bash') ? 'icon-term' : 'icon-file'], [call, '']]
+const iconSeg = call => [['', isShell(call) ? 'icon-term' : 'icon-file'], [call, '']]
 /** The box's two lines for what Claude Code is doing right now, in its own words. */
 function claudeLines(now){
   const s = cc.shown, nowS = Date.now() / 1000

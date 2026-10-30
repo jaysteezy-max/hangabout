@@ -4,6 +4,7 @@
 {
   const {GW, GH, EYE, BODY} = hangabout
   const CHICKEN = hangabout.skin === 'chicken' // an egg: he tips right over onto his side, rocks there, dazed, and pops back up
+  const CAPPY = hangabout.skin === 'cappy' // a loaf side on: he flops flat on his belly where he is
   const DOWN = CHICKEN ? {eyes: 'dizzy'} : {}
   // A walking step, as his own walk draws it, gliding the way he's going.
   const STEP = i => [{lift: [[0, 3], [], [1, 2], []][i % 4], dy: i % 2 ? -1 : 0, swing: i % 4 < 2 ? 1 : -1, tilt: i % 4 < 2 ? -3.5 : 3.5, glide: 45}, 130]
@@ -46,6 +47,7 @@
         const s = pose.face < 0 ? -1 : 1, out = px.map(([x, y, c]) => [22 - s * (y - 29), 29 + s * (x - 22), c]), low = Math.max(...out.map(p => p[1]))
         return out.map(([x, y, c]) => [x, y + GH - 1 - low, c])
       }
+      if (CAPPY) return px.filter(([, , c]) => c !== EYE).map(([x, y, c]) => [x, 39 - Math.round((39 - y) * (d ? .6 : .45)), c])
       // Face down, so no eyes. Turned his way, his front edge is x 32: it goes to the ground, his head (y 20) forward and
       // his legs trailing, and his width is squashed to a slab, flattest the moment he lands.
       const flip = x => pose.face < 0 ? GW - 1 - x : x, k = d ? .4 : .3

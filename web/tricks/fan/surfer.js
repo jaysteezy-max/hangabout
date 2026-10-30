@@ -6,6 +6,8 @@
   const CHROME = {[BODY]: '#C3CCD6', [TOP]: '#EEF3F8', [SIDE]: '#8793A1', [EYE]: '#3B4654'}
   const CHICKEN = hangabout.skin === 'chicken' // his crest, wattle and tail, beak and wing, toes and mouth chromed too (web/skins/chicken.js); the glint only on his body, inside his outline
   if (CHICKEN) Object.assign(CHROME, {'#44AEF6': '#A4AFBC', '#0060A0': '#626E7D', '#FFF050': '#E2E8EF', '#B8960F': '#7D8896', '#F2BE2E': '#B8C2CE', '#6B2020': '#3B4654'})
+  const CAPPY = hangabout.skin === 'cappy' // his snout, its highlight and his toes chromed too (web/skins/cappy.js); the glint only on his body; the board caught in his raised paw
+  if (CAPPY) Object.assign(CHROME, {'#86655F': '#A4AFBC', '#8F6F69': '#B8C2CE', '#7A3A3E': '#626E7D'})
   // The slime's outline, glints and cheeks chromed too (web/skins/slime.js), so it's silver all over, not green-rimmed.
   if (hangabout.skin === 'slime') Object.assign(CHROME, {'#6A9D23': '#4F5A67', '#DCF9B6': '#E2E8EF', '#EC9291': '#AEB8C4'})
   const ON = {cosmic: 1, chrome: 1, board: 1}
@@ -20,7 +22,7 @@
       [{squash: 2, surfer: ON}, 140],
       [{dy: -6, tuck: 1, arms: ['up', 'up'], surfer: ON}, 120], // hops on
       ...[...Array(12)].map((_, i) => [{dy: i % 2 ? -5 : -4, arms: ['mid', 'mid'], swing: 1, glide: 150, surfer: {...ON, ride: 1, bob: i % 2 ? -1 : 0}}, 220]),
-      [{squash: 1, surfer: {cosmic: 1, chrome: 1, board: 'up'}}, 240], // kicks it up into his hand
+      [{squash: 1, ...CAPPY && {arms: ['high', 'high']}, surfer: {cosmic: 1, chrome: 1, board: 'up'}}, 240], // kicks it up into his hand
       [{arms: ['up', 'mid'], eyes: 'happy', surfer: {cosmic: .6, chrome: .6}}, 240],
       [{eyes: 'happy', surfer: {cosmic: .3, chrome: .3}}, 200],
       [{}, 200],
@@ -29,7 +31,7 @@
     pixels({d: s, px, now}){
       if (!s.chrome) return px
       const band = Math.floor(now / 40) % 60, shine = s.chrome >= 1
-      return px.map(([x, y, c]) => [x, y, shine && (CHICKEN ? c === BODY : c !== EYE) && ((x + y - band) % 60 + 60) % 60 < 3 ? '#FFFFFF' : CHROME[c] ? mix(c, CHROME[c], s.chrome) : c])
+      return px.map(([x, y, c]) => [x, y, shine && (CHICKEN || CAPPY ? c === BODY : c !== EYE) && ((x + y - band) % 60 + 60) % 60 < 3 ? '#FFFFFF' : CHROME[c] ? mix(c, CHROME[c], s.chrome) : c])
     },
     /** Behind him: afterimages and a streaming trail of power cosmic while he rides, and the board under his feet. */
     behind({ctx, d: s, px, now, pose}){
@@ -44,7 +46,7 @@
         ctx.globalAlpha = 1
       }
       if (s.board === 'up') { // kicked up into his hand, standing on its tail beside him
-        const bx = dir > 0 ? 38 : 4
+        const x = CAPPY ? 5 : 4, bx = dir > 0 ? 42 - x : x // Cappy's against his paw, held up in front of his face
         ctx.fillStyle = '#7D8896'; ctx.fillRect(bx, 14, 2, 26)
         ctx.fillStyle = '#E8EEF5'; ctx.fillRect(bx, 14, 1, 26)
       } else if (s.board) { // long and slim, its nose turned up at the front, a glint running along it

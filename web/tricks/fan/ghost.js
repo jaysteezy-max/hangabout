@@ -3,7 +3,7 @@
 // a little wiggle and scans him back and forth with a beam of light; he's revived in a flash, the Light rising off him,
 // and the Ghost transmats away.
 {
-  const {GW, GH, BODY, TOP, SIDE, EYE, recolor, paint} = hangabout
+  const {GW, GH, BODY, TOP, SIDE, EYE, recolor, paint, head} = hangabout
   const DEAD = {[BODY]: '#8A8A8A', [TOP]: '#A8A8A8', [SIDE]: '#6C6C6C'}, HURT = {[BODY]: '#FF6A6A', [TOP]: '#FF9C9C', [SIDE]: '#C83C3C'}
   const LIT = {[BODY]: '#FFFFFF', [TOP]: '#FFFFFF', [SIDE]: '#FFFFFF'}
   const CHICKEN = hangabout.skin === 'chicken' // rolled belly-up onto his back, not flipped (he'd stand on his crest), his blue and yellow gone faint too
@@ -11,6 +11,40 @@
   if (CHICKEN) { // his crest, wattle and tail, beak and wing, toes and mouth (web/skins/chicken.js)
     Object.assign(DEAD, {'#44AEF6': '#68819A', '#0060A0': '#46586B', '#FFF050': '#CBC49A', '#B8960F': '#7B7150', '#F2BE2E': '#BDB08A', '#6B2020': '#4A3A3A'}) // just a hint of color left, so his beak and wattle still read
     for (const c of ['#44AEF6', '#0060A0', '#FFF050', '#B8960F', '#F2BE2E', '#6B2020']) LIT[c] = '#FFFFFF' // he's white already: the flash shows in them
+  }
+  const CAPPY = hangabout.skin === 'cappy' // rolls over sideways onto his back, legs in the air, his snout and toes gone grey and white too
+  if (CAPPY) { // his snout, its highlight and his toes (web/skins/cappy.js)
+    Object.assign(DEAD, {'#86655F': '#727272', '#8F6F69': '#7C7C7C', '#7A3A3E': '#555555'})
+    Object.assign(HURT, {'#86655F': '#D45A5A', '#8F6F69': '#E06C6C', '#7A3A3E': '#9E2C2C'})
+    Object.assign(LIT, {'#86655F': '#E4E4E4', '#8F6F69': '#F0F0F0', '#7A3A3E': '#D8D8D8'}) // a hint of his face left in the flash
+  }
+  const CAPPY_LINE = '#1C1214', CAPPY_TOES = '#7A3A3E', N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+  const LEGS = [[18, -1, 0], [21, 0, 1], [24, 0, 1], [27, 1, 0]] // his legs in the air, facing left, [left x, lean, far]: his near pair splayed out front and back, his far pair shorter between them, in shadow
+  /**
+   * Cappy turned roll degrees about his long body toward his back, as seen side on: squashed toward the ground, then the
+   * other way up, his ears gone under him and his legs in the air (one kicking while it's lifted), outlined fresh, his eye
+   * moved unturned so its X stays an X.
+   */
+  function onBack(px, roll, pose){
+    const s = Math.cos(roll * Math.PI / 180), ox = pose.ox || 0, turn = x => pose.face > 0 ? GW - 1 - x : x, t = head(pose).top
+    const has = new Set(px.map(([x, y]) => x + ',' + y)), at = new Map(), eye = []
+    for (const [x, y, c] of px) { // facing left, without his outline (the lines on his snout and ear stay)
+      if (c === EYE) { eye.push([turn(x - ox), y, c]); at.set(turn(x - ox) + ',' + y, BODY) }
+      else if (!(c === CAPPY_LINE && N4.some(([ax, ay]) => !has.has(x + ax + ',' + (y + ay)))) && (s > 0 || y >= t && y < 38)) at.set(turn(x - ox) + ',' + y, c) // over, his ears and toes go
+    }
+    const out = new Map(), put = (x, y, c) => out.set(x + ',' + y, [x, y, c]), to = y => R(s > 0 ? 38 - (38 - y) * s : 38 + (y - t) * s)
+    for (let y = 0; y < GH; y++) { // each row takes the one turned onto it, so no gaps
+      const sy = R(s > 0 ? 38 - (38 - y) / s : t + (y - 38) / s)
+      for (let x = -12; x < GW + 12; x++) { const c = at.get(x + ',' + sy); if (c) put(x, y, c) }
+    }
+    if (s < 0) LEGS.forEach(([x, lean, far], n) => {
+      const h = R((far - 5) * s) + (pose.lift?.includes(n) ? 1 : 0), y0 = to(37) - 1
+      for (let k = 0; k < h; k++) for (const i of [0, 1]) put(x + i + lean * k, y0 - k, k === h - 1 ? CAPPY_TOES : far ? SIDE : BODY)
+    })
+    for (const [x, y] of [...out.values()]) for (const [ax, ay] of N4) if (!out.has(x + ax + ',' + (y + ay))) put(x + ax, y + ay, CAPPY_LINE)
+    const ey = eye.reduce((a, p) => a + p[1], 0) / eye.length, dy = to(ey) - R(ey) - (s < 0) // on his back, up a row: on his face by his snout, not on his crown
+    for (const [x, y, c] of eye) put(x, y + dy, c)
+    return [...out.values()].map(([x, y, c]) => [turn(x) + ox, y, c])
   }
   // The slime has no back to fall on: it melts into a grey puddle (its own `puddle` pose, web/skins/slime.js) and springs
   // back up a cube. Its outline, glints and cheeks go grey too, a hint of pink left.
@@ -50,6 +84,7 @@
     frames: [
       [{squash: 1, eyes: 'strain', ghost: {hit: 1}}, 120],
       ...CHICKEN ? [[25, .4, 140], [65, .7, 80], [100, .9, 80]].map(([roll, dead, ms]) => [{...DOWN, ghost: {dead, roll}}, ms])
+        : CAPPY ? [[{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], [{...DOWN, ghost: {dead: .7, roll: 60}}, 80], [{...DOWN, ghost: {dead: .9, roll: 120}}, 80]] // Cappy rolls over on the ground
         : SLIME ? [[{squash: 2, eyes: 'dizzy', ghost: {dead: .4}}, 140], [{puddle: 1, eyes: 'sad', ghost: {dead: .7}}, 120], [{...DOWN, ghost: {dead: .9}}, 80]] : [ // melts
         [{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], // keels over
         [{...DOWN, tilt: -70, ghost: {dead: .7}}, 80],
@@ -74,12 +109,13 @@
       [{}, 200],
     ],
     pixels({d: g, px, pose}){
+      if (CAPPY && (g.down || g.roll)) px = onBack(px, g.down ? 140 : g.roll, pose) // lying a little flatter than he stands; before the recolors, so his legs take them
       if (g.dead) px = recolor(px, DEAD, g.dead)
       if (g.hit) px = recolor(px, HURT, 1)
       if (g.flash) px = recolor(px, LIT, 1)
       if (CHICKEN && (g.down || g.roll)) px = rolled(px, g.roll || 90, pose.face)
       else if (DOMO && g.down) px = px.map(([x, y, c]) => [y - 8, 52 - x, c]) // turned 90° the way he toppled: his squash-2 block (rows 19-39, x 13-29 outlined) lies head left, his left side on the ground and that mitt into it
-      else if (g.down && !SLIME) { const top = Math.min(...px.map(p => p[1])); px = px.map(([x, y, c]) => [x, top + GH - 1 - y, c]) } // on his back, legs in the air
+      else if (g.down && !CAPPY && !SLIME) { const top = Math.min(...px.map(p => p[1])); px = px.map(([x, y, c]) => [x, top + GH - 1 - y, c]) } // on his back, legs in the air
       return px
     },
     /** His Ghost bobbing where it is, the scan beam it sweeps over him, and the Light rising off him as he comes back. */

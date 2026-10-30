@@ -2,7 +2,7 @@
 
 # Hangabout
 
-**A desktop pet for macOS that shows what Claude Code is doing.**
+**A desktop pet for macOS and Windows that shows what Claude Code is doing.**
 
 ![macOS](https://img.shields.io/badge/macOS-native-111111?style=flat-square&logo=apple)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-hooks%20%2B%20plugin-D77757?style=flat-square)
@@ -78,6 +78,24 @@ already decided), and `./uninstall.sh` takes exactly these back out.
 The plugin brings its own hooks, so Hangabout never edits your settings (Claude Code itself records that the plugin is
 on). The first session you start afterwards builds Hangabout into the plugin's data folder (a few seconds; it also needs
 the command line tools) and starts the pet. Use the plugin **or** `install.sh`, not both, or you'll get two pets.
+
+</details>
+
+<details>
+<summary>On Windows</summary>
+
+**You need:** Windows 10 or 11, [Claude Code](https://code.claude.com), and Python 3 to add the hooks. The hook and the
+window watcher are built with the C# compiler that comes with Windows. The pet runs in Electron, which the installer
+downloads (150 MB) and checks against its published checksum.
+
+```powershell
+git clone https://github.com/jaysteezy-max/hangabout.git; cd hangabout; powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+It installs into `~\.hangabout` and asks before adding the same ten hooks to `~\.claude\settings.json`. Each runs
+`hangabout-hook.exe` directly (`"args": []`, no shell), so it works with or without Git Bash, and Cappy follows Claude
+Code's PowerShell tool as well as Bash. To uninstall, run `powershell -ExecutionPolicy Bypass -File uninstall.ps1`. For
+now he lives on the main display above a taskbar at the bottom or top, and the plugin install is Mac-only.
 
 </details>
 
@@ -295,6 +313,7 @@ Claude Code ── hook events ──▶ hangabout-hook ──▶ state.json ─
 | `app/Hangabout.swift` | The app: a transparent, click-through layer over your main screen hosting the page. |
 | `app/HangaboutHook.swift` | The hook: turns Claude Code events into `state.json`. |
 | `install.sh`, `uninstall.sh`, `build.sh` | Install, remove, build. `scripts/hooks.py` edits `settings.json`. |
+| `app/win/`, `*.ps1` | Windows: the app in Electron (`main.js`, `preload.js`), the hook and window watcher in C#, and their install, remove and build scripts. |
 | `.claude-plugin/`, `hooks/` | The Claude Code plugin. |
 
 ## Contributing
