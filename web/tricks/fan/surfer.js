@@ -1,8 +1,12 @@
 // Fan pack: the Silver Surfer, after Marvel's comics. Fan-made, unofficial, not affiliated with its rights holders.
-// Power cosmic twinkles up and he turns to chrome; his board appears, he hops on and glides across your screen with a
-// trail streaming behind; then he kicks the board up into his hand and the shine fades.
+// Power cosmic twinkles up and he turns to chrome; his board appears, he hops on and takes off across your screen. The
+// board flies like a glider: its lift grows with his speed, so a dive carries him up the next rise and a climb slows him
+// into the next dive. He rides two to four of those waves, now and then looping the loop, and turns back at the
+// screen's edges, leaving a trail of power cosmic hanging on the page. Then he glides in, skids to a stop on whatever is
+// below, kicks the board up into his hand and the shine fades. A trip, with the trail as page elements.
 {
-  const {GW, GH, BODY, TOP, SIDE, EYE, mix} = hangabout
+  const {GW, GH, PH, BODY, TOP, SIDE, EYE, feet, putFeet, surfaces, scr, desk, rand, pick, mix} = hangabout
+  const G = 2600, K_LOOP = 1.8, PULL = 3 // the pull he falls with everywhere else; lift, in his weights at trim speed, for a loop and a hard turn
   const CHROME = {[BODY]: '#C3CCD6', [TOP]: '#EEF3F8', [SIDE]: '#8793A1', [EYE]: '#3B4654'}
   const CHICKEN = hangabout.skin === 'chicken' // his crest, wattle and tail, beak and wing, toes and mouth chromed too (web/skins/chicken.js); the glint only on his body, inside his outline
   if (CHICKEN) Object.assign(CHROME, {'#44AEF6': '#A4AFBC', '#0060A0': '#626E7D', '#FFF050': '#E2E8EF', '#B8960F': '#7D8896', '#F2BE2E': '#B8C2CE', '#6B2020': '#3B4654'})
@@ -11,22 +15,113 @@
   // The slime's outline, glints and cheeks chromed too (web/skins/slime.js), so it's silver all over, not green-rimmed.
   if (hangabout.skin === 'slime') Object.assign(CHROME, {'#6A9D23': '#4F5A67', '#DCF9B6': '#E2E8EF', '#EC9291': '#AEB8C4'})
   const ON = {cosmic: 1, chrome: 1, board: 1}
+  document.head.insertAdjacentHTML('beforeend', `<style>
+  .cosmic{position:absolute;pointer-events:none;z-index:9;box-shadow:0 0 4px #9FD3FF;animation:cosmic .8s ease-in forwards}
+  @keyframes cosmic{to{opacity:0;transform:scale(.3)}}
+  </style>`)
+
+  /** A mote of power cosmic left on the page at (x, y), an art pixel or two across, fading where it hangs. */
+  function mote(x, y){
+    const el = document.createElement('div'), w = Math.round(3 * hangabout.size * (Math.random() < .3 ? 2 : 1))
+    el.className = 'cosmic'
+    Object.assign(el.style, {left: x - w / 2 + 'px', top: y - w / 2 + 'px', width: w + 'px', height: w + 'px', background: pick(['#FFFFFF', '#BFE6FF', '#9FD3FF'])})
+    el.onanimationend = () => el.remove()
+    desk.append(el)
+  }
+
+  /**
+   * The flight, from a standing start toward ride.dir. Lift turns his velocity toward his head without changing his speed,
+   * so only gravity (and drag, gliding in) changes how fast he goes, and he never climbs higher than his take-off speed
+   * can carry him. Modes: surf (riding the waves), loop, stall (at the screen's edge, climbing: on up until he stops, then
+   * he pivots on the board and drops back), glide (in to land, flaring if he's coming in steep), skid (down, sliding to a stop).
+   */
+  function surf(ride){
+    let m
+    return {
+      go: 'move',
+      fn(t, dt){
+        const s = hangabout.size, W = hangabout.width, edge = 66 * s, VT = 540 * Math.sqrt(s), S = surfaces(), floor = S[0].y + PH
+        if (!m) {
+          const f = feet(), a = rand(.6, 1.1), V = Math.min(VT * rand(1.4, 1.9), Math.sqrt(2 * G * Math.max(0, f.y - scr.top - 90 * s))) // no faster than keeps him under the menu bar
+          m = {x: f.x, y: f.y, vx: ride.dir * V * Math.cos(a), vy: -V * Math.sin(a), dir: ride.dir, waves: 2 + Math.floor(rand(0, 3)), mode: 'surf', rot: 0, cut: -1e9}
+        }
+        if (t > 6000 && (m.mode === 'surf' || m.mode === 'loop')) m.mode = 'glide' // enough: in to land
+        if (m.mode === 'skid') { // friction slows him to a stop, at the end of the ledge if it comes first
+          const o = m.on, v = Math.sign(m.vx) * Math.max(0, Math.abs(m.vx) - .7 * G * dt / 1000), to = m.x + v * dt / 1000, x = Math.max(o.x0 + 66, Math.min(o.x1 + 66, to))
+          m.vx = x === to ? v : 0; m.x = x
+          if (!m.vx && t - m.at > 200) { ride.dir = m.dir; return true }
+        } else for (let k = dt; k > 0; k -= 4) {
+          const h = Math.min(4, k) / 1000, V = Math.hypot(m.vx, m.vy), ahead = m.dir > 0 ? W - edge - m.x : m.x - edge, was = m.vy
+          let lift = 1, drag = 0
+          if (m.mode === 'stall') { lift = 0; m.vx *= Math.exp(-h / .06); if (m.vy >= 0 && Math.abs(m.vx) < 30) { m.dir = -m.dir; m.mode = m.waves > 0 ? 'surf' : 'glide' } }
+          else if (m.dir * m.vx > 0 && ahead < 40 * s + Math.abs(m.vx) * .15) { // the screen's edge ahead
+            if (m.vy < -150) { m.mode = 'stall'; lift = 0 }
+            else { m.vx = -m.vx; m.dir = -m.dir; m.rot = -m.rot; m.cut = t } // a cutback: same speed, the other way
+          } else if (m.mode === 'loop') {
+            lift = K_LOOP
+            const a = Math.atan2(m.vy, m.vx)
+            if (m.was != null) m.turned += Math.abs((a - m.was + 3 * Math.PI) % (2 * Math.PI) - Math.PI)
+            m.was = a
+            if (m.turned >= 1.9 * Math.PI) m.mode = 'surf'
+          } else if (m.mode === 'surf' && m.vy > 0 && floor - m.y < 30 * s + m.vy * .3) lift = PULL // a bottom turn, clear of the floor
+          else if (m.mode === 'glide') {
+            const below = S.filter(o => m.x >= o.x0 + 66 && m.x <= o.x1 + 66 && o.y + PH >= m.y).sort((a, b) => a.y - b.y)[0] || S[0]
+            drag = 2.5 / VT; lift = below.y + PH - m.y < 30 * s + m.vy * .5 && m.vy > .4 * V ? 2.5 : .9 // flares if he's coming in steep
+          }
+          const turn = m.dir * lift * G * V / (VT * VT) * h, c = Math.cos(turn), sn = Math.sin(turn), slow = Math.exp(-drag * V * h)
+          ;[m.vx, m.vy] = [(m.vx * c + m.vy * sn) * slow, (-m.vx * sn + m.vy * c) * slow + G * h]
+          let x = m.x + m.vx * h
+          const y = m.y + m.vy * h
+          if (x < edge || x > W - edge) { x = Math.max(edge, Math.min(W - edge, x)); m.vx = 0 } // the screen's edge, if a loop carried him there backward
+          const on = m.vy > 0 && (m.mode === 'glide' ? S.filter(o => x >= o.x0 + 66 && x <= o.x1 + 66 && o.y + PH >= m.y && o.y + PH <= y).sort((a, b) => a.y - b.y)[0] : y >= floor && S[0]) // gliding in he lands on anything; riding, only the floor stops him
+          if (on) { m.x = x; m.y = on.y + PH; m.on = on; m.mode = 'skid'; m.at = t; break }
+          m.x = x; m.y = y
+          if (m.mode === 'surf' && was > 0 && m.vy <= 0) { // the bottom of a wave: the last one, or now and then a loop if there's room above
+            if (--m.waves <= 0) m.mode = 'glide'
+            else if (Math.random() < .4 && m.y - scr.top > 330 * s) { m.mode = 'loop'; m.turned = 0; m.was = null }
+          }
+        }
+        // He leans along his path: nose up climbing, upside down at the top of a loop, pointed up through a stall, near level gliding in and skidding.
+        const path = m.mode === 'stall' ? -90 : m.mode === 'skid' ? 0 : Math.atan2(m.dir * m.vy, m.dir * m.vx) * 180 / Math.PI
+        const aim = m.mode === 'glide' ? Math.max(-35, Math.min(35, path)) : path
+        m.rot += ((aim - m.rot + 540) % 360 - 180) * (1 - Math.exp(-dt / 40))
+        m.rot = (m.rot + 540) % 360 - 180 // kept within a half turn either way: past that the page would take him for being on a wall
+        putFeet(m.x, m.y, m.rot)
+        if (m.mode !== 'skid' || m.vx) { // the trail, from the board's tail (14 art pixels behind his feet, 3 up), turned with him
+          const r = m.rot * Math.PI / 180, bx = -m.dir * 42 * s, by = -9 * s
+          mote(m.x + bx * Math.cos(r) - by * Math.sin(r) + rand(-3, 3) * s, m.y + bx * Math.sin(r) + by * Math.cos(r) + rand(-3, 3) * s)
+        }
+      },
+      pose(t){
+        const i = Math.floor(t / 220) % 2, on = {face: m?.dir ?? ride.dir, dy: i ? -5 : -4, arms: ['mid', 'mid'], swing: 1, surfer: {...ON, ride: 1, bob: i ? -1 : 0}}
+        if (!m) return on
+        if (m.mode === 'skid' || t - m.cut < 140) return {...on, dy: -3, squash: 1} // crouched into the carve
+        if (m.mode === 'stall') return {...on, dy: -5, tuck: 1, arms: ['up', 'mid'], eyes: 'up'}
+        if (m.mode === 'loop') return {...on, arms: ['up', 'up'], eyes: 'happy'}
+        return on
+      },
+    }
+  }
 
   hangabout.trick({
     name: 'surfer', label: 'Silver Surfer 🏄', rarity: 'rare', pack: 'fan', on: {windowSurf: 1}, // you drag his window fast
-    frames: [
-      [{eyes: 'up', surfer: {cosmic: .5, chrome: .3}}, 260],
-      [{eyes: 'up', surfer: {cosmic: 1, chrome: .7}}, 200],
-      [{surfer: {cosmic: 1, chrome: 1, board: .5}}, 180],
-      [{surfer: ON}, 220],
-      [{squash: 2, surfer: ON}, 140],
-      [{dy: -6, tuck: 1, arms: ['up', 'up'], surfer: ON}, 120], // hops on
-      ...[...Array(12)].map((_, i) => [{dy: i % 2 ? -5 : -4, arms: ['mid', 'mid'], swing: 1, glide: 150, surfer: {...ON, ride: 1, bob: i % 2 ? -1 : 0}}, 220]),
-      [{squash: 1, ...CAPPY && {arms: ['high', 'high']}, surfer: {cosmic: 1, chrome: 1, board: 'up'}}, 240], // kicks it up into his hand
-      [{arms: ['up', 'mid'], eyes: 'happy', surfer: {cosmic: .6, chrome: .6}}, 240],
-      [{eyes: 'happy', surfer: {cosmic: .3, chrome: .3}}, 200],
-      [{}, 200],
-    ],
+    trip({x}){
+      const ride = {dir: Math.sign(hangabout.width / 2 - x) || 1} // off toward the more room; the way he ends up facing, once he's down
+      return [
+        {go: 'hold', T: 260, pose: {eyes: 'up', surfer: {cosmic: .5, chrome: .3}}},
+        {go: 'hold', T: 200, pose: {eyes: 'up', surfer: {cosmic: 1, chrome: .7}}},
+        {go: 'hold', T: 180, pose: {surfer: {cosmic: 1, chrome: 1, board: .5}}},
+        {go: 'hold', T: 220, pose: {surfer: ON}},
+        {go: 'hold', T: 140, pose: {squash: 2, surfer: ON}},
+        {go: 'hold', T: 120, pose: {face: ride.dir, dy: -6, tuck: 1, arms: ['up', 'up'], surfer: ON}}, // hops on
+        surf(ride),
+        {go: 'hold', T: 240, pose: () => ({face: ride.dir, squash: 1, ...CAPPY && {arms: ['high', 'high']}, surfer: {cosmic: 1, chrome: 1, board: 'up'}})}, // kicks it up into his hand
+        {go: 'hold', T: 240, pose: () => ({face: ride.dir, arms: ['up', 'mid'], eyes: 'happy', surfer: {cosmic: .6, chrome: .6}})},
+        {go: 'hold', T: 200, pose: {eyes: 'happy', surfer: {cosmic: .3, chrome: .3}}},
+        {go: 'hold', T: 200, pose: {}},
+      ]
+    },
+    end: () => desk.querySelectorAll('.cosmic').forEach(el => el.remove()), // cut short mid-flight: no trail left hanging
     /** Chrome all over, with a glint sweeping across him (never his eyes) once he's fully silver. */
     pixels({d: s, px, now}){
       if (!s.chrome) return px
