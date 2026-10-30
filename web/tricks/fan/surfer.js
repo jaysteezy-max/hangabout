@@ -42,7 +42,7 @@
       fn(t, dt){
         const s = hangabout.size, W = hangabout.width, edge = 66 * s, VT = 540 * Math.sqrt(s), S = surfaces(), floor = S[0].y + PH
         if (!m) {
-          const f = feet(), a = rand(.6, 1.1), V = Math.min(VT * rand(1.4, 1.9), Math.sqrt(2 * G * Math.max(0, f.y - scr.top - 90 * s))) // no faster than keeps him under the menu bar
+          const f = feet(), a = rand(.1, .4), V = Math.min(VT * rand(1.4, 1.9), Math.sqrt(2 * G * Math.max(0, f.y - scr.top - 90 * s))) // no faster than keeps him under the menu bar
           m = {x: f.x, y: f.y, vx: ride.dir * V * Math.cos(a), vy: -V * Math.sin(a), dir: ride.dir, waves: 2 + Math.floor(rand(0, 3)), mode: 'surf', rot: 0, cut: -1e9}
         }
         if (t > 6000 && (m.mode === 'surf' || m.mode === 'loop')) m.mode = 'glide' // enough: in to land
@@ -68,7 +68,7 @@
             const below = S.filter(o => m.x >= o.x0 + 66 && m.x <= o.x1 + 66 && o.y + PH >= m.y).sort((a, b) => a.y - b.y)[0] || S[0]
             drag = 2.5 / VT; lift = below.y + PH - m.y < 30 * s + m.vy * .5 && m.vy > .4 * V ? 2.5 : .9 // flares if he's coming in steep
           }
-          const turn = m.dir * lift * G * V / (VT * VT) * h, c = Math.cos(turn), sn = Math.sin(turn), slow = Math.exp(-drag * V * h)
+          const turn = m.dir * lift * G / VT * h, c = Math.cos(turn), sn = Math.sin(turn), slow = Math.exp(-drag * V * h)
           ;[m.vx, m.vy] = [(m.vx * c + m.vy * sn) * slow, (-m.vx * sn + m.vy * c) * slow + G * h]
           let x = m.x + m.vx * h
           const y = m.y + m.vy * h
