@@ -139,6 +139,14 @@ wash, sit, wave, juggle and trip, and her own idle, nap and blocked poses, throu
 Her extra pose keys (`legs`, `tail`, `ears`, `mouth`, `tear`, `cat`, `zz`, `heart`, `balls`) are listed in
 `web/skins/pusheen.js`. Each fan costume has a Pusheen layout for her face (`PUSHEEN` in its file).
 
+The Minecraft slime is a jelly cube drawn three-quarters, its face on the side it faces, and keeps facing the way it
+last went. It has no legs: `lift`, `tapLeg`, `tuck` and `swing` do nothing, and it hops everywhere. `squash` makes it
+shorter and wider and `stretch` taller and narrower, like jelly. Its hands are nubs of slime: `arms` `'up'` or `'high'`
+push one out of its face side (a second one out of its other side), and `hand` and `reach` push out a goo arm at the
+height `hand` gives (Clawd's measure), longer as it reaches; props go at its tip. Its own pose keys are `mouth: 'yawn'`
+and `puddle` (1 a sagging mound, 2 a puddle, as it melts). Its own tricks (split, super bounce, sticky, melt) are in
+`web/tricks/fan/slime.js` and load only for it; each costume and prop has a slime layout (`SLIME` in its file).
+
 ## The art grid
 
 He's drawn on a 44 × 40 grid of art pixels, each shown as 3 × 3 screen points at normal size (more or less with the
@@ -301,6 +309,7 @@ SKINS.owl = {
   walk(now, dir, arms){ return pose },     // his walking pose at time now, heading dir (also used to climb)
   tricks: {stretch: [[pose, ms], ...]},    // his own frames for a frames-only trick, in place of its own
   moods: {nap: {intro, loops, rest}},      // his own poses for one of Claude's states (see MOODS in pet.html)
+  wiggle(t){ return pose },                // his own happy wiggle as you hover him, t ms into its half second
 }
 ```
 

@@ -8,13 +8,17 @@
   const CHICKEN = hangabout.skin === 'chicken' // a dome of a helmet over his crest, his blue and toes gone black, the cape down his back, the saber in his wing
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out of a side-on loaf: the dome over both ears, a lens on each eye
   const CAPPY = hangabout.skin === 'cappy' // his snout and toes gone black too, his front paw out low to the hilt
+  const SLIME = hangabout.skin === 'slime' // a cube with its face on its side: the dome over its top face, a lens on each eye, the saber in its goo arm
+  const KNIGHT = hangabout.skin === 'knight' // his own helmet is the dome: it goes black, his faceplate the mask, the saber in his front hand
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
   if (PUSHEEN) ARMOR['#8B8B90'] = '#111115' // and her paws (web/skins/pusheen.js)
   if (HATTY) Object.assign(ARMOR, {'#915544': '#1E1E24', '#4E4E4E': '#111115', '#9B225D': '#2C2D35', '#4BA2CE': '#1E1E24'}) // and his jacket, trousers, tie and tears (web/skins/hatty.js)
   if (CHICKEN) Object.assign(ARMOR, {'#F2BE2E': '#2C2D35', '#6B2020': '#111115'}) // his toes (web/skins/chicken.js)
   if (CAPPY) Object.assign(ARMOR, {'#86655F': '#2C2D35', '#8F6F69': '#3C3D47', '#7A3A3E': '#2C2D35'}) // his snout, its highlight and his toes (web/skins/cappy.js)
+  if (SLIME) Object.assign(ARMOR, {'#6A9D23': '#0B0B0E', '#FFFFFF': '#4B4E5C', '#DCF9B6': '#3C3D47', '#EC9291': '#1E1E24'}) // its outline, glints (a shine on the armor) and cheeks (web/skins/slime.js)
+  if (KNIGHT) Object.assign(ARMOR, {'#FFFFFF': '#2C2D35', '#D9DEEA': '#3C3D47', '#A9B4C8': '#5D606B', '#4A4A4A': '#1E1E24', '#7A7A7A': '#3C3D47', '#383838': '#111115', '#5E5E5E': '#111115'}) // his faceplate and tunic, armor and boots (web/skins/knight.js)
   const SUITED = {'#44AEF6': '#1E1E24', '#0060A0': '#111115', '#FFF050': '#3C3D47', '#B8960F': '#111115'} // the chicken's blue and yellow, gone black all but his beak and tail (see pixels)
-  const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid'], HOLD = {arms: MID, ...(CHICKEN || CAPPY) && {hand: 7}} // the chicken's wing round the hilt, Cappy's paw
+  const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid'], HOLD = {arms: MID, ...(CHICKEN || CAPPY || SLIME) && {hand: 7}} // the chicken's wing round the hilt, Cappy's paw, the slime's goo arm
   const maythe4th = () => { const d = new Date(); return d.getMonth() === 4 && d.getDate() === 4 ? 1 : 0 } // your local date
 
   /** A side-on skin's last column at his back, as drawn facing left: just in from his outline. */
@@ -30,11 +34,15 @@
   // The chicken's helmet, facing left, by rows down from the top of his head: [dy, x0, x1]. A dome over his head and crest,
   // its brow over his eye, then only its side behind his eye, coming down his neck and flaring out at the back.
   const DOME = [[-5, 19, 23], [-4, 17, 25], [-3, 15, 27], [-2, 14, 28], [-1, 14, 28], [0, 13, 29], [1, 13, 29], [2, 13, 29], [3, 21, 29], [4, 22, 30], [5, 22, 30], [6, 23, 31], [7, 23, 32], [8, 24, 33], [9, 25, 34], [10, 26, 35]]
-  /** The chicken's helmet with t at the top of his head: rim-lit along its top and back so it stands off his black suit, the brow lighter over the mask. */
-  function chickenHelmet(ctx, t){
-    const on = (x, dy) => DOME.some(([d, x0, x1]) => d === dy && x >= x0 && x <= x1)
-    for (const [dy, x0, x1] of DOME) for (let x = x0; x <= x1; x++) {
-      ctx.fillStyle = !on(x, dy - 1) || !on(x + 1, dy) ? '#6E7280' : dy === 2 && x < 21 ? '#2C2D35' : '#111114'
+  // The slime's, the same way from the top of its top face: a dome over its top face and the top of its sides, the brow
+  // over its eyes, then flaring down its face side's outer edge and its back.
+  const CUBE = [[-2, 18, 24], [-1, 16, 26], [0, 14, 28], [1, 12, 30], [2, 11, 31], ...[3, 4, 5, 6, 7, 8].map(dy => [dy, 10, 32]),
+    ...[[9, 10, 11, 30, 32], [10, 10, 11, 30, 33], [11, 9, 11, 31, 33], [12, 9, 11, 31, 33], [13, 9, 11, 31, 34], [14, 9, 10, 32, 34]].flatMap(([dy, a, b, c, d]) => [[dy, a, b], [dy, c, d]])]
+  /** A helmet from rows like DOME, with t at the top of the head: rim-lit along its top and back so it stands off the black suit, the brow row lighter over the mask. */
+  function helmet(ctx, t, rows, brow){
+    const on = (x, dy) => rows.some(([d, x0, x1]) => d === dy && x >= x0 && x <= x1)
+    for (const [dy, x0, x1] of rows) for (let x = x0; x <= x1; x++) {
+      ctx.fillStyle = !on(x, dy - 1) || !on(x + 1, dy) ? '#6E7280' : dy === brow && x < 21 ? '#2C2D35' : '#111114'
       ctx.fillRect(x, t + dy, 1, 1)
     }
   }
@@ -58,7 +66,7 @@
     const h = head(pose), k = h.x - 20, n = h.nose - 10, row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0 + 1, 1) }
     if (v.mask) { ctx.fillStyle = '#111114'; for (const [x, y] of px) if ((pose.face > 0 ? GW - 1 - x : x) <= 25 + n && y <= h.y + (CHICKEN ? 4 : 11)) ctx.fillRect(x, y, 1, 1) } // the chicken's only down to his beak: his wing's in front of his chest
     facing(ctx, pose, () => {
-      if (CHICKEN && v.helmet != null) chickenHelmet(ctx, h.top + v.helmet)
+      if (CHICKEN && v.helmet != null) helmet(ctx, h.top + v.helmet, DOME, 2)
       ctx.translate(k, 0) // the dome, the lens and the cheek go by his eye
       if (v.helmet != null && !CHICKEN) { // the dome, and its flare down the back of his neck
         const t = h.top + v.helmet
@@ -112,6 +120,24 @@
     })
   }
 
+  /** The knight, drawn facing left: angled lenses over his eyes, the grille on his chin, the chest panel on his tunic, and the saber in his front fist. */
+  function knightFront(ctx, v, now, pose){
+    const h = head(pose), row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0 + 1, 1) }
+    facing(ctx, pose, () => {
+      if (v.mask) {
+        for (const [x0, w] of [[h.x - 2, 4], [h.x - 10, 3]]) { // the near lens and the far one, cut away at the bottom
+          row(h.y - 1, x0, x0 + w - 1, '#2B0E10'); row(h.y, x0, x0 + w - 1, '#2B0E10'); row(h.y + 1, x0 + 1, x0 + w - 1, '#2B0E10')
+          ctx.fillStyle = '#7A3232'; ctx.fillRect(x0 + 1, h.y - 1, 1, 1)
+        }
+        for (const [y, x0, x1] of [[h.y + 2, h.x - 6, h.x - 4], [h.y + 3, h.x - 7, h.x - 3], [h.y + 4, h.x - 6, h.x - 4]]) for (let x = x0; x <= x1; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // grille
+        row(h.y + 6, h.x - 5, h.x + 1, '#4F525C'); row(h.y + 7, h.x - 5, h.x + 1, '#4F525C') // chest panel, its lights blinking
+        const on = Math.floor(now / 350)
+        ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(h.x - 4 + i * 2, h.y + 6 + (i % 2), 1, 1) } })
+      }
+      saber(ctx, v, now, 12, h.y + 8)
+    })
+  }
+
   /** Pusheen, drawn facing left: the dome down over her ears and the top of her head, flaring at her cheeks and down her back, a lens on each eye, the grille on her mouth, the chest panel, and the saber at her chin. */
   function pusheenFront(ctx, v, now, pose){
     const h = head(pose), row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0 + 1, 1) }
@@ -137,6 +163,27 @@
         ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(h.x + 2 + i * 2, h.y + 6 + (i % 2), 1, 1) } })
       }
       saber(ctx, v, now, 8, h.y + 8)
+    })
+  }
+
+  /** The slime, drawn facing left: the dome over its top face, flaring down its sides, a lens on each eye, the grille on its mouth, the chest panel below, and the saber in its goo arm's tip. */
+  function slimeFront(ctx, v, now, pose){
+    const h = head(pose), row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0 + 1, 1) }
+    facing(ctx, pose, () => {
+      if (v.helmet != null) { ctx.save(); ctx.translate(h.nose - 10, 0); helmet(ctx, h.top + v.helmet, CUBE, 8); ctx.restore() } // laid out at its rest width
+      if (v.mask) {
+        for (const [x0, y0, outer] of [[h.x - 1, h.y, -1], [h.x + 4, h.y + 1, 1]]) { // angled lenses over its eyes (the near one a row lower), cut away at the outer bottom corner
+          row(y0, x0, x0 + 2, '#2B0E10'); row(y0 + 1, x0, x0 + 2, '#2B0E10'); row(y0 + 2, x0 + (outer < 0), x0 + 2 - (outer > 0), '#2B0E10')
+          ctx.fillStyle = '#7A3232'; ctx.fillRect(x0 + 1, y0, 1, 1)
+        }
+        ctx.fillStyle = '#5D606B'; ctx.fillRect(h.x + 2, h.y - 1, 2, 3) // the ridge between them
+        for (let i = 0; i < 2; i++) { ctx.fillRect(h.x - 1 + i, h.y + 3 + i, 1, 1); ctx.fillRect(h.x + 6 - i, h.y + 4 + i, 1, 1) } // the cheeks, down to the grille
+        for (const [y, w] of [[h.y + 4, 1], [h.y + 5, 2], [h.y + 6, 2]]) for (let x = h.x + 3 - w; x <= h.x + 2 + w; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille
+        row(h.y + 7, h.x + 1, h.x + 7, '#4F525C'); row(h.y + 8, h.x + 1, h.x + 7, '#4F525C') // chest panel, its lights blinking
+        const on = Math.floor(now / 350)
+        ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(h.x + 1 + i * 2, h.y + 7 + (i % 2), 1, 1) } })
+      }
+      saber(ctx, v, now, h.nose - 4, h.y + 1)
     })
   }
 
@@ -186,6 +233,8 @@
     /** In front: the helmet coming down, the mask and chest panel, and the red saber (hilt in his right hand). */
     front({ctx, d: v, px, now, pose}){
       if (PUSHEEN) return pusheenFront(ctx, v, now, pose)
+      if (SLIME) return slimeFront(ctx, v, now, pose)
+      if (KNIGHT) return knightFront(ctx, v, now, pose)
       if (PROFILE) return profileFront(ctx, v, px, now, pose)
       if (HATTY) return hattyFront(ctx, v, now, pose)
       const dy = pose.dy || 0, sq = pose.squash || 0, eyeY = OY + 4 + dy + sq, top = Math.min(...px.map(([, y]) => y)) + (v.helmet || 0)

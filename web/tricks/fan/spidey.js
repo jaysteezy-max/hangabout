@@ -8,13 +8,16 @@
   const G = 2600 // points per second², the pull he falls with everywhere else
   const PROFILE = hangabout.sideOn && head // side on: the suit laid out in profile
   const PUSHEEN = hangabout.skin === 'pusheen' // side on, but her face looks out at you: a lens on each eye, the web from between them
+  // The slime's face is on its side too: a lens on each eye (the near one a row lower), the web from between them, its
+  // outline dark, its glints lit, and blue along its bottom edges, clear of its nubs (web/skins/slime.js).
+  const SLIME = hangabout.skin === 'slime', SLIME_LINE = '#6A9D23', GLINT = {'#FFFFFF': TOP, '#DCF9B6': TOP}
   const HATTY = hangabout.skin === 'hatty', UP = arm => HATTY ? [arm, 'mid'] : ['mid', arm] // Hatty reaches up with his free hand, the one in front when he turns
   const CHICKEN = hangabout.skin === 'chicken', GRIP = CHICKEN ? {hand: 1} : {} // raised high, his wing is over his back, so he holds the web out front in it
   const CAPPY = hangabout.skin === 'cappy' // the web from the toes of the paw he raises before his face
   // The chicken's yellow beak, wing and foot stay red (a bulge in the mask, lit; a glove; a boot), their gold edge a darker
   // red; his blue crest, wattle and tail keep their dark blue as the suit's shade. His lens is a teardrop, pointed at his beak.
   const SHADE = CHICKEN && {'#FFF050': BODY, '#B8960F': SIDE, '#44AEF6': BODY, '#0060A0': SIDE}, GOLD = ['#FFF050', '#B8960F']
-  const LENS = CHICKEN ? [[21, -3], [22, -3], [20, -2], [21, -2], [22, -2], [23, -2], [20, -1], [21, -1], [22, -1], [23, -1], [19, 0], [20, 0], [21, 0], [22, 0], [19, 1]]
+  const LENS = SLIME ? [[19, 0], [20, 0], [21, 0], [19, 1], [20, 1], [21, 1], [20, 2], [21, 2], [21, 3]] : CHICKEN ? [[21, -3], [22, -3], [20, -2], [21, -2], [22, -2], [23, -2], [20, -1], [21, -1], [22, -1], [23, -1], [19, 0], [20, 0], [21, 0], [22, 0], [19, 1]]
     : [[20, -2], [21, -2], [19, -1], [20, -1], [21, -1], [22, -1], [19, 0], [20, 0], [21, 0], [22, 0], [20, 1], [21, 1]]
   const RED = {[BODY]: '#D3252E', [TOP]: '#F2615E', [SIDE]: '#951A22'}, BLUE = {[BODY]: '#2659C9', [TOP]: '#5585E8', [SIDE]: '#183B8E'}
   document.head.insertAdjacentHTML('beforeend', `<style>
@@ -159,18 +162,21 @@
   function profileSuit(d, px, pose){
     const h = head(pose), dy = pose.dy || 0, flip = x => pose.face > 0 ? GW - 1 - x : x // between his art facing left and the screen, either way
     const dark = c => parseInt(c.slice(1, 3), 16) + parseInt(c.slice(3, 5), 16) + parseInt(c.slice(5, 7), 16) < 150
-    const cx = PUSHEEN ? h.x + 4 : h.x, web = (x, y) => { const dx = x - cx - .5, dv = y - h.y - .5, r = Math.hypot(dx / 1.3, dv); return y <= h.y + 9 && (Math.abs(Math.abs(dx) - 2 * Math.abs(dv)) < .7 || Math.abs(Math.abs(dv) - 2 * Math.abs(dx)) < .7 || Math.abs(r - 6) < .5) }
+    const cx = PUSHEEN ? h.x + 4 : SLIME ? h.x + 2 : h.x, web = (x, y) => { const dx = x - cx - .5, dv = y - h.y - .5, r = Math.hypot(dx / 1.3, dv); return y <= h.y + 9 && (Math.abs(Math.abs(dx) - 2 * Math.abs(dv)) < .7 || Math.abs(Math.abs(dv) - 2 * Math.abs(dx)) < .7 || Math.abs(r - 6) < .5) }
+    const low = new Map(); if (SLIME) for (const [x, y] of px) low.set(x, Math.max(low.get(x) ?? 0, y)) // its lowest pixel in each column
     const out = px.map(([x, y, c]) => {
-      if (c === EYE) return [x, y, mix(EYE, '#FFFFFF', d)]
+      const blue = SLIME && low.get(x) >= 33 + dy && y > low.get(x) - 4 // its bottom four rows, following its edges down to its corner (a nub never reaches that low)
+      if (c === EYE) return [x, y, mix(EYE, SLIME && d === 1 ? (blue ? BLUE : RED)[BODY] : '#FFFFFF', d)] // the slime's mouth goes under the mask, its eyes under the lenses
+      if (c === SLIME_LINE) return [x, y, mix(c, '#2A0A0E', d)] // its outline stays dark round the suit
       if (dark(c)) return [x, y, c]
-      const mask = (flip(x) <= h.nose + 8 && !(y >= h.chin)) || y < h.y + 8, pal = mask || y >= 38 + dy || CHICKEN && GOLD.includes(c) ? RED : BLUE // red boots; below a chin, blue all the way across
+      const mask = SLIME ? !blue : (flip(x) <= h.nose + 8 && !(y >= h.chin)) || y < h.y + 8, pal = SLIME ? (blue ? BLUE : RED) : mask || y >= 38 + dy || CHICKEN && GOLD.includes(c) ? RED : BLUE // red boots; below a chin, blue all the way across
       const beak = CHICKEN && GOLD.includes(c) && flip(x) > 12 && flip(x) < 18 && y >= h.y && y <= h.chin // x 13 to 17 down the front of his face
-      const shade = CHICKEN && (beak && c === GOLD[0] ? TOP : SHADE[c]), edge = shade === SIDE // his edges stay a darker shade, unwebbed
+      const shade = SLIME ? GLINT[c] : CHICKEN && (beak && c === GOLD[0] ? TOP : SHADE[c]), edge = shade === SIDE // his edges stay a darker shade, unwebbed
       if (beak) return [x, y, mix(c, edge ? '#5E0C13' : web(flip(x), y) ? RED[BODY] : RED[TOP], d)] // lit, a fainter web on it, its edge darker than the web's
       return [x, y, mix(c, mask && !edge && web(flip(x), y) ? '#7E1219' : pal[shade || c] || pal[BODY], d)]
     })
     if (d < 1) return out
-    const lens = new Set(LENS.flatMap(([x, v]) => [x + h.x - 20 + ',' + (h.y + v), ...PUSHEEN ? [h.x + 30 - x + ',' + (h.y + v)] : []])) // her far eye's is the mirror image
+    const lens = new Set(LENS.flatMap(([x, v]) => [x + h.x - 20 + ',' + (h.y + v), ...PUSHEEN ? [h.x + 30 - x + ',' + (h.y + v)] : SLIME ? [h.x + 25 - x + ',' + (h.y + v + 1)] : []])) // her far eye's is the mirror image (the slime's near eye's, a row lower)
     for (const k of lens) {
       const [x, y] = k.split(',').map(Number)
       out.push([flip(x), y, '#FFFFFF'])

@@ -1,5 +1,5 @@
 // Plays every trick (Fan pack on) and every Claude state on a skin in headless Chrome, on a fake clock, and prints
-// {durations, problems}: node check.cjs <skin key> <outdir>   (ONLY=dance,wave picks tricks; DSF=2 shoots at 2x;
+// {durations, problems}: node check.cjs <skin key> <outdir>   (ONLY=dance,wave picks tricks; DSF=2 shoots at 2x; EVERY=80 shoots every 80 ms, not 400;
 // WEB=<another checkout>/web/pet.html runs that copy of the page, e.g. main's, to compare)
 // Frames around the pet land in outdir; python3 framesheet.py <outdir> <out.png> makes contact sheets of them.
 const fs = require('fs'), path = require('path'), os = require('os')
@@ -7,6 +7,7 @@ const npx = path.join(os.homedir(), '.npm/_npx') // puppeteer from the npx cache
 const found = fs.existsSync(npx) && fs.readdirSync(npx).map(d => path.join(npx, d, 'node_modules/puppeteer')).find(d => fs.existsSync(d))
 if (!found) { console.error('No puppeteer in ~/.npm/_npx: run `npx -y puppeteer browsers install chrome-headless-shell` once.'); process.exit(1) }
 const puppeteer = require(found)
+const EVERY = +(process.env.EVERY || 400)
 const WEB = process.env.WEB || path.resolve(__dirname, '../../../../web/pet.html'), [skin, out] = process.argv.slice(2)
 const FRAME = 40
 
@@ -67,7 +68,7 @@ const fakeClock = seed => { // time moves only when __tick(ms) is called, and Ma
     let T = 0
     const shots = []
     while (T < 20000 && await run(`ai.mode === 'fidget' || ai.mode === 'script' || ai.mode === 'jump' || ai.mode === 'fall' || ai.next`)) {
-      if (T % 400 === 0) { const f = path.join(out, `${name}-t${String(T).padStart(5, '0')}.png`); await shot(f); shots.push(f) }
+      if (T % EVERY === 0) { const f = path.join(out, `${name}-t${String(T).padStart(5, '0')}.png`); await shot(f); shots.push(f) }
       await tick(FRAME); T += FRAME
     }
     report[name] = T

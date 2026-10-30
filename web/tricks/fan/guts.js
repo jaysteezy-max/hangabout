@@ -10,6 +10,7 @@
   const HATTY = hangabout.skin === 'hatty' // his hat stays on: the cloak off his shoulders, the sword in his cane hand
   const CHICKEN = hangabout.skin === 'chicken' // the sword in his wing: up in front of him, planted in the ground, then over his head from his raised wing
   const CAPPY = hangabout.skin === 'cappy' // no arms: the sword in his paw raised before his face, stood up, then laid back over his head
+  const SLIME = hangabout.skin === 'slime' // the sword in its goo arm, the chicken's way, then across its top from a nub raised at its front corner
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
 
   hangabout.trick({
@@ -26,7 +27,7 @@
       [{eyes: 'angry', guts: {cape: 1, shoulder: 1, brand: 1, aura: 1}}, 1500], // rests it on his shoulder
       [{guts: {cape: .5, shoulder: .5}}, 160], [{guts: {cape: .25, shoulder: .25}}, 160], [{}, 200],
     ].map(([p, ms]) => [CAPPY && p.guts ? p.guts.shoulder || p.guts.sword ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: 6} : p : // Cappy's paw on its grip
-      !CHICKEN || !p.guts ? p : p.guts.shoulder ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: 4} : p.guts.sword ? {...p, hand: 10} : p, ms]), // the chicken's wing on its grip
+      !(CHICKEN || SLIME) || !p.guts ? p : p.guts.shoulder ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: SLIME ? 3 : 4} : p.guts.sword ? {...p, hand: SLIME ? 7 : 10} : p, ms]), // the chicken's wing (the slime's goo) on its grip
     /** Behind him: the dark aura, the cloak's flaps, and the sword when it's upright or on his shoulder. */
     behind({ctx, d: g, px, now, pose}){
       if (g.aura) { // dark red aura flickering at his edges
@@ -60,10 +61,11 @@
       facing(ctx, pose, () => { // the sword stays behind him whichever way he faces side on
         if (HATTY) ctx.translate(-6, head(pose).y - 22) // its grip in his cane hand
         if (CHICKEN) ctx.translate(-32, pose.dy || 0) // its grip in his wing, out in front of him (behind him, so his wing closes over it)
-        if (g.low && CHICKEN) { ctx.translate(0, 54); ctx.scale(1, -1) } // the chicken's after the swing: the same sword upside down, planted point first in front of him
+        if (SLIME) { const h = head(pose); ctx.translate(h.nose - 42, h.y - 27) } // the same in the slime's goo-arm tip, which squashes with it
+        if (g.low && (CHICKEN || SLIME)) { ctx.translate(0, 54); ctx.scale(1, -1) } // the chicken's after the swing: the same sword upside down, planted point first in front of him
         if (CAPPY) ctx.translate(0, (pose.dy || 0) - (pose.stretch || 0)) // with his raised paw, which keeps to his chin (web/skins/cappy.js)
         if (g.sword && CAPPY) ctx.translate(-29, -1) // its grip in the toes of his raised paw, the guard on them, the blade before his face
-        if (g.sword || (g.low && CHICKEN)) { // drawn up from behind his back: longer than he is tall
+        if (g.sword || (g.low && (CHICKEN || SLIME))) { // drawn up from behind his back: longer than he is tall
           const tip = CAPPY ? 1 : 0, cut = Math.round((1 - (g.sword || 1)) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } } // Cappy's held higher: a shorter blade, its point on the grid
           row(tip, 38, 1, EDGE); row(tip + 1, 37, 3, IRON)
           for (let y = tip + 2; y <= 26; y++) { row(y, 36, 1, EDGE); row(y, 37, 3, IRON); row(y, 40, 1, DARK) }
@@ -81,6 +83,11 @@
           thickLine(ctx, 12, 24, 39, 1, 1, EDGE, g.shoulder)
           thickLine(ctx, 8, 23, 14, 29, 2, STEELGUARD, g.shoulder)
           thickLine(ctx, 9, 28, 5, 31, 3, LEATHER, g.shoulder)
+        } else if (g.shoulder && SLIME) { // its grip in its nub raised at its front corner (the canvas moved back for it), the blade back across its top
+          thickLine(ctx, 42, 17, 74, 13, 5, IRON, g.shoulder)
+          thickLine(ctx, 42, 15, 74, 11, 1, EDGE, g.shoulder)
+          thickLine(ctx, 41, 13, 42, 21, 2, STEELGUARD, g.shoulder)
+          thickLine(ctx, 40, 17, 36, 15, 3, LEATHER, g.shoulder)
         } else if (g.shoulder) { // resting on his shoulder, angled up behind his head
           thickLine(ctx, 37, 29, 7, 2, 5, IRON, g.shoulder)
           thickLine(ctx, 36, 27, 6, 0, 1, EDGE, g.shoulder)
@@ -127,7 +134,7 @@
           ;['.#.', '.##', '##.', '.#.'].forEach((r, j) => [...r].forEach((ch, i) => { if (ch === '#') ctx.fillRect(bx + i, by + j, 1, 1) }))
           ctx.globalAlpha = 1
         }
-        if (g.low && !CHICKEN) { // after the swing: the blade along the ground in front of him (side on: its grip under his chin; Hatty: in his cane hand)
+        if (g.low && !CHICKEN && !SLIME) { // after the swing: the blade along the ground in front of him (side on: its grip under his chin; Hatty: in his cane hand)
           const k = PROFILE ? n - 21 : HATTY ? -4 : 0, y = HATTY ? h.y - 6 : OY
           ctx.fillStyle = EDGE; ctx.fillRect(2 + k, y + 14, 29, 1)
           ctx.fillStyle = IRON; ctx.fillRect(1 + k, y + 15, 30, 3)
@@ -136,10 +143,10 @@
           ctx.fillStyle = LEATHER; ctx.fillRect(33 + k, y + 15, 5, 2)
         }
       })
-      if (g.slash) facing(ctx, pose, () => { // a huge white arc tearing across (the chicken's: down in front of him, the way his sword goes)
+      if (g.slash) facing(ctx, pose, () => { // a huge white arc tearing across (the chicken's and the slime's: down in front of them, the way their sword goes)
         for (let i = 0; i <= 80; i++) {
           const t = i / 80, s = Math.sin(Math.PI * t), w = Math.round(1 + 2.5 * s)
-          const [x, y] = CHICKEN ? [6 - 18 * Math.sin(t * Math.PI / 2), 31 - 28 * Math.cos(t * Math.PI / 2)] : [41 - 40 * t + 8 * s, OY - 18 + 37 * t + 4 * s]
+          const [x, y] = CHICKEN || SLIME ? [6 - 18 * Math.sin(t * Math.PI / 2), 31 - 28 * Math.cos(t * Math.PI / 2)] : [41 - 40 * t + 8 * s, OY - 18 + 37 * t + 4 * s]
           ctx.globalAlpha = g.slash * (.6 + .4 * s); ctx.fillStyle = s > .5 ? '#FFFFFF' : '#FFD6D6'
           ctx.fillRect(Math.round(x) - (w >> 1), Math.round(y) - (w >> 1), w, w)
         }

@@ -5,6 +5,7 @@
   const {OX, LIFT, GW, GH, EYE, recolor, head} = hangabout
   const PROFILE = hangabout.sideOn && head // side on: the mane in profile
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the mane square on her head, bangs either side of her brow
+  const KNIGHT = hangabout.skin === 'knight' // his helmet stays on: the spikes flare out from behind it
   const GOLD = ['#FFF3B0', '#FFD84D', '#FFB938', '#FF8F2A'] // white-hot core → orange tips
 
   /** The mane: a cap over his head, seven spikes fanning up and out, two bangs over his brow. */
@@ -12,6 +13,7 @@
     const hair = new Map()
     if (d !== 'on' && d !== 'release') return hair
     if (hangabout.skin === 'chicken') return chickenMane(hair, d, pose)
+    if (hangabout.skin === 'slime') return slimeMane(hair, d, pose)
     if (PROFILE) return profileMane(hair, d, pose)
     if (hangabout.skin === 'hatty') return hattyMane(hair, d, px, pose)
     const headTop = Math.min(...px.map(([, y]) => y)), bx = OX + 6, scale = d === 'release' ? .4 : 1
@@ -57,6 +59,22 @@
         for (let i = 0; i < w; i++) put(x1 + i, base - r, i < w / 2 ? '#FFE04A' : '#F2BE22') // solid gold, lit down one side: paler reads as flame
       }
     }
+    return hair
+  }
+  /** The slime's, drawn facing left: a cap over its whole top face, five spikes rising off it swept back, and bangs over the top of its face. */
+  function slimeMane(hair, d, pose){
+    const t = head(pose).top, scale = d === 'release' ? .4 : 1, put = (x, y, c) => hair.set((pose.face > 0 ? GW - 1 - x : x) + ',' + y, c)
+    // Its top face is a diamond round x 21 (web/skins/slime.js): its outline above, and the seams with its sides below.
+    const edge = x => t + Math.ceil(Math.max(0, Math.abs(x - 21) - 2) / 2), seam = x => t + Math.min(8, 4 + Math.ceil(Math.max(0, Math.min(x, 42 - x) - 12) / 2))
+    for (let x = 11; x <= 31; x++) for (let y = edge(x) - 2; y < seam(x); y++) put(x, y, '#F7CF3A') // the cap, down to its seams
+    for (const [x0, bw, h0, lean] of [[14, 4, 6, -.5], [17, 5, 9, -.15], [21, 5, 11, .2], [25, 5, 9, .55], [28, 4, 6, .95]]) { // [base x, base width, height, lean per row]
+      const h = Math.max(2, Math.round(h0 * scale))
+      for (let r = 0; r < h; r++) {
+        const w = Math.max(1, Math.round(bw * (1 - r / h))), x1 = Math.round(x0 + lean * r - w / 2)
+        for (let i = 0; i < w; i++) put(x1 + i, edge(x0) - 3 - r, r >= h - 2 ? '#FFFBD6' : i < w / 2 ? '#FFF39A' : '#F7CF3A')
+      }
+    }
+    for (const [x0, len] of [[12, 3], [16, 2]]) for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), seam(x0) + r, '#F7CF3A') // bangs over its brow
     return hair
   }
   /** Hatty's, drawn facing you: his hat stays on, so the spikes flare out from behind it, with gold at its sides and two bangs over his brow. */
@@ -140,7 +158,7 @@
           const [x, y] = k.split(',').map(Number)
           for (const [a, b] of [[1, 0], [-1, 0], [0, -1], [1, -1], [-1, -1]]) { const n = (x + a) + ',' + (y + b); if (!hair.has(n) && !body.has(n)) ctx.fillRect(x + a, y + b, 1, 1) }
         }
-        for (const [k, c] of hair) { const [x, y] = k.split(',').map(Number); ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
+        for (const [k, c] of hair) { if (KNIGHT && body.has(k)) continue; const [x, y] = k.split(',').map(Number); ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
         if (d === 'on' && now % 520 < 90) { // lightning crackles down one side, then the other
           const base = Math.floor(now / 520) % 2 ? 39 : 4
           ctx.fillStyle = '#CFEFFF'

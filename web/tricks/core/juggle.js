@@ -5,6 +5,7 @@
   const LEFT = OX + 4, RIGHT = OX + 31 // just above each raised hand
   const CHICKEN = hangabout.skin === 'chicken' // his head is in the way: the low pass back goes behind it, the high arc over his crest
   const CAPPY = hangabout.skin === 'cappy' // no arms: a one-paw shower in front of his face, tossed up from his raised paw to a little above his ears
+  const KNIGHT = hangabout.skin === 'knight' // so is the knight's tall helmet: every pass goes behind him, the high arc right over it, and on his white and blue the balls want an outline
   /** The balls whose pass (high: the arc over, else the quick low one back) is drawn now. */
   function balls(ctx, d, pose, pass){
     const {C} = hangabout, dy = pose.dy || 0, h = CAPPY && head(pose)
@@ -13,10 +14,12 @@
       // Cappy's, as drawn facing left: from just over his paw's toes up and out in front of his snout, then low back to his paw.
       const f = (d + i / 3) % 1, high = f < 2 / 3, u = high ? f * 1.5 : (f - 2 / 3) * 3
       if (!pass(high)) return
-      const [a, b] = CAPPY ? [h.nose - 3, h.nose - 13] : [LEFT, RIGHT]
-      const x0 = high ? a : b, x1 = high ? b : a, base = CAPPY ? h.top + 1 : OY + 2 + dy, rise = high ? (CHICKEN ? 15 : CAPPY ? 8 : 13) : 2
+      const [a, b] = CAPPY ? [h.nose - 3, h.nose - 13] : [LEFT, RIGHT], n = KNIGHT ? 3 : 2
+      const x0 = high ? a : b, x1 = high ? b : a, base = CAPPY ? h.top + 1 : OY + 2 + dy, rise = high ? (KNIGHT ? 21 : CHICKEN ? 15 : CAPPY ? 8 : 13) : 2
+      const bx = Math.round(x0 + (x1 - x0) * u), by = Math.round(base - rise * 4 * u * (1 - u))
+      if (KNIGHT) { ctx.fillStyle = '#000000'; ctx.fillRect(bx - 1, by, n + 2, n); ctx.fillRect(bx, by - 1, n, n + 2) } // outlined, to read on his white and blue
       ctx.fillStyle = color
-      ctx.fillRect(Math.round(x0 + (x1 - x0) * u), Math.round(base - rise * 4 * u * (1 - u)), 2, 2)
+      ctx.fillRect(bx, by, n, n)
     })
   }
   // Cappy's paw flicks up in front of his face as each ball leaves it, and drops to his chin between.
@@ -30,7 +33,7 @@
       [{arms: ['up', 'up'], eyes: 'happy'}, 450], // caught them all
       [{}, 200],
     ],
-    front({ctx, d, pose}){ CAPPY ? facing(ctx, pose, () => balls(ctx, d, pose, () => true)) : balls(ctx, d, pose, high => high || !CHICKEN) },
-    behind({ctx, d, pose}){ if (CHICKEN) balls(ctx, d, pose, high => !high) },
+    front({ctx, d, pose}){ if (CAPPY) facing(ctx, pose, () => balls(ctx, d, pose, () => true)); else if (!KNIGHT) balls(ctx, d, pose, high => high || !CHICKEN) },
+    behind({ctx, d, pose}){ if (CHICKEN || KNIGHT) balls(ctx, d, pose, high => KNIGHT || !high) },
   })
 }

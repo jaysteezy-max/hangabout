@@ -4,6 +4,7 @@
 // element of its own, flown frame by frame.
 {
   const {OY, PH, GW, paint, surfaces, desk, rand, pick} = hangabout
+  const KNIGHT = hangabout.skin === 'knight'
   const PUSHEEN = hangabout.skin === 'pusheen' // a loaf cat: she folds it on the floor in front of her, patting it with a paw, and aims it from her raised paw
   const AIM = PUSHEEN ? [{x: 31, y: OY + 5}, {x: 29, y: OY + 6}] : hangabout.skin === 'cappy' ? [{x: 32, y: 26}, {x: 31, y: 27}] : [{x: 33, y: OY}, {x: 31, y: OY + 1}]
   const INK = {W: '#F4F4F1', L: '#C9CDD3', F: '#8F959E'} // paper, its shaded underside, the fold
@@ -15,10 +16,12 @@
   .plane{position:absolute;pointer-events:none;z-index:11;image-rendering:pixelated;transform-origin:50% 100%;filter:drop-shadow(0 0 1px rgba(0,0,0,.5));transition:opacity .6s}
   </style>`)
 
-  // The chicken is white too: he holds the paper out in his wing, off his belly, and aims the plane from it.
+  // The chicken is white too: he holds the paper out in his wing, off his belly, and aims the plane from it. The slime's
+  // face is where his belly is: it folds the paper out ahead in its goo arm's tip, and aims the plane from a nub.
   // Cappy has no arms: the sheet lies on the floor in front of his snout, under him so his paw pats it down from his chin.
   const CAPPY = hangabout.skin === 'cappy'
-  const CHICKEN = hangabout.skin === 'chicken', SHEET_AT = CHICKEN ? {x: 37, y: 25} : PUSHEEN ? {x: 35, y: 33} : CAPPY ? {x: 33, y: 33, under: 1} : {x: 18, y: OY + 9}
+  const CHICKEN = hangabout.skin === 'chicken', SLIME = hangabout.skin === 'slime', HOLD = CHICKEN || SLIME
+  const SHEET_AT = CHICKEN ? {x: 37, y: 25} : SLIME ? {x: 36, y: 28} : PUSHEEN ? {x: 35, y: 33} : CAPPY ? {x: 33, y: 33, under: 1} : {x: 18, y: OY + 9}
   function paper(ctx, d, pose){
     const left = pose.face < 0, w = d.art[0].length
     paint(ctx, left ? d.art.map(r => [...r].reverse().join('')) : d.art, left ? GW - d.x - w : d.x, d.y, INK)
@@ -63,11 +66,11 @@
     trip({x, y, dir}){
       const s = hangabout.size, W = hangabout.width
       if ((dir > 0 ? W - x : x) < W / 3) dir = -dir // too near the edge he faces: he throws toward the room
-      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {...PUSHEEN ? arms[0] === 'up' && {hand: 8} : {arms}, ...CAPPY && arms[0] === 'up' && {reach: 3}, eyes: 'down', ...CHICKEN && {hand: arms[0] === 'up' ? 7 : 8}, paperPlane: {art, ...SHEET_AT}}})
+      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {...PUSHEEN ? arms[0] === 'up' && {hand: 8} : {arms}, ...CAPPY && arms[0] === 'up' && {reach: 3}, eyes: 'down', ...HOLD && {hand: arms[0] === 'up' ? 7 : 8}, paperPlane: {art, ...SHEET_AT}}})
       const cheer = (T, pose) => ({go: 'hold', T, pose: {face: dir, eyes: 'happy', ...pose}})
       let f // the flight, once it's left his hand
-      return [
-        {go: 'hold', T: 160, pose: {squash: 1, eyes: 'down', ...CHICKEN && {hand: 8}, paperPlane: {art: SHEET, ...SHEET_AT}}},
+      const steps = [
+        {go: 'hold', T: 160, pose: {squash: 1, eyes: 'down', ...HOLD && {hand: 8}, paperPlane: {art: SHEET, ...SHEET_AT}}},
         folding(SHEET, ['up', 'mid']), folding(POINTED, ['mid', 'up']), folding(POINTED, ['up', 'mid']), folding(DART, ['mid', 'up']),
         {go: 'hold', T: 520, pose: {face: dir, arms: ['mid', 'up'], eyes: 'sad', ...CHICKEN && {hand: 3}, paperPlane: {art: PLANE, ...AIM[0]}}}, // squints down his arm
         {go: 'hold', T: 170, pose: {face: dir, arms: ['mid', 'up'], swing: -1, squash: 1, eyes: 'sad', ...CHICKEN && {hand: 4}, paperPlane: {art: PLANE, ...AIM[1]}}}, // draws back
@@ -78,6 +81,9 @@
         cheer(110, {squash: 1, arms: ['mid', 'up']}), cheer(420, {arms: ['mid', 'high']}),
         {go: 'hold', T: 200, pose: {}},
       ]
+      if (!KNIGHT) return steps // the knight lays his sword and shield down to fold and throw it, and they're back in his hands after
+      const down = p => ({...p, sword: 'dropped', eyes: p.eyes === 'sad' ? 'angry' : p.eyes}) // and squints with his angry eyes
+      return steps.map((s, i) => i === steps.length - 1 ? {...s, pose: {sword: 'poof'}} : !s.pose ? s : {...s, pose: typeof s.pose === 'function' ? t => down(s.pose(t)) : down(s.pose)})
     },
     end(){ if (plane) fade(plane, 0); plane = null }, // cut short mid-flight: it fades where it is
     /** The paper in his hands, mirrored when he faces left (Cappy's sheet on the floor goes behind him, under his paw). */

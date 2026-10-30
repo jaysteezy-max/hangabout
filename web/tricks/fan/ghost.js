@@ -46,10 +46,14 @@
     for (const [x, y, c] of eye) put(x, y + dy, c)
     return [...out.values()].map(([x, y, c]) => [turn(x) + ox, y, c])
   }
+  // The slime has no back to fall on: it melts into a grey puddle (its own `puddle` pose, web/skins/slime.js) and springs
+  // back up a cube. Its outline, glints and cheeks go grey too, a hint of pink left.
+  const SLIME = hangabout.skin === 'slime'
+  if (SLIME) Object.assign(DEAD, {'#6A9D23': '#4E4E4E', '#DCF9B6': '#C4C4C4', '#EC9291': '#A38E8E'})
   const SHELL = ['..X.X..', '.XXXXX.', 'XXGEGXX', '.XEWEX.', 'XXGEGXX', '.XXXXX.', '..X.X..'] // spiky shell, glowing eye
   const SHELL_INK = {X: '#E4E7EE', G: '#3A3F4D', E: '#6FE3FF', W: '#FFFFFF'}
   const BANG = ['#', '#', '#', '.', '#']
-  const DOWN = {squash: 2, eyes: 'dizzy'}, UP = [29, 3] // where his Ghost waits while he gets up
+  const DOWN = SLIME ? {puddle: 2, eyes: 'blink'} : {squash: 2, eyes: 'dizzy'}, UP = [29, 3] // where his Ghost waits while he gets up
   const R = Math.round
   /** Him turned deg toward his back (clockwise as he faces left) about his middle and set down on the ground with his tail under him, his outline drawn fresh (turned, it would break up) and his eye moved unturned, so its X stays an X. */
   function rolled(px, deg, face){
@@ -78,7 +82,8 @@
     frames: [
       [{squash: 1, eyes: 'strain', ghost: {hit: 1}}, 120],
       ...CHICKEN ? [[25, .4, 140], [65, .7, 80], [100, .9, 80]].map(([roll, dead, ms]) => [{...DOWN, ghost: {dead, roll}}, ms])
-        : CAPPY ? [[{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], [{...DOWN, ghost: {dead: .7, roll: 60}}, 80], [{...DOWN, ghost: {dead: .9, roll: 120}}, 80]] : [ // Cappy rolls over on the ground
+        : CAPPY ? [[{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], [{...DOWN, ghost: {dead: .7, roll: 60}}, 80], [{...DOWN, ghost: {dead: .9, roll: 120}}, 80]] // Cappy rolls over on the ground
+        : SLIME ? [[{squash: 2, eyes: 'dizzy', ghost: {dead: .4}}, 140], [{puddle: 1, eyes: 'sad', ghost: {dead: .7}}, 120], [{...DOWN, ghost: {dead: .9}}, 80]] : [ // melts
         [{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], // keels over
         [{...DOWN, tilt: -70, ghost: {dead: .7}}, 80],
         [{...DOWN, tilt: -130, ghost: {dead: .9}}, 80],
@@ -107,7 +112,7 @@
       if (g.hit) px = recolor(px, HURT, 1)
       if (g.flash) px = recolor(px, LIT, 1)
       if (CHICKEN && (g.down || g.roll)) px = rolled(px, g.roll || 90, pose.face)
-      else if (g.down && !CAPPY) { const top = Math.min(...px.map(p => p[1])); px = px.map(([x, y, c]) => [x, top + GH - 1 - y, c]) } // on his back, legs in the air
+      else if (g.down && !CAPPY && !SLIME) { const top = Math.min(...px.map(p => p[1])); px = px.map(([x, y, c]) => [x, top + GH - 1 - y, c]) } // on his back, legs in the air
       return px
     },
     /** His Ghost bobbing where it is, the scan beam it sweeps over him, and the Light rising off him as he comes back. */

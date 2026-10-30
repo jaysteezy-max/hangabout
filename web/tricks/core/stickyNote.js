@@ -78,6 +78,7 @@
 
   const CHICKEN = hangabout.skin === 'chicken', RAISE = CHICKEN ? 4 : 0 // the chicken's wing held out higher, by his beak, clear of his wattle
   const paw = (pose, d) => pose.hand > 4 ? {reach: pose.reach ?? 3, ...d.pen && pose.hand > 8 && {squash: 1}} : {} // Cappy's paw out to the note, and his nod
+  const BACK = hangabout.skin === 'slime' ? {stretch: 1, dy: -2} : {lift: [1, 2]} // he steps back; the slime, legless, hops
   const at = (pose, ms, d = {stuck: 1}) => [{face: 1, eyes: 'side', look: 1, ...pose, ...pose.hand != null && {hand: pose.hand - RAISE}, ...CAPPY && paw(pose, d), stickyNote: d}, ms] // turned to the note
   hangabout.trick({
     name: 'stickyNote', label: 'Sticky note ✓', rarity: 'manual', on: {finishedWhileAway: 1},
@@ -88,7 +89,7 @@
       at({stretch: 1, hand: 1}, 200, {marks: 4, up: 1}), // winds up
       at({squash: 2, hand: 10, reach: 2}, 180), // slap!
       at({squash: 1, hand: 10, reach: 1}, 160),
-      at({ox: -2, lift: [1, 2]}, 130), // steps back
+      at({ox: -2, ...BACK}, 130), // steps back
       at({ox: -4}, 400), // looks it over
       ...[0, 1].flatMap(() => [at({ox: -4, squash: 1, eyes: 'down'}, 130), at({ox: -4, eyes: 'happy'}, 200)]), // a satisfied nod
       at({face: 0, ox: -4, eyes: 'happy'}, 400),

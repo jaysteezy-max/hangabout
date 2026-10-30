@@ -2,11 +2,12 @@
 // one eye round the far side, a duck back, a grin, then in he comes. A trip: steps, not frames.
 {
   const {feet, putFeet, rand, scr} = hangabout
+  const IN = hangabout.skin === 'slime' ? 24 : 36 // just his head and eyes show; the slime's eyes sit lower on it, down to row 31
 
   /** His head pokes in sideways from the side of the screen at height y: looks up and down the edge, grins, ducks back out. */
   function sidePeek(side, y){
     const W = hangabout.width, s = hangabout.size, rot = side === 'right' ? -90 : 90
-    const out = side === 'right' ? W + 70 * s : -70 * s, peek = side === 'right' ? W + 36 * s : -36 * s // 36: just his head and eyes show
+    const out = side === 'right' ? W + 70 * s : -70 * s, peek = side === 'right' ? W + IN * s : -IN * s
     return [
       {go: 'do', fn: () => putFeet(out, y, rot)},
       {go: 'slide', x: peek, T: 350, pose: {eyes: 'up'}},

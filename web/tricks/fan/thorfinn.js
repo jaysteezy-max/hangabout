@@ -2,15 +2,33 @@
 // Shaggy blond hair and a scar; twin daggers in reverse grip, dashes with afterimages, an aerial flip into an X-slash.
 // Then the farmer: the blades go away and a little sprout grows at his feet.
 {
-  const {OX, OY, GW, GH, BODY, head, facing} = hangabout
+  const {OX, OY, GW, GH, BODY, head, facing, paint} = hangabout
   const PROFILE = hangabout.sideOn && head // side on: the mop on his head, a dagger on each leg
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the mop square on her head, locks either side of her face, short bangs
   const HATTY = hangabout.skin === 'hatty' // the hair under his top hat, a dagger in each hand along his forearm
   const CHICKEN = hangabout.skin === 'chicken' // the scar by his eye, a dagger in his wing and one tucked in a belt at his side
+  const SLIME = hangabout.skin === 'slime' // the mop over its whole top face, a dagger in each nub
+  const KNIGHT = hangabout.skin === 'knight' // his helmet stays on: the hair falls from under its back edge, over his shoulder
+  const KNIGHT_MANE = ['MMOO', 'MMLMO', 'MMLMOO', 'MMLMLMO', 'MMLMLMOO', 'MMLMLMSMO', 'MMLMLMSMO', ...Array(8).fill('MMLMLMSMSO'), 'MMLMLMSMO', 'MMLMLMOMO', 'OOOMOMOO', '...O.O'] // as drawn facing left, from x 28: its front strands hide behind his helmet, the rest sweep out the back to ragged ends
   const BLADE = '#DCE1E8', STEEL = '#8E96A3', ARM = {down: 12, mid: 8, up: 4, high: -2}
   const DOWN = ['down', 'down']
 
   const LIGHT = '#F7DD8E', MID = '#E8C25A', SHADE = '#B8892E'
+  // The slime's mop, by column across its top face from its left edge: how far each strand sticks up past the top, and
+  // how far it hangs past the top face's lower edge (bangs over its brow, longer locks down its back).
+  const SHAG = [1, 2, 3, 2, 3, 2, 2, 3, 2, 1, 2, 1, 2, 1, 2, 3, 2, 2, 3, 2, 3, 2, 1], HANG = [5, 4, 2, 3, 1, 3, 2, 1, 2, 1, 2, 0, 1, 0, 2, 1, 3, 2, 3, 4, 3, 5, 6]
+  /** The slime's mop, drawn facing left (L: its x as drawn so): a strand down each of its own columns (not a nub's), over its top face, clear of its eyes. */
+  function slimeMop(ctx, h, px, L, dy){
+    const ridge = new Map(), low = new Map()
+    for (const [x, y] of px) { const a = L(x); ridge.set(a, Math.min(ridge.get(a) ?? GH, y)); low.set(a, Math.max(low.get(a) ?? 0, y)) }
+    const cols = [...ridge.keys()].filter(a => low.get(a) >= 33 + dy).sort((a, b) => a - b) // a nub never reaches that low
+    cols.forEach((a, i) => {
+      const r = ridge.get(a), j = Math.round(i * 22 / (cols.length - 1)) // squashed wide, the pattern stretches with it
+      let end = Math.max(r, 2 * h.top + 8 - r) + HANG[j] // its top face runs from r down to r's mirror about its middle row
+      if (a >= h.x - 1 && a <= h.x + 6) end = Math.min(end, h.y - 1)
+      ctx.fillStyle = j % 4 === 0 ? SHADE : j % 3 === 0 ? LIGHT : MID; ctx.fillRect(a, r - SHAG[j], 1, end - r + SHAG[j] + 1)
+    })
+  }
   /**
    * A side-on skin, drawn facing left: the scar across his snout, the mop over his head and ears, and a dagger on each
    * leg (the front one up in his paw when he lifts it). Laid out on Cappy (his eye at x 20, his snout at x 10) and moved
@@ -20,8 +38,9 @@
     const h = head(pose), t = h.top, k = PUSHEEN ? -2 : h.x - 20, dy = pose.dy || 0, strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x + k, y0, 1, len) }
     const L = x => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0), rump = Math.max(...px.map(([x]) => L(x))) - 1 // as drawn facing left
     facing(ctx, pose, () => {
-      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < (PUSHEEN ? 5 : 6); i++) ctx.fillRect(CHICKEN ? h.x + 5 - i : PUSHEEN ? h.x - 1 + i : h.nose + 2 + i, CHICKEN ? h.y - 2 + i : h.y + (PUSHEEN ? 3 : 5) - (i >> 1), 1, 1) } // scar across his snout (her cheek; the chicken: down his cheek past his eye; on his beak it reads as a mouth)
-      if (th.hair) {
+      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < (PUSHEEN || SLIME ? 5 : 6); i++) ctx.fillRect(CHICKEN ? h.x + 5 - i : PUSHEEN ? h.x - 1 + i : h.nose + 2 + i, CHICKEN ? h.y - 2 + i : h.y + (PUSHEEN ? 3 : 5) - (i >> 1), 1, 1) } // scar across his snout (her cheek; the chicken: down his cheek past his eye; on his beak it reads as a mouth)
+      if (th.hair && SLIME) slimeMop(ctx, h, px, L, dy)
+      else if (th.hair && !KNIGHT) {
         ;[1, 2, 3, 4, 3, 5, 4, 3, 5, 4, 3, 4, 5, 3, 2, 1].forEach((n, i) => strand(13 + i, (i === 0 ? t + 2 : i === 1 ? t + 1 : t) - n, n + 2, i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID)) // the mop
         for (const [x, len, c] of PUSHEEN ? [[11, 5, SHADE], [12, 6, MID], [27, 6, MID], [28, 5, SHADE]] : [[25, 7, MID], [26, 8, MID], [27, 9, SHADE], [28, 6, SHADE]]) strand(x, t, len, c) // locks down the back of his head (her face's sides)
         for (const [x, len, c] of PUSHEEN ? [[15, 2, SHADE], [16, 1, MID], [19, 2, MID], [20, 1, MID]] : [[13, 4, SHADE], [14, 5, MID], ...CHICKEN ? [[15, 4, LIGHT]] : [], [16, 3, MID], [17, 2, MID]]) strand(x, t + 1, len, c) // bangs over his brow (the chicken's unparted: his brow shows through the part)
@@ -33,6 +52,15 @@
         ctx.fillStyle = STEEL; ctx.fillRect(6, y0, 1, 5)
         if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(5, up ? y0 - 1 : y0 + 5, 1, 1) }
         for (const [x, y, w, len, c] of [[23, 29, 2, 2, '#4A3020'], [22, 31, 4, 1, STEEL], [23, 32, 1, 5, STEEL], [24, 32, 1, 4, '#5E6672']]) { ctx.fillStyle = c; ctx.fillRect(x, y + dy, w, len) } // hilt, guard, blade
+      } else if (SLIME && (th.daggers || th.sheathe)) { // one in each nub: reverse grip, down from its tip; up from it in the X-slash
+        const xs = px.map(([x]) => L(x)), up = +(th.x != null)
+        for (const bx of [Math.min(...xs) + 1 + up, Math.max(...xs) - 2 - up]) {
+          const y0 = up ? h.y - 9 : h.y
+          if (th.sheathe) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, y0 + 4, 1, 1); continue }
+          ctx.fillStyle = BLADE; ctx.fillRect(bx, y0, 2, 5)
+          ctx.fillStyle = STEEL; ctx.fillRect(bx + 1, y0, 1, 5)
+          if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, up ? y0 - 1 : y0 + 5, 1, 1) }
+        }
       } else if (th.daggers) { // reverse grip: down along his legs, or up from his front paw when he lifts it
         const g = Math.max(...px.map(([, y]) => y)) - 1, line = px.find(([, y]) => y === g + 1)[2] // the row his feet are on; his outline is all that's below it
         const sole = px.filter(([, y, c]) => y === g && c !== line).sort((a, b) => L(a[0]) - L(b[0]))[0]?.[2], toes = px.filter(([, y, c]) => y < g && c === sole)
@@ -43,7 +71,7 @@
           if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, up ? y0 - 1 : y0 + 5, 1, 1) }
         }
       }
-      if (th.sheathe) { ctx.fillStyle = '#FFFFFF'; for (const [x, y] of CHICKEN ? [[6, 35], [24, 34]] : [[h.nose + 7, 34], [rump, 34]]) ctx.fillRect(x, y + dy, 1, 1) }
+      if (th.sheathe && !SLIME) { ctx.fillStyle = '#FFFFFF'; for (const [x, y] of CHICKEN ? [[6, 35], [24, 34]] : [[h.nose + 7, 34], [rump, 34]]) ctx.fillRect(x, y + dy, 1, 1) }
     })
     if (CHICKEN && (th.hair || th.daggers)) for (const [x, y, c] of px) if (c === BODY && (y === 32 + dy || y === 33 + dy)) { ctx.fillStyle = y === 32 + dy ? '#6B4A2B' : '#4A3020'; ctx.fillRect(x, y, 1, 1) } // the chicken's belt round his white, over the tucked blade (his wattle and wing hang in front of it)
   }
@@ -90,9 +118,10 @@
       [{eyes: 'happy', squash: 1, thorfinn: {hair: 1, sprout: 2}}, 350],
       [{eyes: 'happy', thorfinn: {hair: 1, sprout: 3}}, 1300],
       [{thorfinn: {sprout: 3}}, 200], [{}, 150],
-    ].map(([p, ms]) => [CHICKEN && p.thorfinn?.daggers ? {...p, hand: p.arms?.[0] === 'up' ? 3 : 9} : p, ms]), // the chicken's wing round a dagger
+    ].map(([p, ms]) => [CHICKEN && p.thorfinn?.daggers ? {...p, hand: p.arms?.[0] === 'up' ? 3 : 9} : SLIME && (p.thorfinn?.daggers || p.thorfinn?.sheathe) ? {...p, arms: ['up', 'up']} : p, ms]), // the chicken's wing round a dagger; the slime's nubs out, one each
     /** Behind him: afterimages trailing a dash. */
-    behind({ctx, d: th, px}){
+    behind({ctx, d: th, px, pose}){
+      if (KNIGHT && th.hair) facing(ctx, pose, () => paint(ctx, KNIGHT_MANE, 28, head(pose).y - 10, {M: MID, L: LIGHT, S: SHADE, O: '#000000'})) // the mane falls from under the back of his helmet
       if (!th.ghost) return
       ctx.fillStyle = '#9FD3FF'
       for (const [k, a] of [[1, .32], [2, .16]]) { ctx.globalAlpha = a; for (const [x, y] of px) ctx.fillRect(x + th.ghost * 5 * k, y, 1, 1) }

@@ -8,6 +8,8 @@
   const CHICKEN = hangabout.skin === 'chicken' // no hands: his wing swung forward holds it, the gun poking out of its tip
   const CAPPY = hangabout.skin === 'cappy' // no hands: the gun on the paw at his chin, for both shots
   const WING = {blue: 6, orange: 2} // his wing's hand: n for each shot, held up for the orange one; the gun's top row is 19 + n (web/skins/chicken.js)
+  const SLIME = hangabout.skin === 'slime' // no hands: a goo arm pushed out ahead holds it in its tip, higher for the orange shot
+  const GOO = {blue: 7, orange: 3} // its goo arm's hand for each shot: the arm's middle row is 22 + n standing, the gun's top row a row above (web/skins/slime.js)
   document.head.insertAdjacentHTML('beforeend', `<style>
   .portal{position:absolute;border-radius:50%;pointer-events:none;z-index:9;transform:scale(0);transition:transform .22s cubic-bezier(.2,1.4,.4,1)}
   .portal.open{transform:scale(1)}
@@ -35,7 +37,7 @@
   function shoot(color, dir, x, y){
     const s = hangabout.size, f = feet(), left = f.x - 66 * s, top = f.y - 120 * s, shot = document.createElement('div')
     shot.className = 'shot ' + color
-    Object.assign(shot.style, {left: left + (dir > 0 ? (HATTY ? 40 : 43) : HATTY ? 3 : 0) * 3 * s + 'px', top: top + (CHICKEN ? 20 + WING[color] : PROFILE ? 32 : HATTY ? (dir > 0 ? 34 : 37) : 28) * 3 * s + 'px'})
+    Object.assign(shot.style, {left: left + (dir > 0 ? (HATTY ? 40 : 43) : HATTY ? 3 : 0) * 3 * s + 'px', top: top + (CHICKEN ? 20 + WING[color] : SLIME ? 22 + GOO[color] : PROFILE ? 32 : HATTY ? (dir > 0 ? 34 : 37) : 28) * 3 * s + 'px'})
     desk.append(shot)
     void shot.offsetWidth; Object.assign(shot.style, {left: x + 'px', top: y + 'px'}) // laid out at the gun first, so it flies
     setTimeout(() => { shot.remove(); if (live) openPortal(color, x, y) }, 200)
@@ -57,7 +59,7 @@
       clearTimeout(closer); live = true
       const turn = PROFILE ? {face: dir} : {} // Clawd aims with the hand on that side; a side-on skin turns to it
       const UP = HATTY ? ['mid', 'mid'] : ['mid', 'up'] // Hatty's other hand stays on his cane
-      const held = tip => CHICKEN ? {...turn, hand: WING[tip]} : CAPPY ? {...turn, hand: 2} : turn
+      const held = tip => CHICKEN ? {...turn, hand: WING[tip]} : SLIME ? {...turn, hand: GOO[tip]} : CAPPY ? {...turn, hand: 2} : turn
       return [
         {go: 'hold', T: 380, pose: {...held('blue'), arms: ['mid', 'mid'], portal: {tip: 'blue', dir}}},
         {go: 'do', fn: () => shoot('blue', dir, ax, y - 39 * s)},
@@ -75,8 +77,8 @@
     end: closePortals, // the trip was cut short: no portals left hanging about
     /** The portal gun in his hand: white body, black prongs, its core glowing the color it's about to fire. */
     front({ctx, d: g, pose}){
-      const d = g.dir || 1, y = CHICKEN ? 19 + pose.hand + (pose.dy || 0) : PROFILE ? head(pose).y + 7 : HATTY ? head(pose).y + (d > 0 ? 8 : 11) : OY + 7 + (pose.dy || 0) + Math.ceil((pose.squash || 0) / 2), core = g.tip === 'orange' ? '#FF9A1F' : '#3FA9FF'
-      const k = CHICKEN ? 1 : PROFILE ? 10 - head(pose).nose : HATTY ? -3 : 0 // side on, the gun is at his chin, just past his snout: laid out on Cappy's, at x 10
+      const d = g.dir || 1, y = CHICKEN ? 19 + pose.hand + (pose.dy || 0) : SLIME ? head(pose).y + pose.hand - 6 : PROFILE ? head(pose).y + 7 : HATTY ? head(pose).y + (d > 0 ? 8 : 11) : OY + 7 + (pose.dy || 0) + Math.ceil((pose.squash || 0) / 2), core = g.tip === 'orange' ? '#FF9A1F' : '#3FA9FF'
+      const k = CHICKEN ? 1 : SLIME ? 2 : PROFILE ? 10 - head(pose).nose : HATTY ? -3 : 0 // side on, the gun is at his chin, just past his snout: laid out on Cappy's, at x 10
       const at = (x, yy, w, h, c) => { x += k; ctx.fillStyle = c; ctx.fillRect(d > 0 ? x : GW - x - w, yy, w, h) } // drawn for his right hand (side on: at his chin, facing right; Hatty: his cane hand), mirrored for the left
       at(34, y, 7, 3, '#E9EDF0'); at(34, y + 2, 7, 1, '#B9C0C8'); at(36, y, 1, 3, '#2E3238')
       at(41, y - 1, 2, 1, '#1C1F24'); at(41, y + 3, 2, 1, '#1C1F24') // the prongs
