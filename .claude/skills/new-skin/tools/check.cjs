@@ -33,7 +33,7 @@ const fakeClock = seed => { // time moves only when __tick(ms) is called, and Ma
 ;(async () => {
   fs.mkdirSync(out, {recursive: true})
   const problems = []
-  const browser = await puppeteer.launch({args: ['--hide-scrollbars']})
+  const browser = await puppeteer.launch({args: ['--hide-scrollbars'], headless: 'shell'}) // the new headless mode's screenshots can time out
   const page = await browser.newPage()
   await page.setViewport({width: 1100, height: 1100, deviceScaleFactor: +(process.env.DSF || 1)})
   await page.evaluateOnNewDocument(fakeClock, 7)
