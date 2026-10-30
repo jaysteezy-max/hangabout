@@ -8,14 +8,14 @@
     '..........BB...BB.........',
     '...............SBB........',
     '.......LLLLLLLKSSB........',
-    '......GLLLLLLBBBBB........',
-    '.....GGGLLLLBBBBBBB.......',
-    '....FGGGGBBBBBBBBBBBB.....',
-    '...FFGGGGGBBBBBBBBBBBB....',
+    '......FLLLLLLBBBBB........',
+    '.....FFFLLLLBBBBBBB.......',
+    '....FFFFFBBBBBBBBBBBB.....',
+    '...FFFFFFFBBBBBBBBBBBB....',
     '...KFKFFFFFBBBBBBBBBBB....',
     '...FKFFFFFFBBBBBBBBBBBB...',
     '...FKFFFFFFBBBBBBBBBBBB...',
-    '...FKFFFFFFBBBBBBBBBBBB...',
+    '...FKFFFFFFBBBBBBBBBBBS...',
     '...FKFFFFFFBBBBBBBBBBBB...',
     '......FFFFFBBBBBBBBBBBB...',
     '..........BBBBBBBBBBBBS...',
@@ -25,7 +25,7 @@
   ]
   const COLORS = ['#C27A55', '#C9825C', '#8D4241', '#0E0809'] // BODY, TOP (the top of his head), SIDE (his inner ear and haunch), EYE
   const LINE = '#1C1214', FOOT = '#7A3A3E', LID = '#5A322C'
-  const INK = {B: COLORS[0], L: COLORS[1], S: COLORS[2], F: '#86655F', G: '#8F6F69', K: LINE, P: FOOT}
+  const INK = {B: COLORS[0], L: COLORS[1], S: COLORS[2], F: '#86655F', K: LINE, P: FOOT}
   const FEET = [17, 20, 26, 27] // each foot's left x: his front pair, then his hind pair under his haunch
   // His front leg off the ground, drawn over him with an outline of its own: [left x, top y, rows], P his toes. Reaching
   // out low (a jab reaches further, its leg longer behind his toes), up to his chin, and high in front of his face, from his chest.
@@ -40,9 +40,9 @@
   console.assert(ROWS.every(r => r.length === 26), 'Cappy: every row is 26 wide')
 
   // How he moves his own way (see "Skins" in TRICKS.md): a capybara's bow of a stretch, a yawn with his nose up, and lying
-  // flat on the floor when he's stuck or dozing. glide turns a tilt the way he faces.
-  const SLUMP = [[{squash: 2, tuck: 1, eyes: 'sad'}, 2800], [{squash: 1, tuck: 1, eyes: 'sad'}, 300], [{squash: 2, tuck: 1, eyes: 'blink'}, 450]] // flat on the floor, glum, a sigh now and then
-  const NAP = [[{squash: 2, tuck: 1, eyes: 'blink'}, 2400], [{squash: 1, tuck: 1, eyes: 'blink'}, 2400]] // a loaf on the floor, breathing
+  // flat on the floor when he's stuck or dozing (flat: lower on his belly, his snout whole). glide turns a tilt the way he faces.
+  const SLUMP = [[{flat: 2, tuck: 1, eyes: 'sad'}, 2800], [{flat: 1, tuck: 1, eyes: 'sad'}, 300], [{flat: 2, tuck: 1, eyes: 'blink'}, 450]] // flat on the floor, glum, a sigh now and then
+  const NAP = [[{flat: 2, tuck: 1, eyes: 'blink'}, 2400], [{flat: 1, tuck: 1, eyes: 'blink'}, 2400]] // a loaf on the floor, breathing
   const MOVES = {
     tricks: {
       stretch: [[{squash: 1}, 160], [{tilt: 6, glide: 1, reach: 2, eyes: 'blink'}, 750], [{stretch: 1, eyes: 'blink'}, 180], [{squash: 1}, 220], [{}, 300]], // down on his front, a paw reaching out
@@ -56,13 +56,13 @@
     name: 'Cappy', colors: COLORS, sideOn: true,
     /** Where costumes find his face, as drawn facing left: his eye (x, y: its left pixel), the top of his head between his ears, and the front of his snout. */
     head(pose){
-      const top = 38 - ROWS.length + (pose.squash || 0) - (pose.stretch || 0) + (pose.dy || 0) + settled(pose) // as draw() works it out
+      const top = 38 - ROWS.length + (pose.squash || 0) + (pose.flat || 0) - (pose.stretch || 0) + (pose.dy || 0) + settled(pose) // as draw() works it out
       return {x: 20, y: top + 5, top: top + 2, nose: 12}
     },
     /** Cappy in a pose: squashed or stretched through the middle, feet stepping or tucked, a front paw up instead of a hand, outlined, then his eye. */
     draw(pose, eyeColor){
       const rows = ROWS.slice(), sq = pose.squash || 0, st = pose.stretch || 0
-      rows.splice(10, sq); for (let i = 0; i < st; i++) rows.splice(rows.length - 2, 0, rows[rows.length - 2]) // a shorter snout, or taller on his legs, so his face keeps its shape
+      rows.splice(13, pose.flat || 0); rows.splice(10, sq); for (let i = 0; i < st; i++) rows.splice(rows.length - 2, 0, rows[rows.length - 2]) // a shorter snout, or taller on his legs, so his face keeps its shape
       const dy = (pose.dy || 0) + settled(pose), top = 38 - rows.length + dy, px = [], seen = new Set() // his feet are on row 38
       const put = (x, y, c) => { px.push([x, y, c]); seen.add(x + ',' + y) }
       rows.forEach((r, j) => [...r].forEach((ch, i) => { if (INK[ch]) put(9 + i, top + j, INK[ch]) }))
