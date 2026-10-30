@@ -15,8 +15,9 @@ NAMES = ('hangabout-hook', 'hookpet-hook')  # hookpet-hook: its name before the 
 
 def is_ours(hook, names=NAMES[:1]):
     try:
-        return os.path.basename(shlex.split(hook.get('command', ''))[0]) in names
-    except (ValueError, IndexError):
+        command = hook['command'] if 'args' in hook else shlex.split(hook.get('command', ''))[0]
+        return os.path.basename(command).removesuffix('.exe') in names
+    except (KeyError, ValueError, IndexError):
         return False
 
 
@@ -24,12 +25,15 @@ def has(settings, event):
     return any(is_ours(h) for group in settings.get('hooks', {}).get(event, []) for h in group.get('hooks', []))
 
 
-def add(settings, command):
+def add(settings, hook):
     remove(settings, NAMES[1:])
+    # Windows' .exe runs in exec form: no shell, so it works with or without Git Bash, and nothing to quote.
+    entry = ({'type': 'command', 'command': hook.replace('\\', '/'), 'args': [], 'timeout': 10} if hook.endswith('.exe')
+             else {'type': 'command', 'command': shlex.quote(hook), 'timeout': 10})
     hooks = settings.setdefault('hooks', {})
     for event in EVENTS:
         if not has(settings, event):
-            hooks.setdefault(event, []).append({'hooks': [{'type': 'command', 'command': command, 'timeout': 10}]})
+            hooks.setdefault(event, []).append({'hooks': [entry]})
 
 
 def remove(settings, names=NAMES):
@@ -54,7 +58,7 @@ def main():
         sys.exit(f'{path} is not valid JSON ({e}); fix it first, nothing was changed.')
     if action == 'check':
         sys.exit(0 if all(has(settings, e) for e in EVENTS) else 1)
-    add(settings, shlex.quote(hook)) if action == 'add' else remove(settings)
+    add(settings, hook) if action == 'add' else remove(settings)
     # Written to a temporary file and swapped in, so a crash can't leave half a settings file.
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)))
     with os.fdopen(fd, 'w') as f:
