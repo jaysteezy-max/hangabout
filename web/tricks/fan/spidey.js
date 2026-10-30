@@ -10,6 +10,7 @@
   const PUSHEEN = hangabout.skin === 'pusheen' // side on, but her face looks out at you: a lens on each eye, the web from between them
   const HATTY = hangabout.skin === 'hatty', UP = arm => HATTY ? [arm, 'mid'] : ['mid', arm] // Hatty reaches up with his free hand, the one in front when he turns
   const CHICKEN = hangabout.skin === 'chicken', GRIP = CHICKEN ? {hand: 1} : {} // raised high, his wing is over his back, so he holds the web out front in it
+  const CAPPY = hangabout.skin === 'cappy' // the web from the toes of the paw he raises before his face
   // The chicken's yellow beak, wing and foot stay red (a bulge in the mask, lit; a glove; a boot), their gold edge a darker
   // red; his blue crest, wattle and tail keep their dark blue as the suit's shade. His lens is a teardrop, pointed at his beak.
   const SHADE = CHICKEN && {'#FFF050': BODY, '#B8960F': SIDE, '#44AEF6': BODY, '#0060A0': SIDE}, GOLD = ['#FFF050', '#B8960F']
@@ -41,9 +42,13 @@
     line.style.opacity = splat.style.opacity = 0
     setTimeout(() => { line.remove(); splat.remove() }, 300)
   }
-  /** His front hand reaching up (art pixel 36, 17 facing right; Hatty's 33, 20; the chicken's wingtip 38, 19), with his feet at (x, y) and him turned rot degrees about them. */
-  function hand(x, y, dir, rot){
-    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : CHICKEN ? 16 : 14) * 3 * s, hy = (HATTY ? -20 : CHICKEN ? -21 : -23) * 3 * s
+  /**
+   * His front hand reaching up (art pixel 36, 17 facing right; Hatty's 33, 20; the chicken's wingtip 38, 19; Cappy's toes, 36, 29
+   * at rest, keeping to his chin), with his feet at (x, y) and him turned rot degrees about them, in pose.
+   */
+  function hand(x, y, dir, rot, pose){
+    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : CHICKEN ? 16 : 14) * 3 * s
+    const hy = (HATTY ? -20 : CHICKEN ? -21 : CAPPY ? head(pose).y - (pose.squash || 0) - 37 : -23) * 3 * s
     return [x + hx * Math.cos(a) - hy * Math.sin(a), y + hx * Math.sin(a) + hy * Math.cos(a)]
   }
   /** Longest web he'll swing on from (x, y): his feet clear the floor at the bottom of the arc, and a few swings fit across the screen. */
@@ -131,7 +136,7 @@
         } else if (m.phase === 'land' && t - m.landAt > 220) return true
         if (web && m.phase !== 'fly' && m.phase !== 'land') {
           const f = feet(), shot = m.phase === 'aim' ? (t - 120) / 140 : m.phase === 'catch' ? (t - m.at) / 120 : 1
-          strand(...hand(f.x, f.y, m.dir, m.rot), m.ax, m.ay, Math.max(0, Math.min(1, shot)))
+          strand(...hand(f.x, f.y, m.dir, m.rot, this.pose()), m.ax, m.ay, Math.max(0, Math.min(1, shot)))
         }
       },
       pose(){

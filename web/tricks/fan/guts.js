@@ -9,6 +9,7 @@
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the Brand on the back of her neck, clear of her whiskers
   const HATTY = hangabout.skin === 'hatty' // his hat stays on: the cloak off his shoulders, the sword in his cane hand
   const CHICKEN = hangabout.skin === 'chicken' // the sword in his wing: up in front of him, planted in the ground, then over his head from his raised wing
+  const CAPPY = hangabout.skin === 'cappy' // no arms: the sword in his paw raised before his face, stood up, then laid back over his head
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
 
   hangabout.trick({
@@ -24,7 +25,8 @@
       [{squash: 1, eyes: 'angry', arms: ['mid', 'down'], guts: {cape: 1, low: 1, brand: 1}}, 300],
       [{eyes: 'angry', guts: {cape: 1, shoulder: 1, brand: 1, aura: 1}}, 1500], // rests it on his shoulder
       [{guts: {cape: .5, shoulder: .5}}, 160], [{guts: {cape: .25, shoulder: .25}}, 160], [{}, 200],
-    ].map(([p, ms]) => [!CHICKEN || !p.guts ? p : p.guts.shoulder ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: 4} : p.guts.sword ? {...p, hand: 10} : p, ms]), // the chicken's wing on its grip
+    ].map(([p, ms]) => [CAPPY && p.guts ? p.guts.shoulder || p.guts.sword ? {...p, arms: ['mid', 'high']} : p : // Cappy's paw on its grip
+      !CHICKEN || !p.guts ? p : p.guts.shoulder ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: 4} : p.guts.sword ? {...p, hand: 10} : p, ms]), // the chicken's wing on its grip
     /** Behind him: the dark aura, the cloak's flaps, and the sword when it's upright or on his shoulder. */
     behind({ctx, d: g, px, now, pose}){
       if (g.aura) { // dark red aura flickering at his edges
@@ -59,10 +61,12 @@
         if (HATTY) ctx.translate(-6, head(pose).y - 22) // its grip in his cane hand
         if (CHICKEN) ctx.translate(-32, pose.dy || 0) // its grip in his wing, out in front of him (behind him, so his wing closes over it)
         if (g.low && CHICKEN) { ctx.translate(0, 54); ctx.scale(1, -1) } // the chicken's after the swing: the same sword upside down, planted point first in front of him
+        if (CAPPY) ctx.translate(0, (pose.dy || 0) - (pose.stretch || 0)) // with his raised paw, which keeps to his chin (web/skins/cappy.js)
+        if (g.sword && CAPPY) ctx.translate(-29, -1) // its grip in the toes of his raised paw, the guard on them, the blade before his face
         if (g.sword || (g.low && CHICKEN)) { // drawn up from behind his back: longer than he is tall
-          const cut = Math.round((1 - (g.sword || 1)) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } }
-          row(0, 38, 1, EDGE); row(1, 37, 3, IRON)
-          for (let y = 2; y <= 26; y++) { row(y, 36, 1, EDGE); row(y, 37, 3, IRON); row(y, 40, 1, DARK) }
+          const tip = CAPPY ? 1 : 0, cut = Math.round((1 - (g.sword || 1)) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } } // Cappy's held higher: a shorter blade, its point on the grid
+          row(tip, 38, 1, EDGE); row(tip + 1, 37, 3, IRON)
+          for (let y = tip + 2; y <= 26; y++) { row(y, 36, 1, EDGE); row(y, 37, 3, IRON); row(y, 40, 1, DARK) }
           row(27, 33, 10, STEELGUARD)
           for (let y = 28; y <= 32; y++) row(y, 37, 3, LEATHER) // the grip, in his hand
           row(33, 37, 3, STEELGUARD)
@@ -72,6 +76,11 @@
           thickLine(ctx, 57, 11, 33, -1, 1, EDGE, g.shoulder)
           thickLine(ctx, 55, 15, 59, 7, 2, STEELGUARD, g.shoulder)
           thickLine(ctx, 59, 13, 65, 16, 3, LEATHER, g.shoulder)
+        } else if (g.shoulder && CAPPY) { // its grip still in his raised paw, the blade laid back over his head, behind his ears
+          thickLine(ctx, 11, 26, 38, 3, 5, IRON, g.shoulder)
+          thickLine(ctx, 12, 24, 39, 1, 1, EDGE, g.shoulder)
+          thickLine(ctx, 8, 23, 14, 29, 2, STEELGUARD, g.shoulder)
+          thickLine(ctx, 9, 28, 5, 31, 3, LEATHER, g.shoulder)
         } else if (g.shoulder) { // resting on his shoulder, angled up behind his head
           thickLine(ctx, 37, 29, 7, 2, 5, IRON, g.shoulder)
           thickLine(ctx, 36, 27, 6, 0, 1, EDGE, g.shoulder)
