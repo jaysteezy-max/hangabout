@@ -8,8 +8,8 @@
     '..........BB...BB.........',
     '...............SBB........',
     '.......LLLLLLLKSSB........',
-    '......FLLLLLLBBBBB........',
-    '.....FFFLLLLBBBBBBB.......',
+    '......FLLLLLLLLBBB........',
+    '.....FFFLLLLLLBBBBB.......',
     '....FFFFFBBBBBBBBBBBB.....',
     '...FFFFFFFBBBBBBBBBBBB....',
     '...KFKFFFFFBBBBBBBBBBB....',
@@ -17,11 +17,11 @@
     '...FKFFFFFFBBBBBBBBBBBB...',
     '...FKFFFFFFBBBBBBBBBBBS...',
     '...FKFFFFFFBBBBBBBBBBBB...',
-    '......FFFFFBBBBBBBBBBBB...',
-    '..........BBBBBBBBBBBBS...',
-    '........SBBBBBBBBBBBBBS...',
-    '........BBBBBBBBBBBBBS....',
-    '........BBBBBBBBBBSSS.....',
+    '......FFFFFBBBBBBBBBBBS...',
+    '..........BBBBBBBBBBBSS...',
+    '........SBBBBBBBBBBBBSS...',
+    '........BBBBBBBBBBBBSS....',
+    '........BBBBBBBBBSSSS.....',
   ]
   const COLORS = ['#C27A55', '#C9825C', '#8D4241', '#0E0809'] // BODY, TOP (the top of his head), SIDE (his inner ear and haunch), EYE
   const LINE = '#1C1214', FOOT = '#7A3A3E', LID = '#5A322C'
