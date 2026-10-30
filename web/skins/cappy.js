@@ -17,7 +17,7 @@
     '...FKFFFFFFBBBBBBBBBBBB...',
     '...FKFFFFFFBBBBBBBBBBBS...',
     '...FKFFFFFFBBBBBBBBBBBB...',
-    '......FFFFFBBBBBBBBBBBS...',
+    '......FFFFBBBBBBBBBBBBS...',
     '..........BBBBBBBBBBBSS...',
     '........SBBBBBBBBBBBBSS...',
     '........BBBBBBBBBBBBSS....',
