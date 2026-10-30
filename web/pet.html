@@ -131,6 +131,7 @@ nothing to commit, working tree clean
 <script src="skins/hatty.js"></script>
 <script src="skins/chicken.js"></script>
 <script src="skins/pusheen.js"></script>
+<script src="skins/slime.js"></script>
 <script>
 // In the Hangabout app this page is a transparent layer over your whole screen; in a browser it's the mockup desktop.
 const NATIVE = !!window.webkit?.messageHandlers?.hangabout
@@ -872,7 +873,7 @@ function draw(now, dt){
     const look = eyeLife(now)
     if ((!pose.eyes || pose.eyes === 'open') && pose.dx === undefined) pose = {...pose, lookX: pose.lookX ?? look.x, lookY: look.y, ...(look.blink ? {eyes: 'blink'} : {})}
     // Reacting to you: a happy wiggle when you hover him, dizzy after a good shake.
-    if (now - pet.wiggleAt < 500) pose = {...pose, tilt: Math.sin((now - pet.wiggleAt) / 500 * Math.PI * 3) * 6, eyes: 'happy'}
+    if (now - pet.wiggleAt < 500) pose = {...pose, ...SKINS[SKIN].wiggle?.(now - pet.wiggleAt) ?? {tilt: Math.sin((now - pet.wiggleAt) / 500 * Math.PI * 3) * 6, eyes: 'happy'}}
     if (now < pet.dizzyUntil || pet.drag?.dizzy) pose = {...pose, eyes: 'dizzy', tilt: (pose.tilt || 0) + Math.sin(now / 130) * 5}
     // A side-on skin like Cappy keeps facing the way he last turned; Clawd turns back to face you.
     if (pose.face) pet.heading = pose.face
@@ -1343,4 +1344,5 @@ function frame(now){
 <script src="tricks/fan/portal.js"></script>
 <script src="tricks/fan/spidey.js"></script>
 <script src="tricks/fan/moonwalk.js"></script>
+<script src="tricks/fan/slime.js"></script>
 </body></html>

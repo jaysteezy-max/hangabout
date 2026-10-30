@@ -27,6 +27,9 @@
   // His wing is his hand, so the glove goes on it: white, rimmed dark (white on his white side), its feathers lined grey, a few sequins catching the light. His foot
   // gets the sock and loafer. Wing, foot and beak are all his yellow, so they're told apart by where they are.
   const CHICKEN_GOLD = ['#FFF050', '#B8960F'], SEAM = '#9AA1AF'
+  // The slime (web/skins/slime.js) has no feet, so no socks or loafers: the glove goes on its nub, the fedora sits on its
+  // top face, and in the slide its jelly base slips back along the floor and the rest of it catches up.
+  const SLIME = hangabout.skin === 'slime', SLIME_LINE = '#6A9D23', SLIME_TOP = 21 // its outline; the middle of its top face as drawn facing left, which stays put as it squashes
 
   /**
    * The outfit on a side-on skin, worked as he's drawn, facing left (facing right is the mirror image). His feet are on
@@ -103,6 +106,21 @@
     if (d.toes) for (const x in low) if (shoe(+x)) out.push([+x, low[x] + 1, SHOE[BODY]]) // on the points of his loafers
     return out.map(([x, y, c]) => [L(x), y, c])
   }
+  /** The outfit on the slime, worked as it's drawn, facing left (facing right is the mirror image). */
+  function onSlime(d, px, pose, now){
+    const h = head(pose), L = x => pose.face > 0 ? GW - 1 - x : x, f = d.fit
+    let out = px.map(([x, y, c]) => [L(x), y, c])
+    // Its nub is all that's out past its face side's edge (x nose), or past its top corner where a high one rises.
+    out = out.map(([x, y, c]) => c !== SLIME_LINE && x <= h.nose + (y < h.top + 5 ? 1 : 0) ? [x, y, mix(c, GLOVE[(x * 3 + y * 5 + Math.floor(now / 140)) % 4 ? 0 : 1], f)] : [x, y, c])
+    if (d.slide) { // its base slips back (+x) through each step, sheared under it, then the jelly catches up
+      const low = Math.max(...out.map(([, y]) => y)), slip = Math.round((d.slide[1] + D / 2) * 2 / D)
+      out = out.map(([x, y, c]) => [x + Math.round(slip * Math.max(0, y - low + 5) / 5), y, c])
+    }
+    if (d.hat != null) SMALL_HAT.forEach((row, j) => [...row].forEach((ch, i) => { // its brim across its top face
+      if (INK[ch]) out.push([SLIME_TOP - 7 + i, h.top - SMALL_HAT.length + 3 + j + d.hat + (j === SMALL_HAT.length - 1 && i <= 2 ? d.tilt : 0), INK[ch]])
+    }))
+    return out.map(([x, y, c]) => [L(x), y, c])
+  }
   /** The spin squeezes him sideways; his back has no eyes. */
   const spun = (d, px) => { if (d.spin == null) return px; const c = Math.cos(d.spin); return px.filter(p => c > 0 || p[2] !== EYE).map(([x, y, col]) => [Math.round(21.5 + (x - 21.5) * c), y, col]) }
 
@@ -147,6 +165,7 @@
     },
     /** The outfit: the glove (his left hand facing you, the near one turned), socks and loafers, the fedora; the spin squeezes it all. */
     pixels({d, px, pose, now}){
+      if (SLIME) return spun(d, onSlime(d, px, pose, now))
       if (PROFILE) return spun(d, inProfile(d, px, pose, now))
       if (HATTY) return spun(d, onHatty(d, px, pose, now))
       const face = pose.face || 0, m = x => face < 0 ? GW - 1 - x : x // px come mirrored when he faces left: work as if he faces right

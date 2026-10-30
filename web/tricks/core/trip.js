@@ -2,15 +2,31 @@
 // round to check nobody saw, and carries on. The stumble glides, so he keeps going the way he was walking; `trip` is how
 // long he's been down, and its pixels hook lays him flat on his front (tilting him 90° would stand him on his side).
 {
-  const {GW, GH, EYE} = hangabout
+  const {GW, GH, EYE, BODY} = hangabout
   const CHICKEN = hangabout.skin === 'chicken' // an egg: he tips right over onto his side, rocks there, dazed, and pops back up
   const DOWN = CHICKEN ? {eyes: 'dizzy'} : {}
   // A walking step, as his own walk draws it, gliding the way he's going.
   const STEP = i => [{lift: [[0, 3], [], [1, 2], []][i % 4], dy: i % 2 ? -1 : 0, swing: i % 4 < 2 ? 1 : -1, tilt: i % 4 < 2 ? -3.5 : 3.5, glide: 45}, 130]
+  // The slime has no toe to catch: a hop comes down nose first and it splats flat (its own `puddle`), lies there dazed,
+  // pulls itself back into a cube, checks nobody saw, and hops on. Its hop is its walk's (web/skins/slime.js), gliding.
+  const SLIME = hangabout.skin === 'slime'
+  const HOP = [[{squash: 1}, 60], [{stretch: 2, dy: -2}, 80], [{stretch: 1, dy: -5}, 100], [{dy: -6}, 100], [{dy: -4}, 80],
+    [{stretch: 1, dy: -1}, 60], [{squash: 2}, 80], [{squash: 1}, 80]].map(([p, ms]) => [{...p, tilt: 0, glide: 45}, ms])
 
   hangabout.trick({
     name: 'trip', label: 'Trip ⤓', rarity: 'manual', on: {midWalk: .04},
-    frames: [
+    frames: SLIME ? [
+      ...HOP,
+      ...HOP.slice(0, 3), [{dy: -6, eyes: 'up', tilt: 14, glide: 70}, 100], // too far forward...
+      [{dy: -3, arms: ['high', 'high'], eyes: 'strain', tilt: 40, glide: 80}, 80],
+      [{puddle: 2, eyes: 'blink', tilt: 0, trip: 0, glide: 40}, 100], // splat
+      [{puddle: 2, eyes: 'blink', tilt: 0, trip: 1, glide: 20}, 160],
+      [{puddle: 2, tilt: 0, trip: 2, glide: 1}, 800],
+      [{puddle: 1, eyes: 'strain'}, 160], [{squash: 2, eyes: 'strain'}, 110], [{stretch: 2, dy: -2}, 120], [{squash: 1}, 90], // and back up
+      [{eyes: 'side', look: -1}, 420], [{eyes: 'side', look: 1}, 420],
+      ...HOP, ...HOP, // as if nothing happened
+      [{}, 200],
+    ] : [
       STEP(0), STEP(1),
       [{lift: [2, 3], arms: ['high', 'high'], eyes: 'up', tilt: 14, glide: 70}, 110], // a toe catches
       [{tuck: 1, arms: ['high', 'high'], eyes: 'strain', tilt: 40, glide: 80}, 90],
@@ -25,6 +41,7 @@
       [{}, 200],
     ],
     pixels({d, px, pose}){
+      if (SLIME) return px // its puddle is already flat
       if (CHICKEN) { // turned 90° forward about his middle, his crest ahead and his foot behind, then set down on the ground
         const s = pose.face < 0 ? -1 : 1, out = px.map(([x, y, c]) => [22 - s * (y - 29), 29 + s * (x - 22), c]), low = Math.max(...out.map(p => p[1]))
         return out.map(([x, y, c]) => [x, y + GH - 1 - low, c])
@@ -38,9 +55,10 @@
       if (!d) ctx.clearRect(-12, 0, GW + 24, GH) // the trail still holds his falling frame, which would flash upright now he isn't tilted
     },
     front({ctx, d, pose}){
-      if (d > 1) return // dust kicked up at his head and feet, spreading and fading
-      ctx.fillStyle = '#CFC4BA'; ctx.globalAlpha = d ? .5 : .9
-      for (const [x, y] of [[36 + 2 * d, 38 - d], [38 + 2 * d, 39], [12 - 2 * d, 38 - d], [10 - 2 * d, 39]]) ctx.fillRect(pose.face < 0 ? GW - 2 - x : x, y, 2, 1)
+      if (d > 1) return // dust kicked up at his head and feet, spreading and fading; on the slime, flecks of goo off its edges
+      ctx.fillStyle = SLIME ? BODY : '#CFC4BA'; ctx.globalAlpha = d ? .5 : .9
+      const spots = SLIME ? [[39 + 2 * d, 35 - 2 * d], [41 + 2 * d, 38 - d], [3 - 2 * d, 35 - 2 * d], [1 - 2 * d, 38 - d]] : [[36 + 2 * d, 38 - d], [38 + 2 * d, 39], [12 - 2 * d, 38 - d], [10 - 2 * d, 39]]
+      for (const [x, y] of spots) ctx.fillRect(pose.face < 0 ? GW - 2 - x : x, y, 2, 1)
       ctx.globalAlpha = 1
     },
   })
