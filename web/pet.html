@@ -184,18 +184,18 @@ function pencilTip(t){
 }
 for (const [r, , to, len] of STROKES) console.assert(pencilTip(to).x === MARGIN + len - 1 && pencilTip(to).y === LINES[r] && to < PAGE_MS - 600, 'each stroke must end at its line\'s last pixel, before the page clears')
 const gripY = tip => Math.max(21, Math.min(33, Math.round(tip.y) - 5)) // his hand stays at his side; only its height follows the line
-// Where he holds the pencil, and the hand that puts his hand there. Cappy has no hand at his side: it's in his front paw
-// under his toes, by his chin for the top lines and out low for the bottom ones (PAW in skins/cappy.js, turned right).
-const grip = tip => SKIN !== 'cappy' ? {x: OX + 31, y: gripY(tip), hand: gripY(tip) - 2 - OY} : tip.y < 32 ? {x: 32, y: 33, hand: 2} : {x: 31, y: 35, hand: 8}
+// The hand that holds the pencil. Cappy has no hand at his side: it's his front paw, by his chin for the top lines and
+// out low for the bottom ones (PAW in skins/cappy.js); his hand() says where its toes are.
+const gripHand = tip => SKIN !== 'cappy' ? gripY(tip) - 2 - OY : tip.y < 32 ? 2 : 8
 const PAGE = {
   still: 3300,
   pose(t, side){
     const tt = t % PAGE_MS
-    return {face: side, eyes: tt % 2600 > 2480 ? 'blink' : 'side', look: side, hand: grip(pencilTip(tt)).hand}
+    return {face: side, eyes: tt % 2600 > 2480 ? 'blink' : 'side', look: side, hand: gripHand(pencilTip(tt))}
   },
-  draw(ctx, t){
+  draw(ctx, t, pose, k = 1){ // k: how far the page has faded in on a new side
     const tt = t % PAGE_MS, a = 1 - progress(tt, PAGE_MS - 600, PAGE_MS - 200)
-    const dot = (x, y, c, alpha = 1) => { ctx.globalAlpha = alpha; ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
+    const dot = (x, y, c, alpha = 1) => { ctx.globalAlpha = alpha * k; ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) }
     for (let j = 0; j < 17; j++) for (let i = 0; i < 10; i++) { // the status bubble's file icon: top-right corner folded over
       const f = i - 7
       if (j < 3 && f > j) continue
@@ -210,11 +210,17 @@ const PAGE = {
       }
     }
     ctx.globalAlpha = 1
-    // The pencil, from his hand to its point; his body hides the end behind his hand.
-    const tip = pencilTip(tt), {x: gx, y: gy} = grip(tip), len = Math.hypot(tip.x - gx, tip.y - gy) || 1, ux = (tip.x - gx) / len, uy = (tip.y - gy) / len
+    // The pencil, from his hand to its point; his body hides the end behind his hand. A skin with a hand() holds it
+    // there, wherever he's turned (in this prop's frame, which is mirrored when the page is on his left).
+    const tip = pencilTip(tt), h = SKINS[SKIN].hand?.(pose), gx = h ? (pet.propDrawn < 0 ? GW - 1 - h.x : h.x) : OX + 31, gy = h ? h.y : gripY(tip), far = Math.hypot(tip.x - gx, tip.y - gy) || 1
+    // Turning, it's just the pencil in his paw, held level and out the way he faces, under his snout (this frame is mirrored with the page).
+    const turning = pose.view != null && pose.view !== 2 * pet.propDrawn, out = (pose.view || pose.face || 1) * pet.propDrawn > 0 ? 1 : -1
+    const len = turning ? 6 : far, ux = turning ? .95 * out : (tip.x - gx) / far, uy = turning ? .3 : (tip.y - gy) / far
     const seg = (d0, d1, w, c) => thickLine(ctx, gx + ux * d0, gy + uy * d0, gx + ux * d1, gy + uy * d1, w, c)
-    seg(-3, -2, 2, PENCIL.eraser); seg(-1, -1, 2, PENCIL.band); seg(0, len - 3, 2, PENCIL.body); seg(len - 2, len - 1, 1, PENCIL.wood)
-    dot(Math.round(tip.x), Math.round(tip.y), PENCIL.lead)
+    if (!turning) { seg(-3, -2, 2, PENCIL.eraser); seg(-1, -1, 2, PENCIL.band) } // turning, his paw is in front of its end
+    seg(0, len - 3, 2, PENCIL.body); seg(len - 2, len - 1, 1, PENCIL.wood)
+    if (turning) dot(Math.round(gx + ux * (len - 1)), Math.round(gy + uy * (len - 1)), PENCIL.lead) // on the wood's last pixel
+    else dot(Math.round(tip.x), Math.round(tip.y), PENCIL.lead)
   },
 }
 const TERM = {frame: '#5A5853', screen: '#0F0F0E', text: '#B9B7B0'}, ENTER = 1300 // when the output starts, just after he presses Enter
@@ -461,7 +467,7 @@ const WHOLE = [-PAD, 0, GW + 2 * PAD, GH] // the whole canvas, in art pixels
 const path = petEl.querySelector('path'), box = petEl.querySelector('.box'), hist = petEl.querySelector('.hist'), l1 = petEl.querySelector('.l1'), l2 = petEl.querySelector('.l2')
 const live = document.getElementById('live')
 const pet = {id: 'idle', since: 0, open: false, openedAt: 0, closedAt: -1e9, pinned: false, hover: false, hoverTimer: 0, x: 0, y: 0, drag: null, swing: 0,
-  face: 0, heading: -1, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0}
+  face: 0, heading: -1, turnFrom: 0, turnAt: -1e9, turn: {from: -2, to: -2, at: -1e9, base: -2}, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0}
 
 // An optional soft two-note chirp when he needs you. Off until you turn it on.
 const sound = {on: false, ctx: null}
@@ -865,6 +871,26 @@ function figureOf(pose, eye){
   if (!px) { if (FIGURES.size > 500) FIGURES.clear(); FIGURES.set(key, px = SKINS[SKIN].draw(pose, eye)) }
   return px
 }
+// Turning round, for a skin that draws views (Cappy): its view goes -2 (profile, facing left), -1 (three-quarters),
+// 0 (facing you), 1, 2 (facing right). A turn steps through every view between, one each TURN_STEP ms, timed from when
+// it was asked for, so a dropped frame can't stretch it; a new turn starts from the view on screen, so a reversal
+// halfway turns straight back. Standing still while Claude needs you, he turns round to face you. His feet stay put:
+// each view is slid (ox) to keep them where they were in the profile he turned from (base), and when he arrives in
+// the other profile he's moved by that slide, so he walks on from where his feet are.
+const TURN_STEP = 80
+const viewWanted = (pose, life) => pose.view ?? (!life && pet.id === 'needs' ? 0 : (pose.face || pet.heading) * 2)
+const viewShown = (tr, now) => { const d = tr.to - tr.from; return tr.from + Math.sign(d) * Math.min(Math.abs(d), Math.ceil((now - tr.at) / TURN_STEP)) }
+function turnTo(now, want){
+  const tr = pet.turn, feetX = SKINS[SKIN].feetX || (() => 0)
+  tr.base ??= tr.from
+  if (want !== tr.to) pet.turn = {from: viewShown(tr, now), to: want, at: now, base: tr.base}
+  const view = viewShown(pet.turn, now)
+  if (view !== pet.lastView) { pet.turn.moved = true; pet.lastView = view } // a new view: clear his trail, or it ghosts the old one beside it
+  if (view === pet.turn.to && Math.abs(view) === 2 && view !== pet.turn.base) { // there: walk on from his feet
+    place(pet.x + Math.round(feetX(pet.turn.base) - feetX(view)) * PW / GW * size, pet.y); pet.turn.base = view; pet.turn.moved = true
+  }
+  return {view, ox: Math.round(feetX(pet.turn.base) - feetX(view))}
+}
 function draw(now, dt){
   const still = isStill(), t = Math.max(0, now - pet.since), m = MOODS[pet.id]
   const life = still ? null : lifePose(now) // walking, fidgeting, jumping, falling or dangling beats the mood's own pose
@@ -883,10 +909,15 @@ function draw(now, dt){
     // A side-on skin like Cappy keeps facing the way he last turned; Clawd turns back to face you.
     if (pose.face) pet.heading = pose.face
     else if (SKINS[SKIN].sideOn) pose = {...pose, face: pet.heading}
-    // Turning: one half-turned frame between facing you and facing sideways.
-    const faceNow = pose.face || 0
-    if (faceNow !== pet.face) { pet.turnFrom = pet.face; pet.face = faceNow; pet.turnAt = now }
-    if (now - pet.turnAt < 90 && pet.turnFrom !== faceNow) pose = {...pose, face: faceNow || pet.turnFrom, half: true}
+    if (SKINS[SKIN].views) { const {view, ox} = turnTo(now, viewWanted(pose, life)); pose = {...pose, view, ...ox && {ox: (pose.ox || 0) + ox}} }
+    else { // Turning: one half-turned frame between facing you and facing sideways.
+      const faceNow = pose.face || 0
+      if (faceNow !== pet.face) { pet.turnFrom = pet.face; pet.face = faceNow; pet.turnAt = now }
+      if (now - pet.turnAt < 90 && pet.turnFrom !== faceNow) pose = {...pose, face: faceNow || pet.turnFrom, half: true}
+    }
+  } else if (SKINS[SKIN].views) { // Reduce Motion: no turn, just the way he's facing now
+    pose = {...pose, face: pet.heading, view: viewWanted({face: pet.heading}, null)}
+    pet.turn = {from: pose.view, to: pose.view, at: now, base: pose.view}
   }
   const o = pet.open ? now - pet.openedAt : -1, c = !pet.open ? now - pet.closedAt : -1
   const toward = petEl.classList.contains('flip') ? -1 : 1
@@ -895,6 +926,7 @@ function draw(now, dt){
   if (!still && c >= 230 && c < 350) pose = {...pose, eyes: 'blink'}
   const eye = pet.id === 'needs' && Math.floor(t / 530) % 2 === 0 ? C.peri : EYE
   let px = figureOf(pose, eye)
+  pet.shown = {pose, px} // what's on screen this frame, for the checker
   // Tricks draw themselves: a trick's hooks run while the pose carries its name ({guts: {...}} runs the guts trick's hooks).
   const tricks = still ? [] : Object.values(TRICKS).filter(k => pose[k.name] != null)
   const run = (k, hook, extra) => {
@@ -907,7 +939,7 @@ function draw(now, dt){
   const rumble = !still && pose.shake
   desk.style.transform = rumble ? `translate(${(Math.random() * 4 - 2).toFixed(1)}px,${(Math.random() * 3 - 1.5).toFixed(1)}px)` : ''
 
-  if (still) ctx.clearRect(...WHOLE)
+  if (still || pet.turn.moved) { ctx.clearRect(...WHOLE); pet.turn.moved = false } // moved on arriving from a turn: his old trail would move with him
   else {
     ctx.globalCompositeOperation = 'destination-out'
     ctx.fillStyle = `rgba(0,0,0,${1 - Math.pow(.5, dt / 50)})` // phosphor decay
@@ -938,13 +970,21 @@ function draw(now, dt){
     ctx.globalAlpha = 1
   }
   for (const k of tricks) run(k, 'behind')
-  if (work) { // behind him, so his body hides the pencil's far end; facing left, mirrored like he is
+  // The page stays on the side he faced until he's turned round to its new side (Clawd's moves at once).
+  if (work && (!SKINS[SKIN].views || !pet.propDrawn || pose.view === 2 * pet.propSide || still)) {
+    if (SKINS[SKIN].views && pet.propDrawn && pet.propDrawn !== pet.propSide && !still) pet.propAt = now // turned round to it: it fades in there, not pops
+    pet.propDrawn = pet.propSide
+  }
+  const drawWork = () => { // facing left, mirrored like he is
     ctx.save()
-    if (pet.propSide < 0) { ctx.translate(GW, 0); ctx.scale(-1, 1) }
-    work.draw(ctx, still ? work.still : t)
+    if (pet.propDrawn < 0) { ctx.translate(GW, 0); ctx.scale(-1, 1) }
+    work.draw(ctx, still ? work.still : t, pose, Math.min(1, (now - (pet.propAt ?? -1e9)) / 200))
     ctx.restore()
   }
+  const facingYou = Math.abs(pose.view ?? 2) < 2 // turned toward you, what he holds is in front of him
+  if (work && !facingYou) drawWork() // behind him, so his body hides the pencil's far end
   for (const [x, y, col] of px) { ctx.fillStyle = col; ctx.fillRect(shift(x, y), y, 1, 1) }
+  if (work && facingYou) drawWork()
   for (const k of tricks) run(k, 'front')
   for (const gl of glyphs(pet.id, t, m, still)) {
     ctx.globalAlpha = gl.a ?? 1
