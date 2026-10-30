@@ -125,12 +125,12 @@ he last went. He has no arms:
 does nothing. `face` turns him left or right, and his one eye takes the same `eyes` and `look` values as Clawd's.
 Everything else above works the same on both.
 
-Clay, a clay soldier, is drawn three-quarters and also keeps facing the way he last went. His arms work like
-Clawd's: `arms` for each (by screen side), `swing`, and `hand` and `reach` for the one in front. He has two legs, so
-`lift` raises one, the first listed: an even index his far leg, an odd one his near leg (walking's `[0, 3]` and
-`[1, 2]` still alternate). He has no face: `'happy'` stands him taller, `'sad'` slumps him, `'dizzy'` wobbles his head,
-and nothing is ever drawn in `EYE`, so a trick that finds his eyes by their color finds none. With no eye he has no
-`head()` either: costumes dress him the way they dress Clawd.
+Clay, a little clay guy, faces you and leans the way he's going (turned right he's mirrored, like Hatty). His arms
+bend at the elbow: `arms` work by screen side (`'cross'` folds them across his belly), `swing` sways both, and `hand` and
+`reach` hold his front arm out at a height. He has two legs, so `lift` raises one, the first listed (even: the leg on
+your left), and `squash` and `tuck` fold his legs. He has no face: the `eyes` moods show in his head and arms (`'sad'`
+droops his head and arms, `'side'` turns his head, `'happy'` flings his arms up), and nothing is ever drawn in `EYE`.
+With no eye he has no `head()`; `SKINS.clay.at(pose)` gives costumes his head, hands and feet instead.
 
 Pusheen is a loaf drawn side on, like Cappy, but her face looks out at you with two eyes. Like Cappy she has no arms:
 `arms` `'up'` or `'high'` raise her front paw, and `hand` and `reach` push it out low (`reach` longer). Tucked on the
@@ -215,7 +215,7 @@ Helpers:
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
 | `head(pose)` | Where his face is in this pose. A side-on skin's is as drawn facing left: `{x, y}` is his eye (Cappy's left pixel, at x 20), `top` the top of his head between his ears, `nose` the front of his snout (x 10 on Cappy), and, if his face ends above his feet, `chin` the row below it (the chicken's; Spider-Man's suit is blue all the way across below it). Hatty's is as drawn facing you: `{x, y}` is the top-left pixel of his eye on your left, `top` the top of his head, just under his hat (the 11 rows above it). They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
-| `sideOn` | Whether the skin is drawn side on (Cappy, Clay, Pusheen, the chicken). |
+| `sideOn` | Whether the skin is drawn side on (Cappy, Pusheen, the chicken). |
 | `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin, or one with a `mirror` like Hatty, faces right (and slid by `ox`), so a costume drawn once on him facing left (Hatty: facing you) turns with him. On Clawd it changes nothing. |
 
 **Costumes on every skin.** Hair, masks and anything else that sits on his face need a spot on each kind of skin. Clawd
@@ -224,8 +224,9 @@ hangabout.head` (not `hangabout.skin`) and draw it facing left inside `facing()`
 goes by his eye by `head(pose).x - 20` and what goes by his snout by `head(pose).nose - 10`, so it fits Pusheen, the chicken and any
 skin after them. His rump is his rightmost pixel as drawn facing left, less his outline; his feet are on the row above his
 lowest, which is all outline. Hatty faces you in a top hat: check `hangabout.skin === 'hatty'`, draw his version facing
-you with `head(pose)` inside `facing()`, and put props in his cane hand (x 28 to 31, 7 rows below his eyes). Other skins
-wear Clawd's. Guts, Vader, Thorfinn and the moonwalk in `web/tricks/fan/` show how.
+you with `head(pose)` inside `facing()`, and put props in his cane hand (x 28 to 31, 7 rows below his eyes). Clay faces you with no face: check
+`hangabout.skin === 'clay'` and place things by `SKINS.clay.at(pose)` (his head, hands and feet) inside `facing()`. Other
+skins wear Clawd's. Guts, Vader, Thorfinn and the moonwalk in `web/tricks/fan/` show how.
 
 ## Trips
 

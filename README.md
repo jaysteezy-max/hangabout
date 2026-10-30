@@ -138,7 +138,7 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 | --- | --- |
 | **Cappy** | The default: a capybara, side on, who waves a front paw instead of a hand. |
 | **Clawd** | Fan art of Anthropic's Clawd, Claude Code's mascot. Not affiliated with or endorsed by Anthropic. |
-| **Clay** | A faceless clay soldier in grey clay, after the Clay Soldiers Minecraft mod: a cube head, chunky arms and legs, drawn three-quarters. Original art. |
+| **Clay** | A little grey clay guy with no face, after the tiny guys of Tiny Terraces: a round head, a soft pear body and bendy arms and legs. He waddles, cheers with both arms up and sits down in a heap. Original art. |
 | **Hatty Hattington** | Fan art of Hatty from BattleBlock Theater, front on, with his top hat, tears and cane. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
 | **Behemoth chicken** | Fan art of The Behemoth's chicken mascot, three-quarters on: a white egg with a blue crest and wattle, who flaps a wing instead of a hand. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |
 | **Pusheen** | Fan art of Pusheen the cat as her classic loaf, side on, with her striped tail tucked in. She moves like a cat: pattering on little legs, stretching, washing, napping with z's, blushing when happy, and every fan costume fitted to her face. Not affiliated with or endorsed by Pusheen Corp. In the menu while Fan pack is on. |
