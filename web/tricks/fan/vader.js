@@ -9,6 +9,7 @@
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out of a side-on loaf: the dome over both ears, a lens on each eye
   const SLIME = hangabout.skin === 'slime' // a cube with its face on its side: the dome over its top face, a lens on each eye, the saber in its goo arm
   const KNIGHT = hangabout.skin === 'knight' // his own helmet is the dome: it goes black, his faceplate the mask, the saber in his front hand
+  const DOMO = hangabout.skin === 'domo' // his face is his body: the dome to his brow, the mask down over the top of his mouth, the saber in his raised mitt
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
   if (PUSHEEN) ARMOR['#8B8B90'] = '#111115' // and her paws (web/skins/pusheen.js)
   if (HATTY) Object.assign(ARMOR, {'#915544': '#1E1E24', '#4E4E4E': '#111115', '#9B225D': '#2C2D35', '#4BA2CE': '#1E1E24'}) // and his jacket, trousers, tie and tears (web/skins/hatty.js)
@@ -16,7 +17,7 @@
   if (SLIME) Object.assign(ARMOR, {'#6A9D23': '#0B0B0E', '#FFFFFF': '#4B4E5C', '#DCF9B6': '#3C3D47', '#EC9291': '#1E1E24'}) // its outline, glints (a shine on the armor) and cheeks (web/skins/slime.js)
   if (KNIGHT) Object.assign(ARMOR, {'#FFFFFF': '#2C2D35', '#D9DEEA': '#3C3D47', '#A9B4C8': '#5D606B', '#4A4A4A': '#1E1E24', '#7A7A7A': '#3C3D47', '#383838': '#111115', '#5E5E5E': '#111115'}) // his faceplate and tunic, armor and boots (web/skins/knight.js)
   const SUITED = {'#44AEF6': '#1E1E24', '#0060A0': '#111115', '#FFF050': '#3C3D47', '#B8960F': '#111115'} // the chicken's blue and yellow, gone black all but his beak and tail (see pixels)
-  const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid'], HOLD = {arms: MID, ...(CHICKEN || SLIME) && {hand: 7}} // the chicken's wing round the hilt, the slime's goo arm
+  const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid'], HOLD = {arms: DOMO ? ['mid', 'up'] : MID, ...(CHICKEN || SLIME) && {hand: 7}} // the chicken's wing round the hilt, the slime's goo arm, Domo's mitt up (his 'mid' is his rest)
   const maythe4th = () => { const d = new Date(); return d.getMonth() === 4 && d.getDate() === 4 ? 1 : 0 } // your local date
 
   /** A side-on skin's last column at his back, as drawn facing left: just in from his outline. */
@@ -114,6 +115,46 @@
         ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(h.x + 1 + i * 2, h.y + 8 + (i % 2), 1, 1) } })
       }
       saber(ctx, v, now, 31, h.y + 7)
+    })
+  }
+
+  /** Domo, drawn facing you: the dome down to his brow, a lens on each eye, the mask down over the top of his mouth with its grille (his jaw gapes open under it), the chest panel below, and the saber in his raised mitt. */
+  function domoFront(ctx, v, now, pose){
+    const h = head(pose), row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0 + 1, 1) }
+    facing(ctx, pose, () => {
+      if (v.helmet != null) { // its sides hang behind him (domoSides)
+        const t = h.top + v.helmet
+        for (const [dy, x0, x1] of [[-4, 17, 25], [-3, 15, 27], [-2, 14, 28], [-1, 13, 29], [0, 13, 29], [1, 13, 29]]) row(t + dy, x0, x1, '#111114')
+        row(t - 4, 19, 23, '#3C3D47'); row(t + 1, 14, 28, '#2C2D35') // light on the crown, and the brow over the mask
+        ctx.fillStyle = '#3C3D47'; ctx.fillRect(13, t - 1, 1, 3); ctx.fillRect(29, t - 1, 1, 3) // and on its edges
+        ctx.fillStyle = '#4B4E5C'; for (const [x, y] of [[17, t - 3], [16, t - 2], [15, t - 1]]) ctx.fillRect(x, y, 1, 1) // shine
+      }
+      if (v.mask) {
+        for (let y = h.y + 3; y <= h.y + 5; y++) row(y, h.x, h.x + 8, '#1E1E24') // the mask over the top of his mouth
+        for (const [x0, outer] of [[h.x - 1, -1], [h.x + 6, 1]]) { // angled lenses over his eyes, cut away at the outer bottom corner
+          row(h.y, x0, x0 + 3, '#2B0E10'); row(h.y + 1, x0, x0 + 3, '#2B0E10'); row(h.y + 2, x0 + (outer < 0), x0 + 3 - (outer > 0), '#2B0E10')
+          ctx.fillStyle = '#7A3232'; ctx.fillRect(x0 + 1, h.y, 1, 1)
+        }
+        ctx.fillStyle = '#5D606B'; ctx.fillRect(h.x + 4, h.y, 1, 3) // the ridge between them
+        for (let i = 0; i < 2; i++) { ctx.fillRect(h.x - 1 + i, h.y + 3 + i, 1, 1); ctx.fillRect(h.x + 9 - i, h.y + 3 + i, 1, 1) } // the cheeks, down to the grille
+        for (const [y, w] of [[h.y + 3, 1], [h.y + 4, 2], [h.y + 5, 3]]) for (let x = h.x + 4 - w; x <= h.x + 4 + w; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille
+        row(h.y + 12, h.x, h.x + 8, '#4F525C'); row(h.y + 13, h.x, h.x + 8, '#4F525C') // chest panel, its lights blinking
+        const on = Math.floor(now / 350)
+        ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(h.x + 1 + i * 2, h.y + 12 + (i % 2), 1, 1) } })
+      }
+      saber(ctx, v, now, 30, h.y + 4)
+      if (v.blade != null) { ctx.fillStyle = '#1E1E24'; ctx.fillRect(29, h.y + 5, 2, 2) } // his raised mitt, round the hilt
+    })
+  }
+  /** Domo's helmet sides, behind him so his raised arm stays in front: beside his face, flaring out to his shoulders. */
+  function domoSides(ctx, v, pose){
+    if (v.helmet == null) return
+    const t = head(pose).top + v.helmet
+    facing(ctx, pose, () => {
+      for (const [dy, l, r] of [[2, 13, 29], [3, 13, 29], [4, 13, 29], [5, 12, 30], [6, 12, 30], [7, 11, 31], [8, 11, 31]]) {
+        ctx.fillStyle = '#111114'; ctx.fillRect(l, t + dy, 3, 1); ctx.fillRect(r - 2, t + dy, 3, 1)
+        ctx.fillStyle = '#3C3D47'; ctx.fillRect(l, t + dy, 1, 1); ctx.fillRect(r, t + dy, 1, 1) // light on the flare's edges
+      }
     })
   }
 
@@ -215,17 +256,18 @@
     },
     /** Behind him: the cape, sweeping to the floor behind his arms. */
     behind({ctx, d: v, px, now, pose}){
-      if (!v.cape) return
-      facing(ctx, pose, () => { // side on: one, off his back; Hatty: from behind his helmet's flare
+      if (!v.cape) return DOMO && domoSides(ctx, v, pose)
+      facing(ctx, pose, () => { // side on: one, off his back; Hatty and Domo: from behind his helmet's flare
         ctx.globalAlpha = v.cape
         if (CHICKEN) { chickenCape(ctx, now, pose); ctx.globalAlpha = 1; return }
-        const top = PROFILE ? head(pose).top + 3 : HATTY ? head(pose).top + 10 : OY + 2
-        for (const x0 of PROFILE ? [rump(px, pose)] : HATTY ? [10, 29] : [OX + 1, OX + 31]) for (let x = x0; x < x0 + 4; x++) {
+        const top = PROFILE ? head(pose).top + 3 : HATTY ? head(pose).top + 10 : DOMO ? head(pose).top + 8 : OY + 2
+        for (const x0 of PROFILE ? [rump(px, pose)] : HATTY || DOMO ? [10, 29] : [OX + 1, OX + 31]) for (let x = x0; x < x0 + 4; x++) {
           ctx.fillStyle = x === x0 || x === x0 + 3 ? '#2A2A31' : '#0D0D10'
           ctx.fillRect(x, top, 1, GH - top - Math.round(1 + Math.sin(x * 1.3 + now / 260)))
         }
         ctx.globalAlpha = 1
       })
+      if (DOMO) domoSides(ctx, v, pose)
     },
     /** In front: the helmet coming down, the mask and chest panel, and the red saber (hilt in his right hand). */
     front({ctx, d: v, px, now, pose}){
@@ -234,6 +276,7 @@
       if (KNIGHT) return knightFront(ctx, v, now, pose)
       if (PROFILE) return profileFront(ctx, v, px, now, pose)
       if (HATTY) return hattyFront(ctx, v, now, pose)
+      if (DOMO) return domoFront(ctx, v, now, pose)
       const dy = pose.dy || 0, sq = pose.squash || 0, eyeY = OY + 4 + dy + sq, top = Math.min(...px.map(([, y]) => y)) + (v.helmet || 0)
       const row = (y, x0, x1, c) => { ctx.fillStyle = c; ctx.fillRect(x0, y, x1 - x0, 1) }
       if (v.helmet != null) { // a black dome, flaring out at the sides

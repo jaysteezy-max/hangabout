@@ -8,6 +8,7 @@
   const HATTY = hangabout.skin === 'hatty' // the hair under his top hat, a dagger in each hand along his forearm
   const CHICKEN = hangabout.skin === 'chicken' // the scar by his eye, a dagger in his wing and one tucked in a belt at his side
   const SLIME = hangabout.skin === 'slime' // the mop over its whole top face, a dagger in each nub
+  const DOMO = hangabout.skin === 'domo' // the mop on his head, bangs clear of his eyes, the scar between them, a dagger in each mitt
   const KNIGHT = hangabout.skin === 'knight' // his helmet stays on: the hair falls from under its back edge, over his shoulder
   const KNIGHT_MANE = ['MMOO', 'MMLMO', 'MMLMOO', 'MMLMLMO', 'MMLMLMOO', 'MMLMLMSMO', 'MMLMLMSMO', ...Array(8).fill('MMLMLMSMSO'), 'MMLMLMSMO', 'MMLMLMOMO', 'OOOMOMOO', '...O.O'] // as drawn facing left, from x 28: its front strands hide behind his helmet, the rest sweep out the back to ragged ends
   const BLADE = '#DCE1E8', STEEL = '#8E96A3', ARM = {down: 12, mid: 8, up: 4, high: -2}
@@ -99,6 +100,29 @@
     })
   }
 
+  // Domo's mop, by column from x 13 (just outside his left side) to 29: how far each strand sticks up past the top of his
+  // head, and how far it hangs down from there (locks down his sides, bangs to his brow and a point between his eyes).
+  const DOMO_UP = [0, 1, 2, 3, 2, 4, 3, 2, 4, 3, 2, 3, 4, 2, 3, 1, 0], DOMO_DOWN = [4, 7, 5, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 6, 8, 4]
+  // His dagger beside each mitt (his left; the right is its mirror image): its x, and its top row from his eye's (below the mitt, or above it raised).
+  const DOMO_BLADE = {mid: [12, 13], down: [12, 14], up: [11, 0]}
+  /** Domo, drawn facing you: the scar across the bridge between his eyes, the mop over his head, and a dagger in each mitt. */
+  function domoFront(ctx, th, pose){
+    const h = head(pose), w = (pose.squash || 0) >= 2 ? 1 : 0 // squashed wide, his arms sit a pixel further out
+    facing(ctx, pose, () => {
+      if (th.hair || th.daggers) { ctx.fillStyle = '#D98C70'; for (let i = 0; i < 5; i++) ctx.fillRect(h.x + 2 + i, h.y + 2 - (i >> 1), 1, 1) } // paler than the others' scar, to show on his brown
+      if (th.hair) {
+        DOMO_UP.forEach((n, i) => { ctx.fillStyle = i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID; ctx.fillRect(13 + i, h.top - n, 1, n + 1 + DOMO_DOWN[i]) })
+        ctx.fillStyle = LIGHT; for (const [x, y] of [[15, h.top], [20, h.top - 1], [24, h.top - 1], [28, h.top + 2]]) ctx.fillRect(x, y, 1, 1) // shine
+      }
+      ;(pose.arms || ['mid', 'mid']).forEach((a, s) => { // reverse grip: down from his mitt as it hangs, up from it raised
+        const [x, dy] = DOMO_BLADE[a] || DOMO_BLADE.mid, y0 = h.y + dy, up = a === 'up'
+        const fill = (x0, y, wd, len, c) => { ctx.fillStyle = c; ctx.fillRect(s ? 42 - x0 - wd + 1 + w : x0 - w, y, wd, len) }
+        if (th.daggers) { fill(x, y0, 2, 5, BLADE); fill(x + 1, y0, 1, 5, STEEL); if (th.glint) fill(x, up ? y0 - 1 : y0 + 5, 1, 1, '#FFFFFF') }
+        if (th.sheathe) fill(x, y0 + 1, 1, 1, '#FFFFFF')
+      })
+    })
+  }
+
   hangabout.trick({
     name: 'thorfinn', label: 'Thorfinn 🗡', rarity: 'rare', pack: 'fan', on: {dizzyAgain: 1}, // shaken dizzy a third time today
     frames: [
@@ -132,6 +156,7 @@
       const dy = pose.dy || 0, sq = pose.squash || 0, ox = pose.ox || 0, top = Math.min(...px.map(([, y]) => y)), eyeY = OY + 4 + dy + sq
       if (PROFILE) profileFront(ctx, th, pose, px)
       else if (HATTY) hattyFront(ctx, th, pose)
+      else if (DOMO) domoFront(ctx, th, pose)
       else if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < 6; i++) ctx.fillRect(OX + 14 + i + ox, eyeY + 5 - (i >> 1), 1, 1) } // scar across his nose
       if (th.hair && !head) { // long, messy blond hair: uneven strands on top, locks hanging past his eyes, parted bangs
         const bx = OX + 4 + ox

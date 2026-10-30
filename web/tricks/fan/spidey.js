@@ -11,7 +11,7 @@
   // The slime's face is on its side too: a lens on each eye (the near one a row lower), the web from between them, its
   // outline dark, its glints lit, and blue along its bottom edges, clear of its nubs (web/skins/slime.js).
   const SLIME = hangabout.skin === 'slime', SLIME_LINE = '#6A9D23', GLINT = {'#FFFFFF': TOP, '#DCF9B6': TOP}
-  const HATTY = hangabout.skin === 'hatty', UP = arm => HATTY ? [arm, 'mid'] : ['mid', arm] // Hatty reaches up with his free hand, the one in front when he turns
+  const HATTY = hangabout.skin === 'hatty', DOMO = hangabout.skin === 'domo', UP = arm => HATTY || DOMO ? [arm, 'mid'] : ['mid', arm] // Hatty (and Domo) reach up with the hand in front when they turn
   const CHICKEN = hangabout.skin === 'chicken', GRIP = CHICKEN ? {hand: 1} : {} // raised high, his wing is over his back, so he holds the web out front in it
   // The chicken's yellow beak, wing and foot stay red (a bulge in the mask, lit; a glove; a boot), their gold edge a darker
   // red; his blue crest, wattle and tail keep their dark blue as the suit's shade. His lens is a teardrop, pointed at his beak.
@@ -44,9 +44,9 @@
     line.style.opacity = splat.style.opacity = 0
     setTimeout(() => { line.remove(); splat.remove() }, 300)
   }
-  /** His front hand reaching up (art pixel 36, 17 facing right; Hatty's 33, 20; the chicken's wingtip 38, 19), with his feet at (x, y) and him turned rot degrees about them. */
+  /** His front hand reaching up (art pixel 36, 17 facing right; Hatty's 33, 20; Domo's mitt tip 31, 21; the chicken's wingtip 38, 19), with his feet at (x, y) and him turned rot degrees about them. */
   function hand(x, y, dir, rot){
-    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : CHICKEN ? 16 : 14) * 3 * s, hy = (HATTY ? -20 : CHICKEN ? -21 : -23) * 3 * s
+    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : DOMO ? 9 : CHICKEN ? 16 : 14) * 3 * s, hy = (HATTY ? -20 : DOMO ? -19 : CHICKEN ? -21 : -23) * 3 * s
     return [x + hx * Math.cos(a) - hy * Math.sin(a), y + hx * Math.sin(a) + hy * Math.cos(a)]
   }
   /** Longest web he'll swing on from (x, y): his feet clear the floor at the bottom of the arc, and a few swings fit across the screen. */

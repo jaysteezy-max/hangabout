@@ -29,12 +29,13 @@
   // while he thinks, a cheer when it's done, fists up and stomping in a rage when it's blocked, then a slump.
   const IDLE = [[{}, 3000], [{eyes: 'blink'}, 130], [{}, 1600], [{eyes: 'side', look: -1}, 500], [{eyes: 'side', look: 1}, 500], [{}, 1400],
     [{arms: ['cross', 'cross']}, 1800], [{arms: ['cross', 'cross'], eyes: 'blink'}, 130], [{arms: ['cross', 'cross']}, 900], [{}, 1500], [{squash: 1}, 450]]
-  const THINK = [[{arms: ['cross', 'high'], eyes: 'up'}, 900], [{arms: ['cross', 'high'], eyes: 'side', look: -1}, 700], [{arms: ['cross', 'high'], eyes: 'up', squash: 1}, 260], [{arms: ['cross', 'high'], eyes: 'side', look: 1}, 700], [{arms: ['cross', 'high'], eyes: 'blink'}, 130]]
+  const PONDER = {arms: ['high', 'cross']} // his fist up on your left, so it's not the needs-you hand up on your right
+  const THINK = [[{...PONDER, eyes: 'up'}, 900], [{...PONDER, eyes: 'side', look: -1}, 700], [{...PONDER, eyes: 'up', squash: 1}, 260], [{...PONDER, eyes: 'side', look: 1}, 700], [{...PONDER, eyes: 'blink'}, 130]]
   const RAGE = [...[-2, 2, -2, 2, -2, 2].map((tilt, i) => [{arms: ['up', 'up'], eyes: 'angry', tilt, squash: i % 2}, 140]), [{arms: ['up', 'up'], eyes: 'angry', squash: 1}, 900], [{squash: 2, arms: ['down', 'down'], eyes: 'sad'}, 2400], [{squash: 2, arms: ['down', 'down'], eyes: 'blink'}, 300]]
   const STATES = {
     idle: {intro: IDLE, loops: Infinity, rest: IDLE},
     thinking: {intro: THINK, loops: 3, rest: THINK},
-    done: {intro: [[{squash: 2, eyes: 'happy'}, 110], [{dy: -4, stretch: 1, tuck: 1, arms: ['high', 'high'], eyes: 'happy'}, 160], [{dy: -2, arms: ['high', 'high'], eyes: 'happy'}, 120], [{squash: 2, arms: ['high', 'high'], eyes: 'happy'}, 120], [{arms: ['cross', 'cross'], eyes: 'happy'}, 1200]], loops: 1, rest: IDLE},
+    done: {intro: [[{squash: 2, eyes: 'happy'}, 110], [{dy: -4, stretch: 1, tuck: 1, arms: ['high', 'high'], eyes: 'happy'}, 160], [{dy: -2, arms: ['high', 'high'], eyes: 'happy'}, 120], [{squash: 2, arms: ['high', 'high'], eyes: 'happy'}, 120], [{arms: ['high', 'high'], eyes: 'happy'}, 700], [{arms: ['cross', 'cross'], eyes: 'happy'}, 1200]], loops: 1, rest: IDLE},
     blocked: {intro: RAGE, loops: 1, rest: RAGE.slice(-2)},
   }
   const turn = pose => pose.face ? (pose.half ? -1 : -2) : 0 // turned, his face slides toward the side he faces
