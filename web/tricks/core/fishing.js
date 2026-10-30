@@ -25,6 +25,8 @@
   // The slime turns to the water and holds the rod's butt in its goo arm's tip. It has no legs to swing and can't wave
   // while it holds the rod, so it jiggles instead: a squash for each swing of the legs, each wave.
   const SLIME = hangabout.skin === 'slime', GOO = {up: 7, out: 9}
+  const KNIGHT = hangabout.skin === 'knight' // he lays his sword and shield down, turns to his cast, the rod in his front gauntlet
+  const GEAR = KNIGHT ? {sword: 'dropped'} : {} // and they stay on the ledge till he's done
   const BOBBER = [['.r.', 'rrr', 'www', '.w.'], {r: '#E5484D', w: '#F4F1EA'}]
   const CATCH = [
     [['..f..', '.fff.', '.fef.', 'dfff.', '.fff.', '..f..', '.ddd.', 'dd.dd'], {f: '#6EC1E4', d: '#3E8FB8', e: '#1F1410'}], // a fish, hooked by the lip
@@ -47,7 +49,7 @@
       const s = hangabout.size, a = 3 * s
       const side = x - 66 < (here.x0 + here.x1) / 2 ? 1 : -1 // casts toward the middle of the window
       const hands = (rod, free) => side > 0 ? [free, rod] : [rod, free]
-      const sit = (o, f) => ({sink: 12, arms: hands('mid', 'down'), ...PUSHEEN && {face: side, ...!o?.arms && {hand: 6}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, fishing: {rod: 'out', side, ...f}})
+      const sit = (o, f) => ({sink: 12, arms: hands('mid', 'down'), ...PUSHEEN && {face: side, ...!o?.arms && {hand: 6}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, ...KNIGHT && {face: side, hand: 11, sword: 'dropped'}, fishing: {rod: 'out', side, ...f}})
       const cast = () => {
         const [, , tx, ty] = ROD.out
         line = document.createElement('div'); line.className = 'fishline'
@@ -58,7 +60,7 @@
       }
       const reel = () => { line.className = 'fishline reel'; line.append(sprite(pick(CATCH), 'catch', a)); line.style.height = 10 * a + 'px' }
       return [
-        {go: 'hold', T: 140, pose: {sink: 6}},
+        {go: 'hold', T: 140, pose: {sink: 6, ...GEAR}},
         {go: 'hold', T: 380, pose: sit({arms: hands('up', 'down'), eyes: 'up'}, {rod: 'up'})}, // winds up
         {go: 'do', fn: cast},
         {go: 'hold', T: 2000, pose: t => sit({lift: Math.floor(t / 380) % 2 ? [0, 2] : [1, 3], dx: side, lookY: 1, ...(t > 1200 && t < 1320 && {eyes: 'blink'})})},
@@ -71,8 +73,8 @@
         {go: 'hold', T: 900, pose: t => { const k = Math.floor(t / 200) % 2; return sit({dx: side, lookY: 1, arms: hands('mid', k ? 'up' : 'high'), ...CHICKEN && k && {beak: 'open'}, ...SLIME && {squash: k}}) }}, // bye, little one
         {go: 'hold', T: 400, pose: sit()},
         {go: 'do', fn: reelIn},
-        {go: 'hold', T: 140, pose: {sink: 6}},
-        {go: 'hold', T: 200, pose: {}},
+        {go: 'hold', T: 140, pose: {sink: 6, ...GEAR}},
+        {go: 'hold', T: 200, pose: KNIGHT ? {sword: 'poof'} : {}}, // the knight's gear back in his hands
       ]
     },
     end: reelIn, // cut short: no line left hanging
