@@ -16,6 +16,7 @@
     if (hangabout.skin === 'slime') return slimeMane(hair, d, pose)
     if (PROFILE) return profileMane(hair, d, pose)
     if (hangabout.skin === 'hatty') return hattyMane(hair, d, px, pose)
+    if (hangabout.skin === 'domo') return domoMane(hair, d, pose)
     const headTop = Math.min(...px.map(([, y]) => y)), bx = OX + 6, scale = d === 'release' ? .4 : 1
     const put = (x, y, c) => hair.set(x + ',' + y, c)
     for (let x = bx - 1; x <= bx + 24; x++) for (let y = headTop; y < headTop + 2; y++) put(x, y, '#F7CF3A') // the cap
@@ -92,6 +93,20 @@
     }
     for (const [x0, len] of [[16, 3], [21, 4]]) for (let r = 0; r < len; r++) for (let i = 0; i < Math.max(1, 3 - r); i++) put(x0 + i + Math.floor(r / 2), t + r, '#F7CF3A') // bangs
     for (const [x, y] of px) if (y < t) hair.delete(x + ',' + y) // behind his hat
+    return hair
+  }
+  /** Domo's, drawn facing you: a cap over the top of his block and down its corners, five spikes about as wide as his 13-px head, and bangs over his brow that keep clear of both eyes (x 17-18 and 24-25, from 3 rows under his top). */
+  function domoMane(hair, d, pose){
+    const {top: t} = head(pose), scale = d === 'release' ? .4 : 1, put = (x, y, c) => hair.set((pose.face > 0 ? 42 - x : x) + ',' + y, c)
+    for (let x = 14; x <= 28; x++) for (let y = t - 1; y <= t + (x < 16 || x > 26 ? 2 : 0); y++) put(x, y, '#F7CF3A') // the cap
+    for (const [x0b, bw, h0, lean] of [[15, 4, 6, -.55], [18, 5, 9, -.25], [21, 5, 11, 0], [24, 5, 9, .25], [27, 4, 6, .55]]) {
+      const h = Math.max(2, Math.round(h0 * scale))
+      for (let r = 0; r < h; r++) {
+        const w = Math.max(1, Math.round(bw * (1 - r / h))), x0 = Math.round(x0b + lean * r - w / 2)
+        for (let i = 0; i < w; i++) put(x0 + i, t - 2 - r, r >= h - 2 ? '#FFFBD6' : i < w / 2 ? '#FFF39A' : '#F7CF3A')
+      }
+    }
+    for (let r = 0; r < 3; r++) for (let i = 0; i < 3 - r; i++) put(20 + i + Math.floor(r / 2), t + 1 + r, '#F7CF3A') // a forelock between his eyes: looking round, they reach x 16-19 and 23-26
     return hair
   }
   let lastPx = null, lastHair = null

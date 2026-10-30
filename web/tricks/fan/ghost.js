@@ -50,6 +50,8 @@
   // back up a cube. Its outline, glints and cheeks go grey too, a hint of pink left.
   const SLIME = hangabout.skin === 'slime'
   if (SLIME) Object.assign(DEAD, {'#6A9D23': '#4E4E4E', '#DCF9B6': '#C4C4C4', '#EC9291': '#A38E8E'})
+  // Domo is drawn front on, so flipped he'd be doing a headstand: he topples to your left and lies flat, turned 90°.
+  const DOMO = hangabout.skin === 'domo'
   const SHELL = ['..X.X..', '.XXXXX.', 'XXGEGXX', '.XEWEX.', 'XXGEGXX', '.XXXXX.', '..X.X..'] // spiky shell, glowing eye
   const SHELL_INK = {X: '#E4E7EE', G: '#3A3F4D', E: '#6FE3FF', W: '#FFFFFF'}
   const BANG = ['#', '#', '#', '.', '#']
@@ -86,7 +88,7 @@
         : SLIME ? [[{squash: 2, eyes: 'dizzy', ghost: {dead: .4}}, 140], [{puddle: 1, eyes: 'sad', ghost: {dead: .7}}, 120], [{...DOWN, ghost: {dead: .9}}, 80]] : [ // melts
         [{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], // keels over
         [{...DOWN, tilt: -70, ghost: {dead: .7}}, 80],
-        [{...DOWN, tilt: -130, ghost: {dead: .9}}, 80],
+        [{...DOWN, tilt: DOMO ? -90 : -130, ghost: {dead: .9}}, 80],
       ],
       lying({shell: 0}, 450),
       lying({shell: 0}, 90, {...DOWN, lift: [2]}), // a last twitch
@@ -112,6 +114,7 @@
       if (g.hit) px = recolor(px, HURT, 1)
       if (g.flash) px = recolor(px, LIT, 1)
       if (CHICKEN && (g.down || g.roll)) px = rolled(px, g.roll || 90, pose.face)
+      else if (DOMO && g.down) px = px.map(([x, y, c]) => [y - 8, 52 - x, c]) // turned 90° the way he toppled: his squash-2 block (rows 19-39, x 13-29 outlined) lies head left, his left side on the ground and that mitt into it
       else if (g.down && !CAPPY && !SLIME) { const top = Math.min(...px.map(p => p[1])); px = px.map(([x, y, c]) => [x, top + GH - 1 - y, c]) } // on his back, legs in the air
       return px
     },

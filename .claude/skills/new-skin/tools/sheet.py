@@ -19,9 +19,11 @@ for px in r['out']:
         else: print('off grid', x, y, file=sys.stderr)
     cells.append(im)
 for n, rp in enumerate(REFS):
-    ref = Image.open(rp).convert('RGB')
-    k = H / ref.height
-    cells.insert(n, ref.resize((round(ref.width * k), H), Image.LANCZOS)); labels.insert(n, 'reference')
+    src = Image.open(rp).convert('RGBA'); ref = Image.new('RGB', src.size, 'white'); ref.paste(src, mask=src)
+    if ref.height <= 40: # a sprite at pet size: sharp, one of its pixels to one of his, standing on the same ground
+        cell = Image.new('RGB', (ref.width * S, H), 'white'); cell.paste(ref.resize((ref.width * S, ref.height * S), Image.NEAREST), (0, H - ref.height * S))
+    else: cell = ref.resize((round(ref.width * H / ref.height), H), Image.LANCZOS)
+    cells.insert(n, cell); labels.insert(n, 'reference')
 pad = 22; per = int(os.environ.get('PER', '8'))
 rows = [cells[i:i + per] for i in range(0, len(cells), per)]
 cw = max(c.width for c in cells); ch = max(c.height for c in cells) + 18
