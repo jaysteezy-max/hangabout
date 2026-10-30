@@ -6,6 +6,7 @@
   const PROFILE = hangabout.sideOn && head // side on: he turns to aim, the gun at his chin
   const HATTY = hangabout.skin === 'hatty' // the gun in the hand on that side, his cane hand or his hanging free hand
   const CHICKEN = hangabout.skin === 'chicken' // no hands: his wing swung forward holds it, the gun poking out of its tip
+  const CAPPY = hangabout.skin === 'cappy' // no hands: the gun on the paw at his chin, for both shots
   const WING = {blue: 6, orange: 2} // his wing's hand: n for each shot, held up for the orange one; the gun's top row is 19 + n (web/skins/chicken.js)
   document.head.insertAdjacentHTML('beforeend', `<style>
   .portal{position:absolute;border-radius:50%;pointer-events:none;z-index:9;transform:scale(0);transition:transform .22s cubic-bezier(.2,1.4,.4,1)}
@@ -56,7 +57,7 @@
       clearTimeout(closer); live = true
       const turn = PROFILE ? {face: dir} : {} // Clawd aims with the hand on that side; a side-on skin turns to it
       const UP = HATTY ? ['mid', 'mid'] : ['mid', 'up'] // Hatty's other hand stays on his cane
-      const held = tip => CHICKEN ? {...turn, hand: WING[tip]} : turn
+      const held = tip => CHICKEN ? {...turn, hand: WING[tip]} : CAPPY ? {...turn, hand: 2} : turn
       return [
         {go: 'hold', T: 380, pose: {...held('blue'), arms: ['mid', 'mid'], portal: {tip: 'blue', dir}}},
         {go: 'do', fn: () => shoot('blue', dir, ax, y - 39 * s)},
