@@ -1231,7 +1231,7 @@ let hitKey = ''
 /** Tells the app where he and his open bubble are, so only those spots catch the mouse. */
 function reportHits(){
   const {x: fx, y: fy} = feet(), s = size, wall = ai.mode === 'script' ? Math.round(ai.rot / 90) : 0 // on a wall his body lies sideways off his feet
-  const rects = [wall < 0 ? [fx - 66 * s, fy - 54 * s, 66 * s, 108 * s] : wall > 0 ? [fx, fy - 54 * s, 66 * s, 108 * s] : [fx - 54 * s, fy - 66 * s, 108 * s, 66 * s]] // his body, not the headroom above it
+  const rects = [Math.abs(wall) === 2 ? [fx - 54 * s, fy, 108 * s, 66 * s] : wall < 0 ? [fx - 66 * s, fy - 54 * s, 66 * s, 108 * s] : wall > 0 ? [fx, fy - 54 * s, 66 * s, 108 * s] : [fx - 54 * s, fy - 66 * s, 108 * s, 66 * s]] // his body, not the headroom above it (upside down: below his feet)
   if (box.style.visibility === 'visible') { const b = box.getBoundingClientRect(); rects.push([b.x, b.y, b.width, b.height]) }
   const r = rects.map(a => a.map(Math.round)), key = r.join(';')
   if (key !== hitKey) { hitKey = key; webkit.messageHandlers.hangabout.postMessage(r) }

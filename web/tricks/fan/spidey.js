@@ -2,7 +2,9 @@
 // He suits up and swings one to three times without touching down: a web shot to the top, bottom or side of a window
 // above him, a swing on it (a real pendulum: gravity pulls him through the arc, so he always hangs below the web, never
 // over the top of it), a let-go on the upswing, and in mid-air the next web to swing on. After the last swing he flies on
-// and lands on whatever is below. A trip, with the web as a page element.
+// (through the screen's edge and in at the other side, if he gets that far) and lands on whatever is below; or, half the
+// time, zips up his last web and lands in a Spider-Man crouch on the top, side or underside of the window it stuck to.
+// A trip, with the web as a page element.
 {
   const {GW, OY, PH, BODY, TOP, SIDE, EYE, feet, putFeet, surfaces, edges, scr, desk, rand, pick, mix, head} = hangabout
   const G = 2600 // points per second², the pull he falls with everywhere else
@@ -62,13 +64,15 @@
    * Somewhere to stick a web from feet at f: the top, bottom or side of a window well above him, at an angle that makes a
    * good swing, on his dir side if given, letting go with room on screen beyond for more swings. On a ledge, a web too long
    * to clear the floor lifts him straight up; in mid-air one too long reels him in along it, keeping his angle under it.
+   * On a window, it comes with the rot that would stand him on that edge (his body out past a side, or hanging under it);
+   * even: a side or underside as likely as a top, for a web he'll land on the end of.
    */
-  function anchor(f, dir, air, ahead = 0){
+  function anchor(f, dir, air, ahead = 0, even){
     const s = hangabout.size, W = hangabout.width, wins = edges()
     const covered = (x, y) => wins.some(r => x > r.wx + 2 && x < r.wx + r.w - 2 && y > r.y + 2 && y < r.y + r.h - 2) // over another window, maybe behind it
     const spots = wins.flatMap(r => [...Array(8)].flatMap(() => [
-      [rand(r.x0, r.x1), r.y], // the top's visible stretch
-      ...[[rand(r.wx, r.wx + r.w), r.y + r.h], [r.wx, rand(r.y, r.y + r.h)], [r.wx + r.w, rand(r.y, r.y + r.h)]].filter(([x, y]) => !covered(x, y)),
+      [rand(r.x0, r.x1), r.y, 0], // the top's visible stretch
+      ...[[rand(r.wx, r.wx + r.w), r.y + r.h, 180], [r.wx, rand(r.y, r.y + r.h), -90], [r.wx + r.w, rand(r.y, r.y + r.h), 90]].filter(([x, y]) => !covered(x, y)),
     ]))
     const fits = ([x, y]) => {
       const dx = Math.abs(x - f.x), len = Math.hypot(x - f.x, f.y - y), R = reach(f, x, y), at = air ? len : R
@@ -77,6 +81,7 @@
         && (!dir || Math.sign(x - f.x) === dir) && (!air || R > .5 * len) // reeled in no more than that: it speeds him up
     }
     let ok = spots.filter(fits)
+    if (even && ok.length) { const k = pick([...new Set(ok.map(a => a[2]))]); ok = ok.filter(a => a[2] === k) }
     if (!ok.length) ok = [...Array(24)].map(() => [rand(80, W - 80), scr.top]).filter(fits) // no window will do: the top of the screen
     return ok.length ? pick(ok) : null
   }
@@ -84,7 +89,8 @@
   /**
    * Web-slinging, swings times over: aim and shoot from the ledge, up onto the web, swing, let go. While he has swings
    * left, a new web shot from the top of each flight on catches him in mid-air and carries him on into the next swing; then
-   * he flies on and lands.
+   * he flies on and lands. Half the time, if his last web is stuck to a window, he zips up it instead and lands in a crouch
+   * on the window's top, side or underside, then drops, righting himself, onto whatever is below.
    */
   function sling(swings){
     let m // the plan, and how far through it he is
@@ -92,12 +98,13 @@
       go: 'move',
       fn(t, dt){
         if (!m) {
-          const f = feet(), a = anchor(f, Math.sign(hangabout.width / 2 - f.x), false, room(swings - 1)) || anchor(f) // off toward the room for the rest, if he can
+          const stick = Math.random() < .5 // he'll land on the end of his last web
+          const f = feet(), a = anchor(f, Math.sign(hangabout.width / 2 - f.x), false, room(swings - 1), stick && swings === 1) || anchor(f) // off toward the room for the rest, if he can
           if (!a) return true // nothing above him to swing from
           const [ax, ay] = a, dx = f.x - ax, R = reach(f, ax, ay)
           // th: his angle out from straight under the web (positive: his feet to its right). y1: where the web takes his
           // weight, zipping him up off the ledge if it's longer than he'll swing on. let: how far up the far side he lets go.
-          m = {ax, ay, R, r: R, dir: Math.sign(-dx), x0: f.x, y0: f.y, y1: ay + Math.sqrt(R * R - dx * dx), th: Math.asin(dx / R), rot: 0, phase: 'aim', left: swings - 1}
+          m = {ax, ay, to: a[2], R, r: R, dir: Math.sign(-dx), x0: f.x, y0: f.y, y1: ay + Math.sqrt(R * R - dx * dx), th: Math.asin(dx / R), rot: 0, phase: 'aim', left: swings - 1, stick}
           m.upT = 200 + (m.y0 - m.y1) * .4 // a longer zip takes longer
           m.w = m.dir * .8; m.let = Math.abs(m.th) * rand(.5, .8) // w: a push off as he goes, in radians per second
           shoot(ax, ay)
@@ -116,27 +123,48 @@
           }
           m.rot += (-m.th * 180 / Math.PI - m.rot) * (1 - Math.exp(-dt / 60)) // leans in line with the web (catching up after a mid-air catch)
           putFeet(m.ax + m.r * Math.sin(m.th), m.ay + m.r * Math.cos(m.th), m.rot)
-          if (m.dir * m.th >= m.let || m.dir * m.w <= 0) { // lets go on the way up (or at the top, if he never got that far) and flies on
+          if (m.stick && !m.left && m.to != null && (m.dir * m.th >= m.let || m.dir * m.w <= 0)) { // his last web, on a window: up it to land there
+            m.zip = {x: m.ax + m.r * Math.sin(m.th), y: m.ay + m.r * Math.cos(m.th), at: t, T: 150 + m.r * .5}
+            m.to *= Math.abs(m.to) === 180 ? m.dir : 1; m.phase = 'zip' // onto an underside: a flip forward
+          } else if (m.dir * m.th >= m.let || m.dir * m.w <= 0) { // lets go on the way up (or at the top, if he never got that far) and flies on
             m.vx = m.r * m.w * Math.cos(m.th); m.vy = -m.r * m.w * Math.sin(m.th); m.phase = 'fly'; cut()
           }
+        } else if (m.phase === 'zip') { // reeling himself in, turning to land feet first
+          const z = m.zip, p = Math.min(1, (t - z.at) / z.T), e = p * p * (3 - 2 * p)
+          m.rot += (m.to - m.rot) * (1 - Math.exp(-dt / 100))
+          putFeet(z.x + (m.ax - z.x) * e, z.y + (m.ay - z.y) * e, m.rot)
+          if (p >= 1) { cut(); m.phase = 'cling'; m.landAt = t }
         } else if (m.phase === 'fly' || m.phase === 'catch') {
           const f = feet(), W = hangabout.width
           m.vy += G * dt / 1000
           let x = f.x + m.vx * dt / 1000, y = f.y + m.vy * dt / 1000
-          if (x < 66 || x > W - 66) { x = Math.max(66, Math.min(W - 66, x)); m.vx = 0; m.left = 0 } // the screen's edge: straight down from there
+          if (x < 0 || x > W) { // out through the screen's edge and in at the other, flying on to land
+            x += x < 0 ? W : -W; m.left = 0
+            if (m.phase === 'catch') { cut(); m.phase = 'fly' } // the web he'd shot would stretch across the screen
+          }
           m.rot *= Math.exp(-dt / 90) // rights himself
           if (m.phase === 'fly' && m.left && m.vy > -60 && Math.abs(m.vx) > 60) { // from the top of his flight on: the next web, aimed where he'll be when it sticks
-            const dir = Math.sign(m.vx), at = {x: x + m.vx * .12, y: y + m.vy * .12 + G * .0072}, a = anchor(at, dir, true, room(m.left - 1)) || anchor(at, dir, true)
-            if (a) { [m.ax, m.ay] = a; m.dir = dir; m.phase = 'catch'; m.at = t; m.left--; shoot(...a) }
+            const dir = Math.sign(m.vx), at = {x: x + m.vx * .12, y: y + m.vy * .12 + G * .0072}, a = anchor(at, dir, true, room(m.left - 1), m.stick && m.left === 1) || anchor(at, dir, true)
+            if (a) { [m.ax, m.ay, m.to] = a; m.dir = dir; m.phase = 'catch'; m.at = t; m.left--; shoot(...a) }
           }
           if (m.phase === 'catch' && t - m.at >= 120) { // the web goes taut: his speed along the arc carries him on; the rest the web takes
             m.r = Math.hypot(x - m.ax, y - m.ay); m.R = Math.min(m.r, reach({x, y}, m.ax, m.ay)); m.th = Math.atan2(x - m.ax, y - m.ay)
             m.w = (m.vx * Math.cos(m.th) - m.vy * Math.sin(m.th)) / m.r; m.let = Math.abs(m.th) * rand(.5, .8); m.phase = 'swing'
           }
-          const on = m.vy > 0 && m.phase !== 'swing' && surfaces().filter(o => x >= o.x0 + 66 && x <= o.x1 + 66 && o.y + PH >= f.y && o.y + PH <= y).sort((a, b) => a.y - b.y)[0]
-          if (on) { y = on.y + PH; m.rot = 0; m.phase = 'land'; m.landAt = t; cut() }
+          const lx = Math.max(66, Math.min(W - 66, x)) // just through the edge, he lands where the floor's ledge ends
+          const on = m.vy > 0 && m.phase !== 'swing' && surfaces().filter(o => lx >= o.x0 + 66 && lx <= o.x1 + 66 && o.y + PH >= f.y && o.y + PH <= y).sort((a, b) => a.y - b.y)[0]
+          if (on) { y = on.y + PH; m.lx = lx; m.rot = 0; m.phase = 'land'; m.landAt = t; cut() }
           putFeet(x, y, m.rot)
-        } else if (m.phase === 'land' && t - m.landAt > 220) return true
+        } else if (m.phase === 'cling') { // a Spider-Man crouch on the window, settling flat against it
+          const f = feet()
+          m.rot += (m.to - m.rot) * (1 - Math.exp(-dt / 50))
+          putFeet(f.x, f.y, m.rot)
+          if (t - m.landAt > 1100) { m.vx = m.vy = 0; m.stick = false; m.phase = 'fly' } // lets go and drops; on a top, he lands again where he is
+        } else if (m.phase === 'land') { // skids in clear of the screen's edge
+          const f = feet()
+          putFeet(f.x + (m.lx - f.x) * (1 - Math.exp(-dt / 50)), f.y)
+          if (t - m.landAt > 220) return true
+        }
         if (web && m.phase !== 'fly' && m.phase !== 'land') {
           const f = feet(), shot = m.phase === 'aim' ? (t - 120) / 140 : m.phase === 'catch' ? (t - m.at) / 120 : 1
           strand(...hand(f.x, f.y, m.dir, m.rot, this.pose()), m.ax, m.ay, Math.max(0, Math.min(1, shot)))
@@ -146,9 +174,10 @@
         if (!m) return {spidey: 1}
         const on = {face: m.dir, lookX: 1, spidey: 1}
         if (m.phase === 'aim') return {...on, ...GRIP, squash: 1, arms: UP('high'), eyes: 'up'}
-        if (m.phase === 'up' || m.phase === 'catch') return {...on, ...GRIP, stretch: 1, arms: UP('high')}
+        if (m.phase === 'up' || m.phase === 'catch' || m.phase === 'zip') return {...on, ...GRIP, stretch: 1, arms: UP('high')}
         if (m.phase === 'swing') return {...on, ...GRIP, arms: UP('high'), tuck: Math.abs(m.th) < .35 ? 1 : 0} // legs up through the bottom of the arc
         if (m.phase === 'fly') return {...on, stretch: 1, arms: UP('up')}
+        if (m.phase === 'cling') return {...on, face: Math.abs(m.to) > 90 ? -m.dir : m.dir, squash: 2, arms: HATTY || DOMO ? ['high', 'down'] : ['down', 'high']} // one hand down, one up; upside down, still facing the way he flew
         return {...on, squash: 2}
       },
     }
