@@ -46,7 +46,7 @@ git clone https://github.com/jaysteezy-max/hangabout.git && cd hangabout && ./in
 3. **Check it works:** start a new Claude Code session and send a prompt. Pusheen looks about while a star spins above
    her, and her status bubble says what Claude is doing.
 
-Run `./install.sh` again any time to update.
+To get the latest changes later, see [Update](#update).
 
 <details>
 <summary>Exactly what changes in settings.json</summary>
@@ -110,6 +110,43 @@ the new one as above:
 /plugin uninstall hookpet@hookpet
 /plugin marketplace remove hookpet
 ```
+
+</details>
+
+## Update
+
+New skins, tricks and fixes land on GitHub. To update, pull them into the folder you cloned and run the installer
+again. It quits the running pet, rebuilds her and starts her again. Your size, behavior, skin and found secrets stay
+as they were, and so do your hooks.
+
+```bash
+cd hangabout && git pull && ./install.sh
+```
+
+Use your clone's path if it isn't `hangabout` in the current folder.
+
+<details>
+<summary>On Windows</summary>
+
+```powershell
+cd hangabout; git pull; powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+</details>
+
+<details>
+<summary>With the plugin</summary>
+
+Update it in a Claude Code session: run `/plugin`, open **Marketplaces**, select **hangabout** and choose **Update
+marketplace**. Or, from your shell:
+
+```bash
+claude plugin marketplace update hangabout && claude plugin update hangabout@hangabout
+```
+
+Then right-click the pet → **Quit Hangabout** and start a new Claude Code session: it builds the new version (a few
+seconds) and starts her. To get updates without asking, turn on **Enable auto-update** for hangabout on the same
+**Marketplaces** tab; each update then arrives within a session or two.
 
 </details>
 
