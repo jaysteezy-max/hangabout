@@ -50,8 +50,9 @@
   // back up a cube. Its outline, glints and cheeks go grey too, a hint of pink left.
   const SLIME = hangabout.skin === 'slime'
   if (SLIME) Object.assign(DEAD, {'#6A9D23': '#4E4E4E', '#DCF9B6': '#C4C4C4', '#EC9291': '#A38E8E'})
-  // Hatty is drawn front on, so flipped he'd be doing a headstand: he topples to your left, his hat knocked off, and lies
-  // flat, turned 90°, his hat sat on the ground by his head.
+  // Domo and Hatty are drawn front on, so flipped they'd be doing a headstand: each topples to your left and lies flat,
+  // turned 90°; Hatty's hat is knocked off and sits on the ground by his head.
+  const DOMO = hangabout.skin === 'domo'
   const HATTY = hangabout.skin === 'hatty'
   const SHELL = ['..X.X..', '.XXXXX.', 'XXGEGXX', '.XEWEX.', 'XXGEGXX', '.XXXXX.', '..X.X..'] // spiky shell, glowing eye
   const SHELL_INK = {X: '#E4E7EE', G: '#3A3F4D', E: '#6FE3FF', W: '#FFFFFF'}
@@ -91,7 +92,7 @@
         : [
         [{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], // keels over
         [{...DOWN, tilt: -70, ghost: {dead: .7}}, 80],
-        [{...DOWN, tilt: -130, ghost: {dead: .9}}, 80],
+        [{...DOWN, tilt: DOMO ? -90 : -130, ghost: {dead: .9}}, 80],
       ],
       lying({shell: 0}, 450),
       lying({shell: 0}, 90, {...DOWN, lift: [2]}), // a last twitch
@@ -117,6 +118,7 @@
       if (g.hit) px = recolor(px, HURT, 1)
       if (g.flash) px = recolor(px, LIT, 1)
       if (CHICKEN && (g.down || g.roll)) px = rolled(px, g.roll || 90, pose.face)
+      else if (DOMO && g.down) px = px.map(([x, y, c]) => [y - 8, 52 - x, c]) // turned 90° the way he toppled: his squash-2 block (rows 19-39, x 13-29 outlined) lies head left, his left side on the ground and that mitt into it
       else if (HATTY && g.down) { // DOWN lifts his hat clean off (rows 0-11) over his head (from row 20): it sits on the ground on your left, its brim as wide as on his head, and he's turned 90° the way he toppled, head by it and his hanging hand (x 11) on the ground
         px = [...px.map(([x, y, c]) => y < 20 ? [x - 13, y + 28, c] : [y - 4, 50 - x, c]), ...Array.from({length: 16}, (_, x) => [x, GH - 1, '#000000'])]
       }

@@ -147,6 +147,12 @@ height `hand` gives (Clawd's measure), longer as it reaches; props go at its tip
 and `puddle` (1 a sagging mound, 2 a puddle, as it melts). Its own tricks (split, super bounce, sticky, melt) are in
 `web/tricks/fan/slime.js` and load only for it; each costume and prop has a slime layout (`SLIME` in its file).
 
+Domo is a block drawn front on like Clawd; turned (`face`), his face slides toward the way he faces and the side of
+his block shows, and turned right he's mirrored (`mirror`, like Hatty). His stubby arms work like Clawd's, by screen
+side, except `'cross'`, which puts his hands on his hips (his arms are too short to fold); `hand` and `reach` hold out
+the one in front. His mouth is always wide open, so his feelings are in his 2 x 2 eyes and his arms. Costumes find his
+face with `head()`. He brings his own walk (a stiff waddle) and his own idle, thinking, done and blocked poses.
+
 ## The art grid
 
 He's drawn on a 44 × 40 grid of art pixels, each shown as 3 × 3 screen points at normal size (more or less with the
