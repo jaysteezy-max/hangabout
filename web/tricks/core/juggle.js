@@ -1,25 +1,30 @@
 // Juggling three balls. The frames carry a `juggle` value (how far round the pattern the balls are, 0..1);
 // the front hook draws the balls from it. His left hand tosses as his right passes one back, so the arms alternate.
 {
-  const {OX, OY} = hangabout
+  const {OX, OY, head, facing} = hangabout
   const LEFT = OX + 4, RIGHT = OX + 31 // just above each raised hand
   const CHICKEN = hangabout.skin === 'chicken' // his head is in the way: the low pass back goes behind it, the high arc over his crest
+  const CAPPY = hangabout.skin === 'cappy' // no arms: a one-paw shower in front of his face, tossed up from his raised paw to a little above his ears
   const KNIGHT = hangabout.skin === 'knight' // so is the knight's tall helmet: every pass goes behind him, the high arc right over it, and on his white and blue the balls want an outline
   /** The balls whose pass (high: the arc over, else the quick low one back) is drawn now. */
   function balls(ctx, d, pose, pass){
-    const {C} = hangabout, dy = pose.dy || 0
+    const {C} = hangabout, dy = pose.dy || 0, h = CAPPY && head(pose)
     ;[C.peri, C.ok, '#FFD84D'].forEach((color, i) => {
       // A shower: each ball spends two thirds of the loop on a high arc from his left hand to his right, then a quick low pass back.
+      // Cappy's, as drawn facing left: from just over his paw's toes up and out in front of his snout, then low back to his paw.
+      // Its base sits on his raised paw's toes (PAW 3 in cappy.js: x 8 and 9, on row 28 under their outline).
       const f = (d + i / 3) % 1, high = f < 2 / 3, u = high ? f * 1.5 : (f - 2 / 3) * 3
       if (!pass(high)) return
-      const x0 = high ? LEFT : RIGHT, x1 = high ? RIGHT : LEFT, h = high ? (KNIGHT ? 21 : CHICKEN ? 15 : 13) : 2, n = KNIGHT ? 3 : 2
-      const bx = Math.round(x0 + (x1 - x0) * u), by = Math.round(OY + 2 + dy - h * 4 * u * (1 - u))
+      const [a, b] = CAPPY ? [h.nose - 4, h.nose - 13] : [LEFT, RIGHT], n = KNIGHT ? 3 : 2
+      const x0 = high ? a : b, x1 = high ? b : a, base = CAPPY ? 25 + dy : OY + 2 + dy, rise = high ? (KNIGHT ? 21 : CHICKEN ? 15 : CAPPY ? 8 : 13) : 2
+      const bx = Math.round(x0 + (x1 - x0) * u), by = Math.round(base - rise * 4 * u * (1 - u))
       if (KNIGHT) { ctx.fillStyle = '#000000'; ctx.fillRect(bx - 1, by, n + 2, n); ctx.fillRect(bx, by - 1, n, n + 2) } // outlined, to read on his white and blue
       ctx.fillStyle = color
       ctx.fillRect(bx, by, n, n)
     })
   }
-  const loop = [...Array(12)].map((_, i) => [{eyes: 'up', arms: i % 4 < 2 ? ['up', 'mid'] : ['mid', 'up'], juggle: i / 12}, 80])
+  // Cappy's paw flicks up in front of his face as each ball leaves it, and drops to his chin between.
+  const loop = [...Array(12)].map((_, i) => [{eyes: 'up', arms: CAPPY ? (i % 4 < 2 ? ['high', 'high'] : ['up', 'up']) : i % 4 < 2 ? ['up', 'mid'] : ['mid', 'up'], juggle: i / 12}, 80])
 
   hangabout.trick({
     name: 'juggle', label: 'Juggle ●', rarity: 'rare',
@@ -29,7 +34,7 @@
       [{arms: ['up', 'up'], eyes: 'happy'}, 450], // caught them all
       [{}, 200],
     ],
-    front({ctx, d, pose}){ if (!KNIGHT) balls(ctx, d, pose, high => high || !CHICKEN) },
+    front({ctx, d, pose}){ if (CAPPY) facing(ctx, pose, () => balls(ctx, d, pose, () => true)); else if (!KNIGHT) balls(ctx, d, pose, high => high || !CHICKEN) },
     behind({ctx, d, pose}){ if (CHICKEN || KNIGHT) balls(ctx, d, pose, high => KNIGHT || !high) },
   })
 }

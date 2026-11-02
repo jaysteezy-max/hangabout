@@ -5,6 +5,7 @@
 {
   const {GW, OY, desk, paint, thickLine, pick} = hangabout
   const PUSHEEN = hangabout.skin === 'pusheen' // side on, she turns to the water and holds the rod's butt in her paw
+  const CAPPY = hangabout.skin === 'cappy' // side on too: he turns to the water, lower on the ledge, the rod's butt on the toes of his paw, and kept there through the beauty and the goodbye (no wave: his one paw holds the rod)
   document.head.insertAdjacentHTML('beforeend', `<style>
   .fishline{position:absolute;z-index:9;width:var(--a);height:0;pointer-events:none;transition:height .45s ease-in;background:linear-gradient(90deg,transparent 33%,var(--line) 33% 67%,transparent 67%)}
   .fishline canvas{position:absolute;image-rendering:pixelated}
@@ -49,7 +50,7 @@
       const s = hangabout.size, a = 3 * s
       const side = x - 66 < (here.x0 + here.x1) / 2 ? 1 : -1 // casts toward the middle of the window
       const hands = (rod, free) => side > 0 ? [free, rod] : [rod, free]
-      const sit = (o, f) => ({sink: 12, arms: hands('mid', 'down'), ...PUSHEEN && {face: side, ...!o?.arms && {hand: 6}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, ...KNIGHT && {face: side, hand: 11, sword: 'dropped'}, fishing: {rod: 'out', side, ...f}})
+      const sit = (o, f) => ({sink: CAPPY ? 6 : 12, arms: hands('mid', 'down'), ...(PUSHEEN || CAPPY) && {face: side, ...(!o?.arms || CAPPY && !f) && {hand: 6, ...CAPPY && {reach: 3}}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, ...KNIGHT && {face: side, hand: 11, sword: 'dropped'}, fishing: {rod: 'out', side, ...f}})
       const cast = () => {
         const [, , tx, ty] = ROD.out
         line = document.createElement('div'); line.className = 'fishline'
@@ -80,7 +81,8 @@
     end: reelIn, // cut short: no line left hanging
     front({ctx, d, now, px, pose}){
       const m = x => d.side > 0 ? x : GW - 1 - x, at = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(d.side > 0 ? x : GW - x - w, yy, w, h) }
-      const [x0, y0, x1, y1] = ROD[d.rod], [rx, ry] = CHICKEN ? [38, 27] : [36, 32]
+      const [ox, oy] = CAPPY ? d.rod === 'up' ? [-5, 3] : [-1, 2] : [0, 0] // his paw's toes, low and out or at his chin
+      const [x0, y0, x1, y1] = ROD[d.rod].map((v, i) => v + (i % 2 ? oy : ox)), [rx, ry] = CHICKEN ? [38, 27] : [36 + ox, 32 + oy]
       thickLine(ctx, m(x0), y0, m(x1), y1, 1, '#8A5A33')
       if (d.rod === 'out') { at(rx, ry, 2, 2, '#B9BDC6'); at(rx + 2, d.reel && Math.floor(now / 110) % 2 ? ry + 2 : ry, 1, 1, '#6B7078') } // the reel, its handle spinning as he winds
       if (CHICKEN) { // his wing over the grip

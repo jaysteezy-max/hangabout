@@ -22,6 +22,13 @@ with tempfile.TemporaryDirectory() as d:
     assert run('remove', path, hook) == 0
     assert json.load(open(path)) == theirs, json.load(open(path))
 
+    win = 'C:\\Users\\some one\\.hangabout\\hangabout-hook.exe'  # Windows: exec form, so no shell and no quoting
+    json.dump(theirs, open(path, 'w'))
+    assert run('add', path, win) == 0 and run('add', path, win) == 0 and run('check', path, win) == 0
+    s = json.load(open(path))
+    assert s['hooks']['Stop'][1]['hooks'][0] == {'type': 'command', 'command': 'C:/Users/some one/.hangabout/hangabout-hook.exe', 'args': [], 'timeout': 10}, s
+    assert run('remove', path, win) == 0 and json.load(open(path)) == theirs, json.load(open(path))
+
     open(path, 'w').write('{"theme": "dark",')  # broken JSON: refused, left alone
     assert run('add', path, hook) != 0 and open(path).read() == '{"theme": "dark",'
 

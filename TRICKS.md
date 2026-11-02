@@ -121,8 +121,8 @@ comes next. Keep tricks short, a few seconds at most; there's always next time.
 **Skins.** Tricks play on whichever pet is on screen: Cappy, the default, the Clawd skin, or any other in
 [Skins](#skins) (right-click → Skin, or the mockup's **Skin** picker). Cappy is a capybara drawn side on, facing the way
 he last went. He has no arms:
-`arms` `'up'` lifts his front paw in a wave, `'high'` lifts it higher, `hand` and `reach` push it forward, and `'cross'`
-does nothing. `face` turns him left or right, and his one eye takes the same `eyes` and `look` values as Clawd's.
+`arms` `'up'` (or a `hand` of 4 or less) raises his front paw to his chin, `'high'` raises it in front of his face, any
+other `hand` or a `reach` puts it out low in front of his chest (a `reach` further), and `'cross'` does nothing. `face` turns him left or right, and his one eye takes the same `eyes` and `look` values as Clawd's.
 Everything else above works the same on both.
 
 Clay, a little clay guy, faces you and leans the way he's going (turned right he's mirrored, like Hatty). His arms
@@ -147,6 +147,12 @@ height `hand` gives (Clawd's measure), longer as it reaches; props go at its tip
 and `puddle` (1 a sagging mound, 2 a puddle, as it melts). Its own tricks (split, super bounce, sticky, melt) are in
 `web/tricks/fan/slime.js` and load only for it; each costume and prop has a slime layout (`SLIME` in its file).
 
+Domo is a block drawn front on like Clawd; turned (`face`), his face slides toward the way he faces and the side of
+his block shows, and turned right he's mirrored (`mirror`, like Hatty). His stubby arms work like Clawd's, by screen
+side, except `'cross'`, which puts his hands on his hips (his arms are too short to fold); `hand` and `reach` hold out
+the one in front. His mouth is always wide open, so his feelings are in his 2 x 2 eyes and his arms. Costumes find his
+face with `head()`. He brings his own walk (a stiff waddle) and his own idle, thinking, done and blocked poses.
+
 ## The art grid
 
 He's drawn on a 44 × 40 grid of art pixels, each shown as 3 × 3 screen points at normal size (more or less with the
@@ -168,7 +174,7 @@ x:  0    4   6  10  14       28  33 34  37   43
 | Name | Value | Meaning |
 | --- | --- | --- |
 | `GW`, `GH` | 44, 40 | The grid size. |
-| `OX`, `OY` | 4, 20 | Clawd's offset in the grid: his front-facing body spans x `OX + 6` to `OX + 29`, y `OY` to `OY + 15`. Cappy fills about the same box side on, x 9 to 34, with his eye on y 24 and his feet on y 38. |
+| `OX`, `OY` | 4, 20 | Clawd's offset in the grid: his front-facing body spans x `OX + 6` to `OX + 29`, y `OY` to `OY + 15`. Cappy fills about the same box side on, x 11 to 32, with his eye on y 26 and his feet on y 38. |
 | `LIFT` | 12 | `OY - 8`. Add it to a y you worked out as if he had only 8 rows of headroom above him. |
 | `BODY`, `TOP`, `SIDE`, `EYE` | hex colors | The skin's colors: its body, the lit top, the shaded side, the eyes. Cappy's brown or Clawd's terracotta, so read them from here; never hard-code them. |
 | `skin` | `'cappy'`, `'clawd'`, … | The key of the skin that's on (see [Skins](#skins)), for a trick that needs to draw differently on each. The page reloads when it changes. |
@@ -214,7 +220,7 @@ Helpers:
 | `recolor(px, {from: to}, t)` | His pixels with some colors moved toward others by `t` (0 to 1). |
 | `mix(a, b, t)` | One color moved toward another by `t`. |
 | `rand(a, b)`, `pick(list)` | A random number in a range; a random item. |
-| `head(pose)` | Where his face is in this pose. A side-on skin's is as drawn facing left: `{x, y}` is his eye (Cappy's left pixel, at x 20), `top` the top of his head between his ears, `nose` the front of his snout (x 10 on Cappy), and, if his face ends above his feet, `chin` the row below it (the chicken's; Spider-Man's suit is blue all the way across below it). Hatty's is as drawn facing you: `{x, y}` is the top-left pixel of his eye on your left, `top` the top of his head, just under his hat (the 11 rows above it). They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
+| `head(pose)` | Where his face is in this pose. A side-on skin's is as drawn facing left: `{x, y}` is his eye (Cappy's left pixel, at x 20), `top` the top of his head between his ears, `nose` the front of his snout (x 12 on Cappy), and, if his face ends above his feet, `chin` the row below it (the chicken's; Spider-Man's suit is blue all the way across below it). Hatty's is as drawn facing you: `{x, y}` is the top-left pixel of his eye on your left, `top` the top of his head, just under his hat (the 11 rows above it). They move with `dy`, `squash` and `stretch`. It's the skin's own `head` (see [Skins](#skins)), so it's `undefined` on Clawd. |
 | `sideOn` | Whether the skin is drawn side on (Cappy, Pusheen, the chicken). |
 | `facing(ctx, pose, draw)` | Runs `draw()` with the canvas mirrored while a side-on skin, or one with a `mirror` like Hatty, faces right (and slid by `ox`), so a costume drawn once on him facing left (Hatty: facing you) turns with him. On Clawd it changes nothing. |
 

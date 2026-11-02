@@ -8,7 +8,9 @@
   const rump = (px, pose) => Math.max(...px.map(([x]) => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0))) - 1 // his last column, as drawn facing left
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out at you: the Brand on the back of her neck, clear of her whiskers
   const HATTY = hangabout.skin === 'hatty' // his hat stays on: the cloak off his shoulders, the sword in his cane hand
+  const DOMO = hangabout.skin === 'domo' // front on like Hatty: the cloak off his shoulders, the Brand on his brow, the sword in his mitt
   const CHICKEN = hangabout.skin === 'chicken' // the sword in his wing: up in front of him, planted in the ground, then over his head from his raised wing
+  const CAPPY = hangabout.skin === 'cappy' // no arms: the sword in his paw raised before his face, stood up, then laid back over his head
   const SLIME = hangabout.skin === 'slime' // the sword in its goo arm, the chicken's way, then across its top from a nub raised at its front corner
   const CLAY = hangabout.skin === 'clay' // no face and no head(): SKINS.clay.at(pose) finds his head and mitts; the sword in his right-hand mitt as you look
   const IRON = '#4A4C56', EDGE = '#9496A2', DARK = '#2F3038', CLOAK = '#1C1A21', LEATHER = '#5A3A22', STEELGUARD = '#6E6F78'
@@ -26,7 +28,8 @@
       [{squash: 1, eyes: 'angry', arms: ['mid', 'down'], guts: {cape: 1, low: 1, brand: 1}}, 300],
       [{eyes: 'angry', guts: {cape: 1, shoulder: 1, brand: 1, aura: 1}}, 1500], // rests it on his shoulder
       [{guts: {cape: .5, shoulder: .5}}, 160], [{guts: {cape: .25, shoulder: .25}}, 160], [{}, 200],
-    ].map(([p, ms]) => [CLAY && p.guts?.shoulder ? {...p, armR: [45, 180]} : !(CHICKEN || SLIME) || !p.guts ? p : p.guts.shoulder ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: SLIME ? 3 : 4} : p.guts.sword ? {...p, hand: SLIME ? 7 : 10} : p, ms]), // the chicken's wing (the slime's goo) on its grip; Clay's mitt up at his shoulder
+    ].map(([p, ms]) => [CLAY && p.guts?.shoulder ? {...p, armR: [45, 180]} : CAPPY && p.guts ? p.guts.shoulder || p.guts.sword ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: 6} : p : // Clay's mitt up at his shoulder; Cappy's paw on its grip
+      !(CHICKEN || SLIME) || !p.guts ? p : p.guts.shoulder ? {...p, arms: ['mid', 'high']} : p.guts.low ? {...p, hand: SLIME ? 3 : 4} : p.guts.sword ? {...p, hand: SLIME ? 7 : 10} : p, ms]), // the chicken's wing (the slime's goo) on its grip
     /** Behind him: the dark aura, the cloak's flaps, and the sword when it's upright or on his shoulder. */
     behind({ctx, d: g, px, now, pose}){
       if (g.aura) { // dark red aura flickering at his edges
@@ -58,23 +61,26 @@
       })
       else if (g.cape) facing(ctx, pose, () => { // the cloak's flaps behind his arms (side on: off his rump; Hatty: off his shoulders), fluttering at the hem
         ctx.globalAlpha = g.cape
-        const top = PROFILE ? head(pose).top + 5 : HATTY ? head(pose).y + 5 : OY + 1
-        for (const x0 of PROFILE ? [rump(px, pose) + 1] : HATTY ? [10, 29] : [OX + 2, OX + 30]) for (let x = x0; x < x0 + 4; x++) {
+        const top = PROFILE ? head(pose).top + 5 : HATTY || DOMO ? head(pose).y + 5 : OY + 1
+        for (const x0 of PROFILE ? [rump(px, pose) + 1] : HATTY ? [10, 29] : DOMO ? [9, 30] : [OX + 2, OX + 30]) for (let x = x0; x < x0 + 4; x++) {
           ctx.fillStyle = x === x0 || x === x0 + 3 ? '#2E2A36' : CLOAK
-          ctx.fillRect(x, top + (PROFILE ? x - x0 >> 1 : 0), 1, (PROFILE ? 10 : HATTY ? 8 : 15) + Math.round(1.5 + 1.5 * Math.sin(x * 1.7 + now / 110)))
+          ctx.fillRect(x, top + (PROFILE ? x - x0 >> 1 : 0), 1, (PROFILE ? 10 : HATTY ? 8 : DOMO ? 11 : 15) + Math.round(1.5 + 1.5 * Math.sin(x * 1.7 + now / 110)))
         }
         ctx.globalAlpha = 1
       })
       facing(ctx, pose, () => { // the sword stays behind him whichever way he faces side on
         if (HATTY) ctx.translate(-6, head(pose).y - 22) // its grip in his cane hand
+        if (DOMO) ctx.translate(-7, head(pose).y - 18) // its grip in his mitt
         if (CHICKEN) ctx.translate(-32, pose.dy || 0) // its grip in his wing, out in front of him (behind him, so his wing closes over it)
         if (SLIME) { const h = head(pose); ctx.translate(h.nose - 42, h.y - 27) } // the same in the slime's goo-arm tip, which squashes with it
         if (CLAY) { const [x, y] = SKINS.clay.at(pose).hands[1]; ctx.translate(x - 38, y - 29) } // its grip in Clay's mitt (his mitt closes over it)
         if (g.low && (CHICKEN || SLIME)) { ctx.translate(0, 54); ctx.scale(1, -1) } // the chicken's after the swing: the same sword upside down, planted point first in front of him
+        if (CAPPY) ctx.translate(0, (pose.dy || 0) - (pose.stretch || 0)) // with his raised paw, which keeps to his chin (web/skins/cappy.js)
+        if (g.sword && CAPPY) ctx.translate(-29, -1) // its grip in the toes of his raised paw, the guard on them, the blade before his face
         if (g.sword || (g.low && (CHICKEN || SLIME))) { // drawn up from behind his back: longer than he is tall
-          const cut = Math.round((1 - (g.sword || 1)) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } }
-          row(0, 38, 1, EDGE); row(1, 37, 3, IRON)
-          for (let y = 2; y <= 26; y++) { row(y, 36, 1, EDGE); row(y, 37, 3, IRON); row(y, 40, 1, DARK) }
+          const tip = CAPPY ? 1 : 0, cut = Math.round((1 - (g.sword || 1)) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } } // Cappy's held higher: a shorter blade, its point on the grid
+          row(tip, 38, 1, EDGE); row(tip + 1, 37, 3, IRON)
+          for (let y = tip + 2; y <= 26; y++) { row(y, 36, 1, EDGE); row(y, 37, 3, IRON); row(y, 40, 1, DARK) }
           row(27, 33, 10, STEELGUARD)
           for (let y = 28; y <= 32; y++) row(y, 37, 3, LEATHER) // the grip, in his hand
           row(33, 37, 3, STEELGUARD)
@@ -84,6 +90,11 @@
           thickLine(ctx, 57, 11, 33, -1, 1, EDGE, g.shoulder)
           thickLine(ctx, 55, 15, 59, 7, 2, STEELGUARD, g.shoulder)
           thickLine(ctx, 59, 13, 65, 16, 3, LEATHER, g.shoulder)
+        } else if (g.shoulder && CAPPY) { // its grip still in his raised paw, the blade laid back over his head, behind his ears
+          thickLine(ctx, 11, 26, 38, 3, 5, IRON, g.shoulder)
+          thickLine(ctx, 12, 24, 39, 1, 1, EDGE, g.shoulder)
+          thickLine(ctx, 8, 23, 14, 29, 2, STEELGUARD, g.shoulder)
+          thickLine(ctx, 9, 28, 5, 31, 3, LEATHER, g.shoulder)
         } else if (g.shoulder && SLIME) { // its grip in its nub raised at its front corner (the canvas moved back for it), the blade back across its top
           thickLine(ctx, 42, 17, 74, 13, 5, IRON, g.shoulder)
           thickLine(ctx, 42, 15, 74, 11, 1, EDGE, g.shoulder)
@@ -112,8 +123,8 @@
           for (const [x, y] of px) if (!ridge.has(x) || y < ridge.get(x)) ridge.set(x, y)
           for (let i = 25 + n, end = rump(px, pose) + 1; i <= end; i++) { const x = pose.face > 0 ? GW - 1 - i : i, y = ridge.get(x); ctx.fillStyle = CLOAK; ctx.fillRect(x, y, 1, 4); ctx.fillStyle = '#3A3442'; ctx.fillRect(x, y + 4, 1, 1) }
           if (CHICKEN) { ctx.globalAlpha = 1; for (const [x, y, c] of px) if (c === '#FFF050' || c === '#B8960F') { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) } } // his wing raised over it (his beak's the same yellow: no change)
-        } else if (HATTY) facing(ctx, pose, () => { // the mantle over his shoulders, open at his collar
-          for (const [x0, x1] of [[12, 17], [24, 30]]) { ctx.fillStyle = CLOAK; ctx.fillRect(x0, h.y + 6, x1 - x0 + 1, 2); ctx.fillStyle = '#3A3442'; ctx.fillRect(x0, h.y + 8, x1 - x0 + 1, 1) }
+        } else if (HATTY || DOMO) facing(ctx, pose, () => { // the mantle over his shoulders, open at his collar (Domo: either side of his mouth)
+          for (const [x0, x1] of DOMO ? [[12, 16], [26, 30]] : [[12, 17], [24, 30]]) { const y = h.y + (DOMO ? 5 : 6); ctx.fillStyle = CLOAK; ctx.fillRect(x0, y, x1 - x0 + 1, 2); ctx.fillStyle = '#3A3442'; ctx.fillRect(x0, y + 2, x1 - x0 + 1, 1) }
         })
         else if (CLAY) facing(ctx, pose, () => { // the mantle over his round shoulders, open in a V at his collar
           for (const [j, a, b] of [[4, 7, 3], [5, 8, 2], [6, 8, 2], [7, 8, 3]]) { ctx.fillStyle = j > 6 ? '#3A3442' : CLOAK; ctx.fillRect(h.x - a, h.y + j, a - b + 1, 1); ctx.fillRect(h.x + b - 1, h.y + j, a - b + 1, 1) }
@@ -132,13 +143,18 @@
           ctx.fillStyle = '#8C3B2E'; ctx.fillRect(h.x + 8, h.y - 2, 1, 5)
         }
         else if (CLAY) { ctx.fillStyle = '#8C3B2E'; for (let j = -3; j < 2; j++) ctx.fillRect(h.x - 1 - (j + 4 >> 1), h.y + j, 1, 1) } // no face: a scar slashed down where his right eye would be
+        else if (DOMO) { // his right eye (its angry slant too) scarred shut, the scar kept under the top of his head
+          ctx.fillStyle = BODY; ctx.fillRect(h.x + 6, h.y - 1, 4, 3)
+          ctx.fillStyle = EYE; ctx.fillRect(h.x + 7, h.y + 1, 2, 1)
+          ctx.fillStyle = '#8C3B2E'; ctx.fillRect(h.x + 8, h.y - 1, 1, 4)
+        }
         else {
           ctx.fillStyle = BODY; ctx.fillRect(OX + 24, eyeY, 2, 4) // his right eye, scarred shut
           ctx.fillStyle = EYE; ctx.fillRect(OX + 24, eyeY + 2, 2, 1)
           ctx.fillStyle = '#8C3B2E'; ctx.fillRect(OX + 25, eyeY - 1, 1, 6)
         }
         if (g.brand) { // the Brand of Sacrifice, bleeding red on his brow (side on: his neck; the chicken: his brow, before his eye; Clay: his chest, under the mantle)
-          const bx = CHICKEN ? h.x - 3 : PUSHEEN ? 28 : PROFILE ? 25 + n : HATTY ? h.x + 3 : CLAY ? h.x + 1 : OX + 16, by = CHICKEN ? h.y - 3 : PROFILE ? h.y : HATTY ? h.y - 5 : CLAY ? h.y + 8 : eyeY - 1
+          const bx = CHICKEN ? h.x - 3 : PUSHEEN ? 28 : PROFILE ? 25 + n : HATTY || DOMO ? h.x + 3 : CLAY ? h.x + 1 : OX + 16, by = CHICKEN ? h.y - 3 : PROFILE ? h.y : HATTY ? h.y - 5 : DOMO ? h.y - 1 : CLAY ? h.y + 8 : eyeY - 1
           if (g.brand > 1 && !CHICKEN) { ctx.globalAlpha = .45; ctx.fillStyle = '#FF4D5E'; ctx.fillRect(bx - 1, by - 1, 5, 6) }
           ctx.globalAlpha = g.brand > 1 ? 1 : .6 + .4 * Math.sin(now / 160); ctx.fillStyle = CHICKEN && g.brand > 1 ? '#FF2E45' : '#D7263D' // the chicken's bleeds brighter instead of glowing
           ;['.#.', '.##', '##.', '.#.'].forEach((r, j) => [...r].forEach((ch, i) => { if (ch === '#') ctx.fillRect(bx + i, by + j, 1, 1) }))
@@ -151,7 +167,7 @@
           thickLine(ctx, x - 1, y + 1, x + 2, y, 2, LEATHER)
         }
         else if (g.low && !CHICKEN && !SLIME) { // after the swing: the blade along the ground in front of him (side on: its grip under his chin; Hatty: in his cane hand)
-          const k = PROFILE ? n - 21 : HATTY ? -4 : 0, y = HATTY ? h.y - 6 : OY
+          const k = PROFILE ? n - 21 : HATTY || DOMO ? -4 : 0, y = HATTY ? h.y - 6 : DOMO ? h.y - 2 : OY // Domo: held low across his legs
           ctx.fillStyle = EDGE; ctx.fillRect(2 + k, y + 14, 29, 1)
           ctx.fillStyle = IRON; ctx.fillRect(1 + k, y + 15, 30, 3)
           ctx.fillStyle = DARK; ctx.fillRect(2 + k, y + 18, 29, 1)

@@ -24,7 +24,7 @@
     name: 'sneak', label: 'Sneak through ↔', rarity: 'edge', weight: 1.2,
     trip({x, y}){
       const W = hangabout.width, s = hangabout.size, right = x > W / 2, inward = right ? 1 : -1
-      const away = right ? -80 * s : W + 80 * s, oneEye = right ? -6 * s : W + 6 * s // -6: the edge cuts him just past his near eye
+      const away = right ? -80 * s : W + 80 * s, k = hangabout.skin === 'cappy' ? 3 : -6, oneEye = right ? k * s : W - k * s // the edge cuts him just past his near eye (Cappy's is further back from his snout)
       const steps = [{go: 'walk', to: right ? W + 80 * s : -80 * s, speed: 70, phase: 1}]
       if (Math.random() < .5) { // first his head pops in up the sides, once or twice
         const sideY = () => rand(scr.top + 90 * s, y - 140 * s)

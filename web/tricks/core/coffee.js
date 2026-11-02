@@ -22,14 +22,18 @@
 
   // The chicken has no lap or crossed legs: he settles in like a hen on eggs, turned to the fire, and holds the mug in his
   // wing, at his breast or tipped up to his beak. His robe is his own (see hen()).
+  // Cappy has no lap or crossed legs either: he sits up turned to the fire, the mug in his front paw out low in front of
+  // his chest, raised to his mouth on his paw by his chin to sip (PAW in web/skins/cappy.js). His robe is his own (see capy()).
   // The slime has neither: it sinks into the cushion turned to the fire, the robe wrapped round its plain side and under its
   // face (see jelly()), and holds the mug out in its goo arm's tip, then up by its face to sip.
-  const CHICKEN = hangabout.skin === 'chicken', SLIME = hangabout.skin === 'slime', HOLD = CHICKEN ? {hand: 12} : SLIME ? {hand: 9} : {}
-  const SIT = {dy: -4, ...CHICKEN ? {tuck: 1, ...HOLD} : SLIME ? HOLD : {arms: ['mid', 'down']}} // up on the seat, the mug in his lap
+  const CAPPY = hangabout.skin === 'cappy', PAW = '#7A3A3E' // Cappy's toes, which recolor leaves alone
+  const CHICKEN = hangabout.skin === 'chicken', SLIME = hangabout.skin === 'slime', HOLD = CHICKEN ? {hand: 12} : CAPPY ? {hand: 8} : SLIME ? {hand: 9} : {}
+  const SIT = {dy: -4, ...CHICKEN ? {tuck: 1, ...HOLD} : CAPPY ? {dx: 0, ...HOLD} : SLIME ? HOLD : {arms: ['mid', 'down']}} // up on the seat, the mug in his lap
   // Where the mug is: [x, y, tilted to his lips]; on the chicken, from the top-left of his wing (x 5) and with its handle in
-  // it; on the slime, from its face's edge and the top of its goo arm (see goo()), turned right.
-  const [LAP, LOW, SIP] = CHICKEN ? [[2, -3], [2, -3], [6, -3, 1]] : SLIME ? [[5, -1], [5, 0], [-1, -1, 1]] : [[29, 27], [29, 28], [30, 21, 1]]
-  const FIRE = CHICKEN || SLIME ? {dx: 0, lookY: 1} : {eyes: 'side', look: 1}, SIPPING = {...CHICKEN ? {hand: 9} : !SLIME && {arms: ['mid', 'up']}, eyes: 'blink'}
+  // it; on Cappy, as he faces right and stands (his paw's hop and crouch are added), its handle away from him; on the slime,
+  // from its face's edge and the top of its goo arm (see goo()), turned right.
+  const [LAP, LOW, SIP] = CHICKEN ? [[2, -3], [2, -3], [6, -3, 1]] : CAPPY ? [[31, 32], [31, 32], [32, 31, 1]] : SLIME ? [[5, -1], [5, 0], [-1, -1, 1]] : [[29, 27], [29, 28], [30, 21, 1]]
+  const FIRE = CHICKEN || CAPPY || SLIME ? {dx: 0, lookY: 1} : {eyes: 'side', look: 1}, SIPPING = {...CHICKEN ? {hand: 9} : CAPPY ? {hand: 2} : !SLIME && {arms: ['mid', 'up']}, eyes: 'blink'}
   const wing = pose => Math.max(18, Math.min(30, 17 + pose.hand)) + (pose.dy || 0) // the top of the chicken's wing held out (web/skins/chicken.js)
   /** The slime's face edge and the top row of its goo arm, as it faces right (web/skins/slime.js: hand 9 is its rows 11 to 15). */
   const goo = pose => { const {y, nose} = hangabout.head(pose); return [GW - 1 - nose, y + pose.hand - 7] }
@@ -53,6 +57,19 @@
     }
     const out = px.map(([x, y, c]) => [x, y, mix(c, robe(x, y, c), d.k)])
     if (d.k === 1) for (const [x, y, h] of [[21, sash + 1, 2], [22, sash + 1, 4], [24, sash + 1, 3]]) for (let j = 0; j < h; j++) out.push([x, y + j, SATIN]) // the sash's knot and ends
+    return side() > 0 ? out.map(toLeft) : out
+  }
+  /** Cappy, turned to the fire, in a robe over his body below his head: a satin shawl collar from behind his ear down under his chin, a sash round his middle knotted at his side; his paw and feet out of it. Laid out on him facing left. */
+  function capy(d, px, pose){
+    if (pose.face > 0) px = px.map(toLeft)
+    const {y: eye} = hangabout.head(pose), sash = eye + 7
+    const robe = (x, y, c) => {
+      const collar = eye + 27 - y // x 28 a row above his eye, then a pixel forward each row down
+      if (c !== BODY && c !== SIDE || x < collar) return c
+      return x === collar || y === sash ? SATIN : c === SIDE ? HEM : ROBE
+    }
+    const out = px.map(([x, y, c]) => [x, y, mix(c, robe(x, y, c), d.k)])
+    if (d.k === 1) for (const [x, y, h] of [[24, sash + 1, 2], [25, sash + 1, 3]]) for (let j = 0; j < h; j++) out.push([x, y + j, SATIN]) // the sash's knot and ends
     return side() > 0 ? out.map(toLeft) : out
   }
   /** The slime, turned to the fire, in a robe that fits a cube: velvet over its plain side and under its cheeks, a satin lapel up its front seam and along under its face, outlined in the hem's red; a velvet sleeve and satin cuff on its goo arm. Laid out on it facing left. */
@@ -94,6 +111,7 @@
     /** The robe: velvet sleeves with satin cuffs, a satin shawl collar opening in a V, a sash; his legs crossed under the hem. */
     pixels({d, px, pose}){
       if (CHICKEN) return hen(d, px, pose)
+      if (CAPPY) return capy(d, px, pose)
       if (SLIME) return jelly(d, px, pose)
       const dy = pose.dy || 0, sq = pose.squash || 0, wide = sq >= 2 ? 1 : 0
       const x0 = OX + 6 - wide, x1 = OX + 29 + wide, bottom = OY + 16 + dy, collar = OY + 8 + dy + sq
@@ -150,8 +168,9 @@
         let [mx, my, tilt] = d.mug
         const f = side(), wy = CHICKEN && wing(pose), dot = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(mx + x, my + y - (tilt && x > 1 ? 1 : 0), 1, 1) }
         ctx.save()
-        if (CHICKEN || SLIME) { // in his wing (the slime's goo arm), its handle away from his beak: mirrored while he faces left, so its steam drifts off ahead of him
-          if (CHICKEN) { mx = GW - 9 - mx; my += wy } else { const [ex, gy] = goo(pose); mx += ex; my += gy }
+        if (CHICKEN || CAPPY || SLIME) { // in his wing or paw (the slime's goo arm), its handle away from his face: mirrored while he faces left, so its steam drifts off ahead of him
+          if (CHICKEN) { mx = GW - 9 - mx; my += wy } else if (CAPPY) my += (pose.dy || 0) - (pose.stretch || 0) // with his paw, which keeps to his chin
+          else { const [ex, gy] = goo(pose); mx += ex; my += gy }
           if (f < 0) { ctx.translate(GW, 0); ctx.scale(-1, 1) }
         }
         ctx.globalAlpha = d.k
@@ -163,6 +182,7 @@
           ctx.fillRect(mx + 2 + w + Math.round(j / 3 + Math.sin(j * .9 - now / 280 + w * 2.5)), my - 1 - j - w, 1, 1)
         }
         ctx.restore()
+        if (CAPPY) for (const [x, y, c] of px) if (c === PAW && y < 38 + (pose.dy || 0)) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) } // his toes round it
         if (CHICKEN) for (const [x, y, c] of px) if (WING.includes(c) && y >= wy && y < wy + 7 && Math.abs(x - (f > 0 ? 33.5 : 9.5)) < 5) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1) } // his wing wrapped round it
       }
       // Firelight over what's drawn (source-atop leaves the empty canvas clear), flickering slowly.
