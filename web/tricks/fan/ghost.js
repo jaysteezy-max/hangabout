@@ -50,10 +50,13 @@
   // back up a cube. Its outline, glints and cheeks go grey too, a hint of pink left.
   const SLIME = hangabout.skin === 'slime'
   if (SLIME) Object.assign(DEAD, {'#6A9D23': '#4E4E4E', '#DCF9B6': '#C4C4C4', '#EC9291': '#A38E8E'})
+  // Hatty is drawn front on, so flipped he'd be doing a headstand: he topples to your left, his hat knocked off, and lies
+  // flat, turned 90°, his hat sat on the ground by his head.
+  const HATTY = hangabout.skin === 'hatty'
   const SHELL = ['..X.X..', '.XXXXX.', 'XXGEGXX', '.XEWEX.', 'XXGEGXX', '.XXXXX.', '..X.X..'] // spiky shell, glowing eye
   const SHELL_INK = {X: '#E4E7EE', G: '#3A3F4D', E: '#6FE3FF', W: '#FFFFFF'}
   const BANG = ['#', '#', '#', '.', '#']
-  const DOWN = SLIME ? {puddle: 2, eyes: 'blink'} : {squash: 2, eyes: 'dizzy'}, UP = [29, 3] // where his Ghost waits while he gets up
+  const DOWN = SLIME ? {puddle: 2, eyes: 'blink'} : {squash: 2, eyes: 'dizzy', ...HATTY && {hat: 9}}, UP = [29, 3] // where his Ghost waits while he gets up
   const R = Math.round
   /** Him turned deg toward his back (clockwise as he faces left) about his middle and set down on the ground with his tail under him, his outline drawn fresh (turned, it would break up) and his eye moved unturned, so its X stays an X. */
   function rolled(px, deg, face){
@@ -83,7 +86,9 @@
       [{squash: 1, eyes: 'strain', ghost: {hit: 1}}, 120],
       ...CHICKEN ? [[25, .4, 140], [65, .7, 80], [100, .9, 80]].map(([roll, dead, ms]) => [{...DOWN, ghost: {dead, roll}}, ms])
         : CAPPY ? [[{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], [{...DOWN, ghost: {dead: .7, roll: 60}}, 80], [{...DOWN, ghost: {dead: .9, roll: 120}}, 80]] // Cappy rolls over on the ground
-        : SLIME ? [[{squash: 2, eyes: 'dizzy', ghost: {dead: .4}}, 140], [{puddle: 1, eyes: 'sad', ghost: {dead: .7}}, 120], [{...DOWN, ghost: {dead: .9}}, 80]] : [ // melts
+        : SLIME ? [[{squash: 2, eyes: 'dizzy', ghost: {dead: .4}}, 140], [{puddle: 1, eyes: 'sad', ghost: {dead: .7}}, 120], [{...DOWN, ghost: {dead: .9}}, 80]] // melts
+        : HATTY ? [[{...DOWN, hat: 0, tilt: -12, ghost: {dead: .4}}, 140], [{...DOWN, hat: 3, tilt: -70, ghost: {dead: .7}}, 80], [{...DOWN, tilt: -90, ghost: {dead: .9}}, 80]] // keels over, his hat flying off
+        : [
         [{...DOWN, tilt: -12, ghost: {dead: .4}}, 140], // keels over
         [{...DOWN, tilt: -70, ghost: {dead: .7}}, 80],
         [{...DOWN, tilt: -130, ghost: {dead: .9}}, 80],
@@ -112,6 +117,9 @@
       if (g.hit) px = recolor(px, HURT, 1)
       if (g.flash) px = recolor(px, LIT, 1)
       if (CHICKEN && (g.down || g.roll)) px = rolled(px, g.roll || 90, pose.face)
+      else if (HATTY && g.down) { // DOWN lifts his hat clean off (rows 0-11) over his head (from row 20): it sits on the ground on your left, its brim as wide as on his head, and he's turned 90° the way he toppled, head by it and his hanging hand (x 11) on the ground
+        px = [...px.map(([x, y, c]) => y < 20 ? [x - 13, y + 28, c] : [y - 4, 50 - x, c]), ...Array.from({length: 16}, (_, x) => [x, GH - 1, '#000000'])]
+      }
       else if (g.down && !CAPPY && !SLIME) { const top = Math.min(...px.map(p => p[1])); px = px.map(([x, y, c]) => [x, top + GH - 1 - y, c]) } // on his back, legs in the air
       return px
     },
