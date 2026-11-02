@@ -1,4 +1,4 @@
-// Cappy: the default pet. A capybara loaf drawn side on, facing left (facing right is the mirror image). Original art,
+// Cappy: a capybara pet. A capybara loaf drawn side on, facing left (facing right is the mirror image). Original art,
 // drawn closely from the owner's own reference.
 // A skin adds itself to SKINS (see "Skins" in TRICKS.md). Rows of his body; his eye and feet are added per pose:
 // F is his snout, K the lines of his nose and mouth, S the dark red inside his near ear, under his chin and round his haunch.
@@ -45,6 +45,10 @@
   const NAP = [[{flat: 2, tuck: 1, eyes: 'blink'}, 2400], [{flat: 1, tuck: 1, eyes: 'blink'}, 2400]] // a loaf on the floor, breathing
   const MOVES = {
     tricks: {
+      // Roll with his paws tucked against his belly, then plant them before standing.
+      cartwheel: [[{squash: 2}, 140],
+        ...[...Array(16)].map((_, i) => [{tilt: (i + 1) * 45, tuck: 1, eyes: 'blink', glide: 160}, 70]),
+        [{squash: 2, eyes: 'happy'}, 160], [{eyes: 'happy'}, 400], [{}, 200]],
       stretch: [[{squash: 1}, 160], [{tilt: 6, glide: 1, reach: 2, eyes: 'blink'}, 750], [{stretch: 1, eyes: 'blink'}, 180], [{squash: 1}, 220], [{}, 300]], // down on his front, a paw reaching out
       yawn: [[{squash: 1, eyes: 'blink'}, 260], [{stretch: 1, tilt: -5, glide: 1, eyes: 'blink', mouth: 'yawn'}, 950], [{squash: 1, eyes: 'blink'}, 200], [{}, 250]],
       lookAround: [[{eyes: 'side', look: -1, tilt: 3, glide: 1}, 650], [{eyes: 'side', look: 1, tilt: -3, glide: 1}, 650], [{eyes: 'up', stretch: 1, tilt: -5, glide: 1}, 450], [{}, 200]], // his head goes with his eye

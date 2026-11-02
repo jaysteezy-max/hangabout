@@ -18,8 +18,8 @@ try { prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf8')) } catch {}
 const savePrefs = () => fs.writeFileSync(prefsPath, JSON.stringify(prefs))
 const scale = () => prefs.scale ?? 1
 const preset = () => presets.some(([key]) => key === prefs.preset) ? prefs.preset : 'normal'
-/** A skin's name: letters, digits and dashes only, since it goes into the page's JavaScript. The page falls back to Cappy for one it doesn't have. */
-const skin = () => String(prefs.skin ?? 'cappy').replace(/[^\p{L}\p{N}-]/gu, '')
+/** A skin's name: letters, digits and dashes only, since it goes into the page's JavaScript. The page falls back to Pusheen for one it doesn't have. */
+const skin = () => String(prefs.skin ?? 'pusheen').replace(/[^\p{L}\p{N}-]/gu, '')
 
 let win
 /** Where the pet and his open bubble are, in page coordinates (top-left origin). */
@@ -30,7 +30,7 @@ const checked = {}
 /** Whether you've left your PC alone for five minutes or more (no mouse or keys). */
 let away = false
 /** The tricks and skins the page has, for the menu: [name, label, fan pack]. The page sends them once it loads. */
-let tricks = [], skins = [['cappy', 'Cappy', false]]
+let tricks = [], skins = [['pusheen', 'Pusheen (fan art)', false]]
 
 const run = js => win.webContents.executeJavaScript(js).catch(() => {}) // before the page has loaded there's no hangabout to call yet
 
