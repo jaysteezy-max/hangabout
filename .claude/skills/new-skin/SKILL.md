@@ -10,8 +10,8 @@ to yours: an animal side on or three-quarters `chicken.js` or `pusheen.js`, fron
 `clay.js`.
 
 The owner (Jay) is not a pixel artist or an expert on the character, and this is a side project. You are the
-researcher, art director and reviewer. Jay sees art only after fresh reviewer agents score it 8+/10, and is asked only
-what is genuinely Jay's call, always with your recommended answer. Keep the character bible, references and each
+researcher, art director and reviewer. Jay sees each stage only after it passes the review loop in step 5, and is asked
+only what is genuinely Jay's call, always with your recommended answer. Keep the character bible, references and each
 version's renders in your notes: the shared notes folder if the session has one, else the scratchpad.
 
 1. **Scope it with Jay first**, in one message, a recommendation on each:
@@ -49,30 +49,68 @@ version's renders in your notes: the shared notes folder if the session has one,
    chicken's `peck` and `kick`, a sword, a cane), never named like a trick: that turns the trick's draw hooks on. A side-on
    skin gives `head()`, which the page checks lands on an `EYE` pixel; a face with no eye there (a visor, Clay's blank
    cube) has no `head()`, wears Clawd's costume spots, and is fitted with skin branches in step 7 instead.
-5. **Review it before Jay sees anything.** Render the rest pose beside the references at 8x and at 3x, the pose sheet,
-   and the ASCII grid. Spawn two or more fresh reviewer agents in parallel, new ones each round, and don't anchor them:
-   no "I think it's close", no list of what you changed. Brief each one like this:
+5. **Review each stage before Jay sees it**, in at most 3 rounds, with reviewer agents who each have a role and return
+   findings, not scores. Scores drifted: an uncapped loop of fresh reviewers scoring 1-10 until all said 8+ ran Gengar
+   24 rounds, his moods bouncing between 5 and 7.5. The capped loop took Domo through every stage in 2.
+   - **Stages.** A, the look: the rest pose beside the references at 8x and 3x, and the ASCII grid. B, the body: the
+     walk, every `eyes`, the hands, the moods, as the pose sheet plus each mood's frames in order with their ms
+     (`moodstrips.py`). C, the tricks (step 7): every trick at 2x beside Cappy, then the ones you tailored.
+   - **Roles**, one agent each:
+     - likeness: would a fan know it at a glance, against the references and the bible;
+     - craft: silhouette, outline, stray pixels and contrast at 3x;
+     - motion: does each animation read as what it's called and move like this body; a turn needs a playback clip;
+     - breakage: what is wrong on it that is right on Cappy, such as a costume off its face or a prop not in its hand.
 
-   > Review a pixel-art pet against its source character. References: <paths or URLs>. Renders: <8x>, <3x>, <pose
-   > sheet>. The exact pixels: <ascii grid>. Score the likeness and the craft 1-10. List the fixes that would raise it
-   > most, ranked, with grid coordinates. Check every pose on the sheet reads as this character. End with: show the owner
-   > now, yes or no?
+     Stage A gets likeness and craft, plus a blind ID check in round 1: only the 3x render, no name, "Which character is
+     this?". Stage B gets motion and likeness. Stage C gets one breakage scan of every trick, then motion and craft on
+     what you tailored.
+   - **Round 1 is fresh**: the references, renders, ASCII grid and the bible's checklist, and none of your reasoning
+     ("it's close"). Tell reviewers to measure the references themselves: Domo's bible had his width wrong, and one
+     reviewer passed it on that.
+   - **Rounds 2 and 3 resume the same reviewers** (`SendMessage` to each agent's id) with the new renders and, for each
+     of their findings, what you did: fixed (how) or declined (why). They check their own findings, say better, same or
+     worse, and raise a new blocker only if the change broke something. A resumed reviewer takes seconds and a few
+     thousand tokens; a fresh one takes minutes and 100-200k.
+   - **Brief** each one like this:
 
-   Fix, re-render, and ask new reviewers. Repeat until every reviewer scores 8+ and says show the owner.
-6. **Show Jay** the rest pose beside its references and the pose sheet together, with the scores. Ask only what is Jay's
-   call (a color variant, which of two canonical looks), each with the canonical answer you recommend and why. Never
-   offer an option that's off model: a non-expert can't tell. Changes go back through step 5 before Jay sees them again.
+     > Review <what> for a small desktop pet: <character> (<source>), <rows> pixels tall on a 44x40 grid. Files:
+     > <references>, <renders>, <ascii grid>, <the bible's checklist>. Your role: <ROLE>: <its question>. Not a
+     > redesign: it stays this size. Return exactly this, no 1-10 scores. verdict: pass | fix | escalate. checklist:
+     > each item yes/no and a note. blockers (max 3): what the owner would reject or what stops it reading as
+     > <character>, each with what, where (grid x, y), why, and the pixel fix. should_fix (max 3): clearly off and
+     > cheap, the same fields. nits: one line each. keep: what works. cant_at_this_size: what the grid can't show. Pass
+     > means no blockers, not perfect; don't invent blockers. Under 400 words.
+   - **Stop rules.**
+     - Stop when no reviewer has a blocker. Fix the cheap should-fixes without another round.
+     - Stop when the same blocker survives two rounds: take it to Jay with the options.
+     - Stop after round 3: Jay sees it with the open list.
+     - What the grid can't show goes to Jay, never into another round.
+     - Reviewers split on a blocker: measure it yourself, decide, and say why. Two roles finding the same blocker on
+       their own is the surest sign it's real; two reviewers with the same brief can disagree.
+   - **Keep a log** in your notes: each round's verdicts, what you fixed or declined, and the agents' tokens.
+   - **Your own look at a sheet is not a review.** On Domo the session skimmed every trick and called them fine; a fresh
+     breakage scan found four costumes broken.
+6. **Show Jay each stage once it passes**:
+   - A: the rest pose beside its references, before you build moves on it;
+   - B: the pose sheet and mood strips;
+   - C: the costume and trick sheets.
+
+   Ask only what is Jay's call (a color variant, which of two canonical looks), each with the canonical answer you
+   recommend and why. Never offer an option that's off model: a non-expert can't tell. Changes go back through that
+   stage's loop before Jay sees them again.
 7. **Make it move its own way**, from the references, once the look is approved:
    - `walk(now, dir, arms)`: its stride, bob and arm swing (also used to climb).
    - `moods`: its own poses for each of Claude's states in `MOODS` (`web/pet.html`). `editing` and `running` are props
      it works at, posed by the prop: check its hands read there.
    - Hands for every `arms`, `hand` and `reach` value, and its own face for every `eyes` value.
-   - Audit every trick at 2x beside Cappy (`DSF=2` runs of `check.cjs` on `cappy` and on `<key>`, then `framesheet.py`),
-     noting each as fine or needs tailoring. A frames-only trick gets `tricks: {name: frames}` in the skin (keep the
+   - Audit every trick at 2x beside Cappy (`DSF=2` runs of `check.cjs` on `cappy` and on `<key>`, then `framesheet.py`)
+     through step 5's stage C: a fresh breakage scan of every trick, then motion and craft on what you tailor. A frames-only trick gets `tricks: {name: frames}` in the skin (keep the
      trick's pose key where its draw hooks need it). A trip (sneak, fishing, the paper plane...) or a trick that draws props or a
      costume gets a `hangabout.skin === '<key>'` branch in its file, as Hatty's and the chicken's do (`fan/vader.js`,
-     `core/coffee.js`): props go where its hand is drawn, costumes per TRICKS.md › Costumes on every skin. Separate trick
-     files can go to parallel agents.
+     `core/coffee.js`): props go where its hand is drawn, costumes per TRICKS.md › Costumes on every skin. A front-on skin
+     with `head()` gets no costume for free: they branch for side on, Hatty and Domo, so it needs its own branch in
+     `vader`, `thorfinn`, `guts`, `spidey`, `powerUp` and `ghost` (Domo's are the closest). Separate trick files can go
+     to parallel agents, one file each, each comparing the other skins' frames before and after with `cmp`.
    - Its own tricks, if the source has moves worth one: pitch a list first, Jay picks, then the new-trick skill.
 8. **Check everything** before asking Jay to approve:
    - Pose sweep (`px.cjs ... sweep`): no pixels off the grid, and every pose it says floats has a foot up on purpose.
@@ -95,6 +133,7 @@ They are in `tools/` next to this file. Run them from the repo root.
 | `python3 .claude/skills/new-skin/tools/sheet.py web/skins/<key>.js <key> out.png 8 '[{}]' rest --ref ref.png` | Poses at a scale (8 or 3), labelled, references first at matching height. `PER=8` a row. |
 | `python3 .claude/skills/new-skin/tools/posesheet.py web/skins/<key>.js <key> out.png 5 [sections.json]` | The pose sheet: states, eyes, moving, hands. Pass sections.json (shape in the file) with its moods and own keys. |
 | `python3 .claude/skills/new-skin/tools/ascii.py web/skins/<key>.js <key> '{}'` | The exact pixels as letters on a numbered grid, with a color legend, for reviewers. |
+| `python3 .claude/skills/new-skin/tools/moodstrips.py web/skins/<key>.js <key> <dir> <prefix>` | Each of its moods' frames in order with their ms, and its walk, as strips at 3x: what the motion reviewer judges (`check.cjs` keeps too few state frames). |
 | `node .claude/skills/new-skin/tools/check.cjs <key> <dir>` | Every trick and state in headless Chrome on a fake clock (about 20 s); prints `{durations, problems}`, saves frames. `ONLY=dance,wave`, `DSF=2`, `WEB=<checkout>/web/pet.html`. |
 | `python3 .claude/skills/new-skin/tools/framesheet.py <dir> out.png [name ...]` | Those frames as rows, one per trick or state (`PER=6` frames each), split into pages. |
 

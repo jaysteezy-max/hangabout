@@ -352,11 +352,18 @@ poses beside references, sweeps every pose, and plays every trick headlessly. By
    hand shapes, expressions, gear. Draw shapes on purpose from it; never shrink a blurry frame, never trust a written
    description over the art, and never fit the character onto Clawd's or Cappy's body or the shared walk.
 3. **Block out the silhouette** at the target size and compare it to the references at the same height.
-4. **Review before the owner sees it**: render it beside the references at 8x and 3x, and have two or more fresh
-   reviewers (people or agents who haven't seen your reasoning) score it 1 to 10 from the references, the renders and a
-   pixel grid. Iterate until they score it 8 or more.
-5. **Show the owner** the rest pose and a pose sheet together, asking only what's theirs to decide, each question with
-   a recommended, canonical answer.
+4. **Review before the owner sees it**, in three stages: the look (the rest pose beside the references at 8x and 3x),
+   the body (walk, faces, hands, moods) and the tricks. Reviewers each have a role:
+   - likeness: does it read as the character;
+   - craft: is it clean at 3x;
+   - motion: does each animation read as what it's called;
+   - breakage: is something wrong on it that's right on Cappy.
+
+   They return blockers, should-fixes and nits, not 1-to-10 scores. Each stage gets at most three rounds. The first
+   round's reviewers haven't seen your reasoning; later rounds go back to the same reviewers with what you fixed or
+   declined. A stage is done when no blocker is left; whatever is still open after three rounds goes to the owner.
+5. **Show the owner** each stage as it passes, asking only what's theirs to decide, each question with a recommended,
+   canonical answer.
 6. **Make it move its own way** (step 1's list), then **check**: every pose inside the 44 x 40 grid with its feet on
    row 39, every trick and state played with no console errors, and the pose and trick sheets looked at.
 
