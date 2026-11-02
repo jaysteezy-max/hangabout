@@ -74,11 +74,19 @@ version's renders in your notes: the shared notes folder if the session has one,
      `core/coffee.js`): props go where its hand is drawn, costumes per TRICKS.md › Costumes on every skin. Separate trick
      files can go to parallel agents.
    - Its own tricks, if the source has moves worth one: pitch a list first, Jay picks, then the new-trick skill.
+   - Turning round, for a side-on skin (TRICKS.md › Skins › Turning round): `views: true`, a three-quarter and a
+     facing-you view drawn on purpose from the references (never the profile mirrored or squeezed), `hand(pose)` and
+     `feetX(view)`. Render all five views in a row beside the references (`sheet.py` with `{"view": -2}` to
+     `{"view": 2}`) and review them in step 5's loop, with a playback clip of the turn, not only still poses.
 8. **Check everything** before asking Jay to approve:
    - Pose sweep (`px.cjs ... sweep`): no pixels off the grid, and every pose it says floats has a foot up on purpose.
    - Headless run (`check.cjs <key>`): every trick (Fan pack on) and every Claude state; `problems` must be empty (it
      includes the page's asserts: lowest pixel on row 39, `head()` finds the eye). If you edited a trick file, run it
      with `ONLY=<tricks>` on `cappy` and `clawd` here and with `WEB=` pointing at a checkout of `main`, and compare.
+   - With views, the turn run (`TURN=1 check.cjs <key> <dir>`): 11 fixed scenarios (both ways at 16 and 40 ms frames,
+     a dropped frame, a reversal, repeated changes, walk-stop-face-walk, holding the pencil, an interrupted turn, Reduce
+     Motion). Each must pass: views in order, done within the declared time plus a frame, feet within 1 px, the held prop
+     at `hand(pose)`. It exits 1 on any failure. Make a turnaround sheet and clip from its frames and look at them.
    - Sheets like the other pets': the pose sheet, and the trick and state sheets from `framesheet.py`. Look at each.
 9. **Open a PR** from your worktree against `main`, listing the sheets, then show Jay the sheets. Merge only when Jay has
    approved all of step 7. Report what the skin is, where its file is, and how it was checked. Don't run
@@ -95,7 +103,7 @@ They are in `tools/` next to this file. Run them from the repo root.
 | `python3 .claude/skills/new-skin/tools/sheet.py web/skins/<key>.js <key> out.png 8 '[{}]' rest --ref ref.png` | Poses at a scale (8 or 3), labelled, references first at matching height. `PER=8` a row. |
 | `python3 .claude/skills/new-skin/tools/posesheet.py web/skins/<key>.js <key> out.png 5 [sections.json]` | The pose sheet: states, eyes, moving, hands. Pass sections.json (shape in the file) with its moods and own keys. |
 | `python3 .claude/skills/new-skin/tools/ascii.py web/skins/<key>.js <key> '{}'` | The exact pixels as letters on a numbered grid, with a color legend, for reviewers. |
-| `node .claude/skills/new-skin/tools/check.cjs <key> <dir>` | Every trick and state in headless Chrome on a fake clock (about 20 s); prints `{durations, problems}`, saves frames. `ONLY=dance,wave`, `DSF=2`, `WEB=<checkout>/web/pet.html`. |
+| `node .claude/skills/new-skin/tools/check.cjs <key> <dir>` | Every trick and state in headless Chrome on a fake clock (about 20 s); prints `{durations, problems}`, saves frames. `ONLY=dance,wave`, `DSF=2`, `WEB=<checkout>/web/pet.html`, `TURN=1` for the turn scenarios. Exits 1 on any problem, console error, trick that never finishes or blank canvas (headless Chrome sometimes draws nothing: run it again). |
 | `python3 .claude/skills/new-skin/tools/framesheet.py <dir> out.png [name ...]` | Those frames as rows, one per trick or state (`PER=6` frames each), split into pages. |
 
 Python needs Pillow. `check.cjs` uses puppeteer from the npx cache (`~/.npm/_npx/*/node_modules/puppeteer`), so the
