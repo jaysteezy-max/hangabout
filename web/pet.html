@@ -617,11 +617,12 @@ function fire(event){
 // no edge trips, so their share goes to jumping (it's his way back down). odds: the finer choices within those.
 // pace stretches or shortens his pauses; speed scales his walking.
 const PRESETS = {
-  calm: {chance: {walk: .3, pause: .45, move: .17, jump: .03, trip: .05}, odds: {farWalk: .2, rare: .08}, pace: 1.8, speed: .8},
-  normal: {chance: {walk: .38, pause: .2, move: .24, jump: .05, trip: .13}, odds: {farWalk: .35, rare: .15}, pace: 1, speed: 1},
-  erratic: {chance: {walk: .3, pause: .05, move: .33, jump: .15, trip: .17}, odds: {farWalk: .6, rare: .35}, pace: .4, speed: 1.6},
+  calm: {chance: {walk: .3, pause: .45, move: .17, jump: .03, trip: .045, cross: .005}, odds: {farWalk: .2, rare: .08}, pace: 1.8, speed: .8},
+  normal: {chance: {walk: .38, pause: .2, move: .24, jump: .05, trip: .115, cross: .015}, odds: {farWalk: .35, rare: .15}, pace: 1, speed: 1},
+  erratic: {chance: {walk: .3, pause: .05, move: .33, jump: .15, trip: .13, cross: .04}, odds: {farWalk: .6, rare: .35}, pace: .4, speed: 1.6},
 }
 // farWalk: of walks, a trot to anywhere along the ledge, not a stroll nearby. rare: of moves, a rare trick, not an everyday one.
+// cross: off to another display (on Normal, every few minutes); with nowhere to go, its share goes to the edge trips.
 for (const [name, p] of Object.entries(PRESETS)) console.assert(Math.abs(Object.values(p.chance).reduce((a, b) => a + b) - 1) < 1e-9, `preset ${name}: chances must add up to 1`)
 let preset = PRESETS.normal
 // Walking: turned toward where he's going, legs stepping in diagonal pairs, arms swinging fore and aft, rocking side to side.
@@ -807,7 +808,47 @@ function behave(now, dt){
     const high = surfaces()[0].y - here.y > desk.clientHeight / 2 // a window ledge more than half the screen up
     if (!(high && fire('highUp'))) jumpFrom(now, here) // a trick may take him down another way
   }
-  else { const name = choose('edge'); name ? startMove(now, name, here) : jumpFrom(now, here) } // off to the screen's edges
+  else {
+    const n = r < c.walk + c.pause + c.move + c.jump + c.cross && canWander() && pick(neighbors(disp.list, curDisplay()))
+    if (n) { ai.trick = null; trip(now, crossSteps(n)) } // off to another display
+    else { const name = choose('edge'); name ? startMove(now, name, here) : jumpFrom(now, here) } // off to the screen's edges
+  }
+}
+/** Whether he may set off for another display on his own: in the app, unless you've asked him to stay on one. */
+const canWander = () => NATIVE && !pet.stay
+/**
+ * A move step's fn: flies him on from where he is at v ({vx, vy}, points a second), falling as he goes, until until(v)
+ * says stop. It moves him on from his feet each frame, and steps can share v, so a flight carries on across displays.
+ */
+function flight(v, until, g = 2600){
+  return (t, dt) => {
+    v.vy += g * dt / 1000
+    const f = feet()
+    putFeet(f.x + v.vx * dt / 1000, f.y + v.vy * dt / 1000)
+    return until(v, t)
+  }
+}
+/** The steps that take him from the floor across into n.to: off the side, a leap up through the top, or down through the floor. */
+function crossSteps(n){
+  const c = curDisplay(), W = desk.clientWidth, H = desk.clientHeight, s = size, to = n.to
+  if (n.side === 'left' || n.side === 'right') {
+    const right = n.side === 'right'
+    return [{go: 'walk', to: right ? W : 0, speed: 70}, {go: 'display', id: to.id}, {go: 'walk', to: right ? 120 * s : to.w - 120 * s, speed: 70}]
+  }
+  const x = rand(Math.max(n.lo, c.x) + 60 * s, Math.min(n.hi, c.x + W) - 60 * s) - c.x // a spot under (or over) the stretch they share
+  const walk = {go: 'walk', to: x, speed: 70}, flying = {stretch: 1, arms: ['high', 'high'], eyes: 'up'}
+  if (n.side === 'up') { // fast enough to rise through the top here, and on to about 100 points above the floor up there
+    const rise = feet().y - 33 * s + (to.h + 33 * s) - (to.h - to.bottom - 2 - 100), v = {vx: 0, vy: -Math.sqrt(2 * 2600 * rise)}
+    return [walk, {go: 'hold', T: 260, pose: {squash: 2}},
+      {go: 'move', fn: flight(v, () => feet().y - 33 * size <= 0), pose: {stretch: 2, tuck: 1, arms: ['up', 'mid'], eyes: 'up'}},
+      {go: 'display', id: to.id},
+      {go: 'move', fn: flight(v, v => v.vy >= 0), pose: {stretch: 2, tuck: 1, arms: ['up', 'mid'], eyes: 'up'}},
+      {go: 'drop'}]
+  }
+  const v = {vx: 0, vy: -500} // down: a hop, then through the floor, and in from the top of the display below
+  return [walk, {go: 'move', fn: flight(v, () => feet().y - 33 * size >= H), pose: flying},
+    {go: 'display', id: to.id},
+    {go: 'do', fn: () => { ai.rot = 0; ai.mode = 'fall'; ai.vy = v.vy }}]
 }
 /** A trick by name: most are played on the spot; a few are trips that take him places. */
 function startMove(now, name, here){

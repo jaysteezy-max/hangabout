@@ -155,6 +155,51 @@ test('mockup has no displays', async () => {
   return h
 })
 
+// ---- Task 2: he wanders to other displays on his own ----
+const crossing = (h, to) => h.run(to => trip(performance.now(), crossSteps(neighbors(disp.list, curDisplay()).find(n => n.to.id === to))), to)
+const crosses = (name, from, x, to) => test(name, async () => {
+  const h = await open({on: from, x})
+  await crossing(h, to)
+  await h.tick(30000)
+  const w = await h.where()
+  assert.strictEqual(w.on, to); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  assert.deepStrictEqual(h.sent, [to])
+  return h
+})
+crosses('walks right from the left Dell onto the right Dell', 'dellL', 1500, 'dellR')
+crosses('walks left from the right Dell onto the left Dell', 'dellR', 400, 'dellL')
+crosses('leaps up from the laptop to the left Dell', 'mac', 400, 'dellL')
+crosses('leaps up from the laptop to the right Dell', 'mac', 1300, 'dellR')
+crosses('drops from the right Dell to the laptop', 'dellR', 300, 'mac')
+crosses('drops from the left Dell to the laptop', 'dellL', 1500, 'mac')
+
+const TEN_MINUTES = 10 * 60 * 1000
+test('wanders across on Erratic', async () => {
+  const h = await open({on: 'mac'})
+  await h.run(() => usePreset('erratic'))
+  await h.tick(TEN_MINUTES)
+  assert(h.sent.length >= 1, 'never crossed')
+  await h.run(still => { preset = {...PRESETS.erratic, chance: still} }, STILL)
+  await h.tick(45000) // long enough for a crossing he'd set off on to finish: a walk the width of a display at 70 a second
+  const w = await h.where(), doing = await h.run(() => ({trick: ai.trick?.name, step: ai.steps?.[ai.step], pending: disp.pending, next: disp.next}))
+  assert.strictEqual(w.on, h.on); assert(w.standing, `not standing: ${JSON.stringify({...w, ...doing})}`)
+  return h
+})
+test('stays put with Stay on one display', async () => {
+  const h = await open({on: 'mac'})
+  await h.run(() => { hangabout.settings({sound: false, reduced: false, scale: 1, preset: 'erratic', fan: false, found: [], stay: true}) })
+  await h.tick(TEN_MINUTES)
+  assert.deepStrictEqual(h.sent, [])
+  return h
+})
+test('one display never crosses', async () => {
+  const h = await open({on: 'mac', layout: [JAY[0]]})
+  await h.run(() => usePreset('erratic'))
+  await h.tick(TEN_MINUTES)
+  assert.deepStrictEqual(h.sent, [])
+  return h
+})
+
 ;(async () => {
   browser = await puppeteer.launch({headless: 'shell'})
   const only = process.argv[2] || '', failed = []
