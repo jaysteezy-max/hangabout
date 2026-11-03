@@ -2,7 +2,7 @@
 // Blue portal on the floor ahead, orange one up high; in one, and out of the other. A trip, with its own page elements
 // (the two portals and the shots that open them) and a front hook for the gun in his hand.
 {
-  const {GW, OY, PH, feet, putFeet, surfaces, rand, scr, desk, clip, head} = hangabout
+  const {GW, OY, PH, feet, putFeet, surfaces, rand, pick, scr, desk, clip, head} = hangabout
   const PROFILE = hangabout.sideOn && head // side on: he turns to aim, the gun at his chin
   const HATTY = hangabout.skin === 'hatty' // the gun in the hand on that side, his cane hand or his hanging free hand
   const CHICKEN = hangabout.skin === 'chicken' // no hands: his wing swung forward holds it, the gun poking out of its tip
@@ -29,9 +29,10 @@
     desk.append(p); portals.push(p)
     void p.offsetWidth; p.classList.add('open') // laid out shut first, so it swirls open
   }
-  function closePortals(){
+  /** Shuts them, swirling closed, or at once (before he goes to another display, where they'd show as they shrank). */
+  function closePortals(atOnce){
     live = false
-    for (const p of portals.splice(0)) { p.classList.remove('open'); setTimeout(() => p.remove(), 300) }
+    for (const p of portals.splice(0)) { if (atOnce === true) { p.remove(); continue } p.classList.remove('open'); setTimeout(() => p.remove(), 300) }
   }
   /** A shot from the gun's tip to (x, y), where its portal opens. */
   function shoot(color, dir, x, y){
@@ -50,8 +51,10 @@
       const lo = here.x0 + 66 + 40, hi = here.x1 + 66 - 40
       if (x + dir * 160 * s < lo || x + dir * 160 * s > hi) dir = -dir // room on the other side
       const ax = Math.max(lo, Math.min(hi, x + dir * 160 * s))
+      const others = hangabout.otherDisplays(), far = others.length && Math.random() < .5 ? pick(others) : null // half the time, the orange one opens on another display
       let bx, by
-      for (let i = 0; i < 12; i++) { // the orange one somewhere high, with room below to drop all the way out before he lands
+      if (far) { bx = rand(140, far.w - 140); by = rand(far.top + 120, Math.max(far.top + 120, far.h - far.bottom - 2 - 300)) } // its windows aren't known from here: well above its floor
+      else for (let i = 0; i < 12; i++) { // the orange one somewhere high, with room below to drop all the way out before he lands
         bx = rand(140, W - 140); by = rand(scr.top + 120, Math.max(scr.top + 120, floorY - 300))
         const below = surfaces().filter(o => o.y + PH > by && bx - 66 >= o.x0 && bx - 66 <= o.x1).sort((a, b) => a.y - b.y)[0]
         if (!below || below.y + PH - by >= 140 * s) break
@@ -65,12 +68,16 @@
         {go: 'do', fn: () => shoot('blue', dir, ax, y - 39 * s)},
         {go: 'hold', T: 420, pose: {...held('blue'), arms: ['mid', 'mid'], squash: 1, portal: {tip: 'blue', dir, fire: 1}}},
         {go: 'hold', T: 260, pose: {...held('orange'), arms: UP, eyes: 'up', portal: {tip: 'orange', dir}}},
-        {go: 'do', fn: () => shoot('orange', dir, bx, by)},
+        {go: 'do', fn: () => far ? shoot('orange', dir, x + dir * 60 * s, -40) : shoot('orange', dir, bx, by)}, // to another display: up and away off the top
         {go: 'hold', T: 520, pose: {...held('orange'), arms: UP, eyes: 'up', squash: 1, portal: {tip: 'orange', dir, fire: 1}}},
         {go: 'hold', T: 300, pose: {...turn, eyes: 'happy'}},
         {go: 'do', fn: () => clip({x: ax, dir})}, // he disappears into it as he walks through
         {go: 'walk', to: ax + dir * 70 * s, speed: 55},
-        {go: 'do', fn: () => { putFeet(bx, by); clip({y: by}); closer = setTimeout(closePortals, 1600) }}, // and comes out the other one, feet first
+        ...far ? [
+          {go: 'do', fn: () => closePortals(true)},
+          {go: 'display', id: far.id, x: bx, y: by},
+          {go: 'do', fn: () => { live = true; openPortal('orange', bx, by); clip({y: by}); closer = setTimeout(closePortals, 1600) }},
+        ] : [{go: 'do', fn: () => { putFeet(bx, by); clip({y: by}); closer = setTimeout(closePortals, 1600) }}], // and comes out the other one, feet first
         {go: 'drop', vy: 320}, // speedy thing goes in, speedy thing comes out
       ]
     },

@@ -24,7 +24,9 @@
     name: 'sneak', label: 'Sneak through ↔', rarity: 'edge', weight: 1.2,
     trip({x, y}){
       const W = hangabout.width, s = hangabout.size, right = x > W / 2, inward = right ? 1 : -1
-      const away = right ? -80 * s : W + 80 * s, k = hangabout.skin === 'cappy' ? 3 : -6, oneEye = right ? k * s : W - k * s // the edge cuts him just past his near eye (Cappy's is further back from his snout)
+      // With a display beyond that side, he comes out on it, at its near side; with none, round the far side of this one.
+      const next = hangabout.across(right ? 'right' : 'left'), W2 = next ? next.width : W
+      const away = right ? -80 * s : W2 + 80 * s, k = hangabout.skin === 'cappy' ? 3 : -6, oneEye = right ? k * s : W2 - k * s // the edge cuts him just past his near eye (Cappy's is further back from his snout)
       const steps = [{go: 'walk', to: right ? W + 80 * s : -80 * s, speed: 70, phase: 1}]
       if (Math.random() < .5) { // first his head pops in up the sides, once or twice
         const sideY = () => rand(scr.top + 90 * s, y - 140 * s)
@@ -32,7 +34,7 @@
         if (Math.random() < .5) steps.push(...sidePeek(Math.random() < .5 ? 'left' : 'right', sideY()))
       }
       steps.push(
-        {go: 'do', fn: () => putFeet(away, y)},
+        next ? {go: 'display', id: next.id, x: away, y: next.y} : {go: 'do', fn: () => putFeet(away, y)},
         {go: 'slide', x: oneEye, T: 450, pose: t => ({eyes: 'side', look: inward, phase: t < 260 ? 1 : 0})},
         {go: 'hold', T: 700, pose: {eyes: 'side', look: inward}},
         {go: 'hold', T: 140, pose: {eyes: 'blink'}},
@@ -40,7 +42,7 @@
         {go: 'hold', T: 420, pose: {}},
         {go: 'slide', x: oneEye, T: 300, pose: {eyes: 'happy'}}, // ...and pops in again, grinning
         {go: 'hold', T: 500, pose: {eyes: 'happy'}},
-        {go: 'walk', to: right ? 160 * s : W - 160 * s, speed: 50, phase: 1},
+        {go: 'walk', to: right ? 160 * s : W2 - 160 * s, speed: 50, phase: 1},
       )
       return steps
     },

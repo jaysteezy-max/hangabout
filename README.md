@@ -27,6 +27,9 @@ waiting on you, done.</sub>
   being edited, the command running, the question waiting on you. It opens by itself only when it matters.
 - **Lives on your real windows.** She walks along the Dock and the tops of your windows, rides a window you drag, climbs
   the sides of the screen and phases through its edges.
+- **Roams every display.** She wanders from one display to the next where they meet (as they're arranged in System
+  Settings > Displays), and comes over to the one you're on when Claude needs you. Carry or throw her across. Right-click
+  → **Stay on one display** keeps her where she is.
 - **Read-only and local.** The hook can't approve, block or change anything Claude does, and nothing leaves your Mac.
 - **Native and light.** A small Swift app that builds on your Mac in seconds. The hook takes about 5 ms per event.
 - **Easy to teach new tricks.** Each trick is one JavaScript file, and you can try it in a browser before installing.
@@ -93,8 +96,8 @@ git clone https://github.com/jaysteezy-max/hangabout.git; cd hangabout; powershe
 
 It installs into `~\.hangabout` and asks before adding the same ten hooks to `~\.claude\settings.json`. Each runs
 `hangabout-hook.exe` directly (`"args": []`, no shell), so it works with or without Git Bash, and Pusheen follows Claude
-Code's PowerShell tool as well as Bash. To uninstall, run `powershell -ExecutionPolicy Bypass -File uninstall.ps1`. For
-now she lives on the main display above a taskbar at the bottom or top, and the plugin install is Mac-only.
+Code's PowerShell tool as well as Bash. To uninstall, run `powershell -ExecutionPolicy Bypass -File uninstall.ps1`. She
+roams every display, above a taskbar at the bottom or top of each, and the plugin install is Mac-only.
 
 </details>
 
@@ -159,7 +162,7 @@ seconds) and starts her. To get updates without asking, turn on **Enable auto-up
 | Drag her | Dangles from your cursor; shake her and she gets dizzy |
 | Double-click | Hops |
 | Click a window | Notices, with a little "!" |
-| Right-click | Tricks, Behavior, Skin, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Enter a code…, Quit |
+| Right-click | Tricks, Behavior, Skin, Size, Chirp when Claude needs you, Reduce motion, Fan pack, Stay on one display, Enter a code…, Quit |
 
 | Claude Code is… | Pusheen | Status bubble |
 | --- | --- | --- |
@@ -289,7 +292,11 @@ pack on and finds every secret at once.
 <details>
 <summary><b>Can she live on my other display?</b></summary>
 
-Not yet: she lives on your main display (the one with the menu bar).
+She lives on all of them. She crosses where two displays meet, as they're arranged in System Settings > Displays:
+walking off a side, leaping up through the top or dropping through the floor. An edge that touches no other display
+is a wall. Now and then she wanders over on her own (how often follows the Behavior preset), and when Claude needs you
+she comes to the display your pointer is on. You can also carry or throw her across. To keep her on one display,
+right-click → **Stay on one display**; carry her to the one you want first. She starts on the display she was last on.
 
 </details>
 
@@ -346,7 +353,7 @@ Claude Code ── hook events ──▶ hangabout-hook ──▶ state.json ─
 | --- | --- |
 | `web/pet.html` | The whole pet: pixel engine, behavior, the status bubble. Opened in a browser it's a mockup desktop with buttons for every state and trick. |
 | `web/tricks/` | One file per trick (`core/` ships on; `fan/` is the fan pack). |
-| `app/Hangabout.swift` | The app: a transparent, click-through layer over your main screen hosting the page. |
+| `app/Hangabout.swift` | The app: a transparent, click-through layer over the display she's on, hosting the page; it moves with her to other displays. |
 | `app/HangaboutHook.swift` | The hook: turns Claude Code events into `state.json`. |
 | `install.sh`, `uninstall.sh`, `build.sh` | Install, remove, build. `scripts/hooks.py` edits `settings.json`. |
 | `app/win/`, `*.ps1` | Windows: the app in Electron (`main.js`, `preload.js`), the hook and window watcher in C#, and their install, remove and build scripts. |

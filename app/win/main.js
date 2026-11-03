@@ -1,4 +1,5 @@
-// Hangabout on Windows: a transparent layer over your whole main screen that the pet lives on. A port of app/Hangabout.swift.
+// Hangabout on Windows: a transparent layer over the display the pet is on, which moves with him when he goes to another
+// display. A port of app/Hangabout.swift.
 // Clicks pass straight through it everywhere except the pet himself and his open bubble.
 // He shows what Claude Code is doing from state.json in the install folder, which hangabout-hook.exe keeps from Claude Code's hooks.
 const {app, BrowserWindow, Menu, ipcMain, screen, powerMonitor, shell} = require('electron')
@@ -25,6 +26,8 @@ let win
 /** Where the pet and his open bubble are, in page coordinates (top-left origin). */
 let hitRects = []
 let holding = false, pressed = false, lastCursor = null, cursorWasNear = false, lastTops = '', windowList = [], lastState = 0
+/** The display his layer is on (its id), and the display your pointer was last said to be on, where on it, and when. */
+let on = null, mouseOn = '', mouseAt = null, mouseSent = 0
 /** Each busy session's transcript as of the last time hangabout-hook looked at it. */
 const checked = {}
 /** Whether you've left your PC alone for five minutes or more (no mouse or keys). */
@@ -49,7 +52,7 @@ app.whenReady().then(() => {
 
   win.webContents.on('did-finish-load', () => { fitScreen(); sendSettings(); sendWindows(true); sendState(true) })
   win.webContents.on('render-process-gone', () => win.webContents.reload())
-  for (const change of ['display-metrics-changed', 'display-added', 'display-removed']) screen.on(change, fitScreen)
+  for (const change of ['display-metrics-changed', 'display-added', 'display-removed']) screen.on(change, () => fitScreen())
   watchWindows()
   setInterval(trackPointer, 1000 / 30)
   setInterval(sendState, 250)
@@ -58,13 +61,20 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => { try { fs.unlinkSync(pidPath) } catch {} })
 
-/** He lives on the main display, over everything on it. */
-// shortcut: one display only; spanning several needs a window per screen.
-function fitScreen(){
-  const {bounds: b, workArea: w} = screen.getPrimaryDisplay()
-  win.setBounds(b)
+/** He lives on one display at a time, over everything on it: the one the page asks for, else the one he's on, else the one
+ *  he was on last time, else the primary one. The page hears about them all, so he can go to them. */
+function fitScreen(id){
+  const all = screen.getAllDisplays(), find = want => all.find(d => String(d.id) === want)
+  const d = find(id) || find(on) || find(prefs.display) || screen.getPrimaryDisplay()
+  on = String(d.id)
+  if (prefs.display !== on) { prefs.display = on; savePrefs() }
+  win.setBounds(d.bounds)
+  const got = win.getBounds()
+  if (got.x !== d.bounds.x || got.y !== d.bounds.y || got.width !== d.bounds.width || got.height !== d.bounds.height) win.setBounds(d.bounds) // moved between displays of different scaling, Electron can size it wrong the first time
   // shortcut: knows a taskbar at the top or bottom; one on the left or right he walks behind.
-  run(`hangabout.screen(${w.y - b.y},${b.y + b.height - w.y - w.height})`)
+  const list = all.map(({id, bounds: b, workArea: w}) => ({id: String(id), x: b.x, y: b.y, w: b.width, h: b.height, top: w.y - b.y, bottom: b.y + b.height - w.y - w.height}))
+  run(`hangabout.displays(${JSON.stringify(list)},${JSON.stringify(on)})`)
+  sendWindows(true)
 }
 
 /** Takes the mouse only while it's over the pet or his open bubble; everywhere else clicks go straight through. */
@@ -77,6 +87,13 @@ function trackPointer(){
     run(`hangabout.cursor(${x},${y})`)
   }
   cursorWasNear = near
+  // Which display your pointer's on and where (so he can come to you): at once when it changes display, otherwise at
+  // most four times a second while it moves.
+  const d = screen.getDisplayNearestPoint(mouse), id = String(d.id), at = {x: mouse.x - d.bounds.x, y: mouse.y - d.bounds.y}, now = Date.now()
+  if (id !== mouseOn || ((at.x !== mouseAt.x || at.y !== mouseAt.y) && now - mouseSent >= 250)) {
+    mouseOn = id; mouseAt = at; mouseSent = now
+    run(`hangabout.mouse(${JSON.stringify(id)},${at.x},${at.y})`)
+  }
   const over = hitRects.some(([rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh)
   const take = over || (holding && pressed) // keeps him while you drag him around
   if (take === holding) return
@@ -100,17 +117,17 @@ function watchWindows(){
 }
 
 function clickedElsewhere([px, py]){
-  const s = screen.getPrimaryDisplay().scaleFactor, frame = win.getBounds()
-  run(`hangabout.click(${Math.round(px / s - frame.x)},${Math.round(py / s - frame.y)})`)
+  const p = screen.screenToDipPoint({x: px, y: py}), frame = win.getBounds() // the helper sees real pixels; the page wants points
+  run(`hangabout.click(${Math.round(p.x - frame.x)},${Math.round(p.y - frame.y)})`)
 }
 
 /** The top edges of your windows that aren't hidden behind a window in front, for him to walk on, with each window's size (for webs to stick to). */
 function sendWindows(force = false){
-  const {width, height} = win.getBounds(), s = screen.getPrimaryDisplay().scaleFactor
+  const {x: ox, y: oy, width, height} = win.getBounds()
   const inFront = [], tops = []
-  for (const [id, ...pixels] of windowList) { // front to back
-    // shortcut: pixels to points by the main display's scale; windows on other displays are off his screen anyway.
-    const [x, y, w, h] = pixels.map(v => v / s)
+  for (const [id, px, py, pw, ph] of windowList) { // front to back
+    const r = screen.screenToDipRect(null, {x: px, y: py, width: pw, height: ph}) // real pixels to points, by the display the window is on
+    const [x, y, w, h] = [r.x - ox, r.y - oy, r.width, r.height] // and onto his display
     if (w >= 160 && h >= 60 && y > 0 && y < height) {
       let spans = [[Math.max(0, x), Math.min(width, x + w)]]
       for (const c of inFront) if (c.y <= y && c.y + c.h > y) {
@@ -161,7 +178,7 @@ function checkTranscripts(){
 }
 
 function sendSettings(){
-  run(`hangabout.settings(${JSON.stringify({sound: !!prefs.sound, reduced: !!prefs.reduced, scale: scale(), preset: preset(), fan: !!prefs.fan, found: prefs.found ?? []})})`)
+  run(`hangabout.settings(${JSON.stringify({stay: !!prefs.stay, sound: !!prefs.sound, reduced: !!prefs.reduced, scale: scale(), preset: preset(), fan: !!prefs.fan, found: prefs.found ?? []})})`)
 }
 
 function setPref(key, value){
@@ -192,7 +209,7 @@ function menu(){
     {type: 'separator'},
     {label: `Size  ${Math.round(scale() * 100)}%`, submenu: sizes.map(v => ({label: `${Math.round(v * 100)}%`, type: 'radio', checked: Math.abs(v - scale()) < .01, click: () => setPref('scale', v)}))},
     {type: 'separator'},
-    toggle('sound', 'Chirp when Claude needs you'), toggle('reduced', 'Reduce motion'), toggle('fan', 'Fan pack (fan-made tricks)'),
+    toggle('sound', 'Chirp when Claude needs you'), toggle('reduced', 'Reduce motion'), toggle('fan', 'Fan pack (fan-made tricks)'), toggle('stay', 'Stay on one display'),
     {label: 'Enter a code…', click: enterCode},
     {type: 'separator'},
     {label: 'Hangabout: unofficial, not affiliated with Anthropic', enabled: false},
@@ -249,6 +266,8 @@ ipcMain.on('hangabout', (_, body) => {
     if (body.fan === true) prefs.fan = true
     savePrefs()
     if (body.fan === true) sendSettings()
+  } else if (typeof body?.display === 'string') { // he's going to another display: his layer goes with him
+    fitScreen(body.display)
   } else if (Array.isArray(body)) {
     hitRects = body.filter(r => Array.isArray(r) && r.length === 4)
   }
