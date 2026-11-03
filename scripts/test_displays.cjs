@@ -433,6 +433,46 @@ test('a lost mouse-up after a carry still lets him go', async () => {
   return h
 })
 
+// ---- The minor ones ----
+test('a display step to the display he\'s on goes straight on', async () => {
+  const h = await open({on: 'mac', x: 800})
+  await h.run(() => trip(performance.now(), [{go: 'display', id: 'mac', x: 500, y: 300}, {go: 'hold', T: 5000}]))
+  await h.tick(100)
+  const got = await h.run(() => ({go: ai.steps[ai.step]?.go, x: feet().x}))
+  assert.strictEqual(got.go, 'hold'); near(got.x, 500)
+  return h
+})
+test('a carry gets through after an ask the app never answered', async () => {
+  const h = await open({on: 'dellL', x: 1500})
+  await h.run(() => { disp.pending = {id: 'dellR', at: performance.now()} }) // asked for, and the answer never came
+  await h.tick(1500)
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let gx = m.x; gx <= -1028 + 1920 + 300; gx += 20) { await h.wait(33); await h.pointer('move', gx, m.y - 200); await answer(h) }
+  await h.pointer('up', -1028 + 1920 + 300, m.y - 200)
+  await h.tick(3000)
+  const w = await h.where()
+  assert.deepStrictEqual(h.sent, ['dellR']); assert.strictEqual(w.on, 'dellR'); assert(w.standing, 'not standing')
+  return h
+})
+// A 1080-tall laptop beside a 1440-tall monitor, tops lined up: the monitor's floor is lower.
+const STAGGER = [
+  {id: 'small', x: 0, y: 0, w: 1920, h: 1080, top: 25, bottom: 60},
+  {id: 'tall', x: 1920, y: 0, w: 2560, h: 1440, top: 25, bottom: 0},
+]
+test('onto a display with a lower floor he hops down, not walks on air', async () => {
+  const h = await open({on: 'small', layout: STAGGER, x: 1700})
+  await crossing(h, 'tall')
+  for (let i = 0; i < 600; i++) {
+    await h.tick(33)
+    const s = await h.run(() => ({on: disp.on, go: ai.mode === 'script' && ai.steps[ai.step]?.go, y: feet().y, floor: surfaces()[0].y + PH}))
+    assert(!(s.on === 'tall' && s.go === 'walk' && s.y < s.floor - 3), `walking on air: ${JSON.stringify(s)}`)
+  }
+  const w = await h.where()
+  assert.strictEqual(w.on, 'tall'); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  return h
+})
+
 ;(async () => {
   browser = await puppeteer.launch({headless: 'shell'})
   const only = process.argv[2] || '', failed = []

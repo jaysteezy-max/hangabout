@@ -66,6 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
     /// The display his layer is on (its id, from displayID).
     var on: String?
+    /// He's on the main display only because his own went away (unplugged, or a dock asleep): it stays the one remembered.
+    var fellBack = false
     /// The display your pointer was last said to be on, where on it, and when.
     var mouseOn = "", mouseAt = NSPoint(x: -1, y: -1), mouseSent = 0.0
     /// Each busy session's transcript as of the last time hangabout-hook looked at it.
@@ -141,10 +143,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func fitScreen(_ id: String? = nil) {
         let screens = NSScreen.screens
         guard let main = screens.first else { return }
-        let screen = [id, on, prefs.string(forKey: "display")].lazy.compactMap { want in screens.first { self.displayID($0) == want } }.first ?? main
-        let here = displayID(screen)
+        let find = { (want: String?) in want.flatMap { w in screens.first { self.displayID($0) == w } } }
+        let asked = find(id), mine = asked ?? find(on) ?? find(prefs.string(forKey: "display"))
+        fellBack = asked == nil && (fellBack || mine == nil) // until he's sent somewhere on purpose
+        let screen = mine ?? main, here = displayID(screen)
         on = here
-        prefs.set(here, forKey: "display")
+        if !fellBack { prefs.set(here, forKey: "display") }
         panel.setFrame(screen.frame, display: true)
         for view in panel.contentView?.subviews ?? [] { view.frame = panel.contentView!.bounds }
         let list: [[String: Any]] = screens.map { s in
