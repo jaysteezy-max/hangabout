@@ -28,6 +28,8 @@ let hitRects = []
 let holding = false, pressed = false, lastCursor = null, cursorWasNear = false, lastTops = '', windowList = [], lastState = 0
 /** The display his layer is on (its id), and the display your pointer was last said to be on, where on it, and when. */
 let on = null, mouseOn = '', mouseAt = null, mouseSent = 0
+/** He's on the primary display only because his own went away (unplugged, or a dock asleep): it stays the one remembered. */
+let fellBack = false
 /** Each busy session's transcript as of the last time hangabout-hook looked at it. */
 const checked = {}
 /** Whether you've left your PC alone for five minutes or more (no mouse or keys). */
@@ -65,9 +67,11 @@ app.on('will-quit', () => { try { fs.unlinkSync(pidPath) } catch {} })
  *  he was on last time, else the primary one. The page hears about them all, so he can go to them. */
 function fitScreen(id){
   const all = screen.getAllDisplays(), find = want => all.find(d => String(d.id) === want)
-  const d = find(id) || find(on) || find(prefs.display) || screen.getPrimaryDisplay()
+  const asked = find(id), mine = asked || find(on) || find(prefs.display)
+  fellBack = !asked && (fellBack || !mine) // until he's sent somewhere on purpose
+  const d = mine || screen.getPrimaryDisplay()
   on = String(d.id)
-  if (prefs.display !== on) { prefs.display = on; savePrefs() }
+  if (!fellBack && prefs.display !== on) { prefs.display = on; savePrefs() }
   win.setBounds(d.bounds)
   const got = win.getBounds()
   if (got.x !== d.bounds.x || got.y !== d.bounds.y || got.width !== d.bounds.width || got.height !== d.bounds.height) win.setBounds(d.bounds) // moved between displays of different scaling, Electron can size it wrong the first time
