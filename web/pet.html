@@ -858,6 +858,21 @@ function crossSteps(n){
   if (n.side === 'up') return [walk, {go: 'hold', T: 260, pose: {squash: 2}}, ...upInto(n, {vx: 0, vy: -leapSpeed(to)}, LEAPING)]
   return [walk, ...downInto(n, {vx: 0, vy: -500}, FLYING)] // a hop, then through the floor
 }
+/**
+ * Claude needs you (or is stuck) and your pointer's on another display: he pops out in a shimmer and drops in near it,
+ * not right under it. Once, and once more if you move on to yet another display while you're still needed.
+ */
+function comeToYou(now){
+  const p = disp.pointer, to = p && disp.list.find(d => d.id === p.id)
+  if (!NATIVE || pet.stay || pet.drag || !['needs', 'blocked'].includes(pet.id) || !to || to.id === disp.on || pet.calls >= 2) return
+  pet.calls++
+  const x = Math.max(PW, Math.min(to.w - PW, p.x + (p.x > to.w / 2 ? -160 : 160) * size)) // toward the side with more room
+  if (isStill()) return askDisplay(to.id, x, to.h - to.bottom - 2) // reduced motion: no trip, just there, on the floor
+  if (ai.mode === 'script') endTrip(now)
+  ai.trick = null
+  trip(now, [{go: 'hold', T: 300, pose: {phase: 1, eyes: 'up'}}, {go: 'display', id: to.id, x, y: 0}, {go: 'drop'}])
+  ai.urgent = true
+}
 /** Thrown at an edge with a display beyond: he sails through it, spinning, and on into the next display. v in points a second. */
 function flingSteps(n, vx, vy){
   const spin = .7 * (Math.sign(vx) || 1)
@@ -954,6 +969,8 @@ function setState(id, now = performance.now()){
     else if (NATIVE ? turn && !turn.fails && (turn.files || turn.cmds) : demo.on) fire('cleanFinish')
   }
   if (id === 'needs' && sound.on) chirp()
+  if ((id === 'needs' || id === 'blocked') && before !== 'needs' && before !== 'blocked') pet.calls = 0 // you're needed afresh
+  if (id === 'needs' || id === 'blocked') comeToYou(now)
   if (ANNOUNCE[id]) live.textContent = ANNOUNCE[id]
   for (const b of document.querySelectorAll('[data-state]')) b.setAttribute('aria-pressed', String(b.dataset.state === id && !demo.on))
 }
@@ -1337,7 +1354,11 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
     if (disp.pending && !list.some(d => d.id === disp.pending.id)) disp.pending = null // gone before he got there
     switchDisplay()
   },
-  mouse(id, x, y){ disp.pointer = {id, x, y} },
+  mouse(id, x, y){
+    const moved = disp.pointer?.id !== id
+    disp.pointer = {id, x, y}
+    if (moved) comeToYou(performance.now()) // onto another display while Claude needs you: he follows
+  },
   windows(tops){
     const on = surfaceUnder(pet.x, pet.y), was = on?.id != null && nativeTops.find(t => t.id === on.id), now = performance.now()
     nativeTops = tops

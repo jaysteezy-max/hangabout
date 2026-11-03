@@ -267,6 +267,61 @@ test('gentle drop stays', async () => {
   return h
 })
 
+// ---- Task 4: he comes to you when Claude needs you ----
+const SETTINGS = {sound: false, reduced: false, scale: 1, preset: 'normal', fan: false, found: []}
+/** Claude's state as the app sends it from state.json: one session, in this mood ('waiting' is what the hook writes for needs). */
+const claude = (h, mood) => h.run(mood => hangabout.claude({sessions: {t: {mood, ts: Date.now() / 1000}}}), mood)
+const comes = (name, mood) => test(name, async () => {
+  const h = await open({on: 'mac', x: 800})
+  await h.run(() => hangabout.mouse('dellR', 800, 500))
+  await claude(h, mood)
+  await h.tick(5000)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'dellR'); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  assert(Math.abs(w.x - 800) > 60, `right under the pointer: ${w.x}`)
+  await h.tick(3000)
+  const later = await h.where()
+  assert.strictEqual(later.on, 'dellR'); near(later.x, w.x, 1) // and waits there
+  return h
+})
+comes('comes to the pointer\'s display', 'waiting')
+comes('blocked counts too', 'blocked')
+test('follows once more, not twice', async () => {
+  const h = await open({on: 'mac', x: 800})
+  await h.run(() => { hangabout.mouse('dellR', 800, 500) }); await claude(h, 'waiting')
+  await h.tick(5000)
+  await h.run(() => hangabout.mouse('dellL', 400, 500))
+  await h.tick(5000)
+  assert.strictEqual((await h.where()).on, 'dellL')
+  await h.run(() => hangabout.mouse('mac', 400, 500))
+  await h.tick(5000)
+  assert.strictEqual((await h.where()).on, 'dellL')
+  assert.deepStrictEqual(h.sent, ['dellR', 'dellL'])
+  return h
+})
+test('waits where he is when you\'re on his display', async () => {
+  const h = await open({on: 'mac', x: 800})
+  await h.run(() => { hangabout.mouse('mac', 300, 500) }); await claude(h, 'waiting')
+  await h.tick(5000)
+  assert.deepStrictEqual(h.sent, [])
+  return h
+})
+test('stays with Stay on one display', async () => {
+  const h = await open({on: 'mac', x: 800})
+  await h.run(s => { hangabout.settings({...s, stay: true}); hangabout.mouse('dellR', 800, 500) }, SETTINGS); await claude(h, 'waiting')
+  await h.tick(5000)
+  assert.deepStrictEqual(h.sent, []); assert.strictEqual((await h.where()).on, 'mac')
+  return h
+})
+test('reduced motion goes straight there', async () => {
+  const h = await open({on: 'mac', x: 800})
+  await h.run(s => { hangabout.settings({...s, reduced: true}); hangabout.mouse('dellR', 800, 500) }, SETTINGS); await claude(h, 'waiting')
+  await h.tick(500)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'dellR'); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  return h
+})
+
 ;(async () => {
   browser = await puppeteer.launch({headless: 'shell'})
   const only = process.argv[2] || '', failed = []
