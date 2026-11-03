@@ -322,6 +322,34 @@ test('reduced motion goes straight there', async () => {
   return h
 })
 
+// ---- Task 5: Sneak through and the Portal secret come out on another display ----
+const sneaks = (name, x, to) => test(name, async () => {
+  const h = await open({on: 'dellL', x})
+  await h.run(() => perform('sneak'))
+  await h.tick(20000)
+  const w = await h.where()
+  assert.strictEqual(w.on, to); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  assert.deepStrictEqual(h.sent, to === 'dellL' ? [] : [to])
+  return h
+})
+sneaks('sneak comes out on the neighbor', 1500, 'dellR')
+sneaks('sneak at a wall wraps as before', 300, 'dellL')
+test('portal can open on another display', async () => {
+  const ends = []
+  for (let seed = 1; seed <= 8; seed++) {
+    const h = await open({on: 'dellL', x: 900, seed})
+    await h.run((s, still) => { hangabout.settings({...s, fan: true, found: ['portal']}); preset = {...PRESETS.normal, chance: still}; perform('portal') }, SETTINGS, STILL)
+    await h.tick(9000)
+    const w = await h.where(), left = await h.run(() => document.querySelectorAll('.portal').length)
+    assert(w.standing, `seed ${seed}: not standing: ${JSON.stringify(w)}`); assert.strictEqual(left, 0, `seed ${seed}: portals left`)
+    if (h.problems.length) throw new Error(h.problems.join('\n  '))
+    ends.push(w.on)
+    await h.page.close()
+  }
+  assert(ends.includes('dellL') && ends.some(on => on !== 'dellL'), `ended on ${ends}`)
+  return {problems: [], page: {close(){}}}
+})
+
 ;(async () => {
   browser = await puppeteer.launch({headless: 'shell'})
   const only = process.argv[2] || '', failed = []
