@@ -245,6 +245,18 @@ thrown('thrown right from the left Dell', 'dellL', 1500, 60, 0, 'dellR')
 thrown('thrown left from the right Dell', 'dellR', 400, -60, 0, 'dellL')
 thrown('thrown up from the laptop', 'mac', 400, 0, -60, 'dellL')
 thrown('thrown at a wall stays', 'dellL', 600, -60, 0, 'dellL')
+test('a moment doesn\'t cut a throw short', async () => {
+  const h = await open({on: 'dellL', x: 1500})
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let i = 1; i <= 6; i++) { await h.wait(16); await h.pointer('move', m.x + 60 * i, m.y) }
+  await h.pointer('up', m.x + 360, m.y)
+  await h.run(() => fire('longCommand')) // Claude finished a long command mid-flight: he'd stretch (it always answers)
+  await h.tick(4000)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'dellR'); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  return h
+})
 test('thrown down from the left Dell', async () => {
   const h = await open({on: 'dellL', x: 1300})
   const m = await h.middle()

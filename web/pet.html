@@ -604,6 +604,7 @@ function choose(...rarities){
  * function returning one), and one of those that pass plays. Says whether one did.
  */
 function fire(event){
+  if (ai.mode === 'script' && ai.urgent) return false // a flourish never cuts short a throw or his way to you
   const takers = Object.values(TRICKS).filter(t => {
     const c = t.on?.[event]
     return c && usable(t) && fits(t) && (!t.trip || roam(performance.now()) === 'free') && Math.random() < (typeof c === 'function' ? c() : c)
