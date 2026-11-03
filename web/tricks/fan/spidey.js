@@ -16,6 +16,7 @@
   const HATTY = hangabout.skin === 'hatty', DOMO = hangabout.skin === 'domo', UP = arm => HATTY || DOMO ? [arm, 'mid'] : ['mid', arm] // Hatty (and Domo) reach up with the hand in front when they turn
   const CHICKEN = hangabout.skin === 'chicken', GRIP = CHICKEN ? {hand: 1} : {} // raised high, his wing is over his back, so he holds the web out front in it
   const CAPPY = hangabout.skin === 'cappy' // the web from the toes of the paw he raises before his face
+  const IGGY = hangabout.skin === 'iggy' // Cappy's way, from the toes of the front foot he raises beside his face; his face looks out at you, Pusheen's way: a lens on each eye, the web from between them
   // The chicken's yellow beak, wing and foot stay red (a bulge in the mask, lit; a glove; a boot), their gold edge a darker
   // red; his blue crest, wattle and tail keep their dark blue as the suit's shade. His lens is a teardrop, pointed at his beak.
   const SHADE = CHICKEN && {'#FFF050': BODY, '#B8960F': SIDE, '#44AEF6': BODY, '#0060A0': SIDE}, GOLD = ['#FFF050', '#B8960F']
@@ -49,11 +50,11 @@
   }
   /**
    * His front hand reaching up (art pixel 36, 17 facing right; Hatty's 33, 20; Domo's mitt tip 31, 21; the chicken's wingtip 38, 19;
-   * Cappy's toes, 36, 29 at rest, keeping to his chin), with his feet at (x, y) and him turned rot degrees about them, in pose.
+   * Cappy's toes, 36, 29 at rest, keeping to his chin; Iggy's, 41.5, 28), with his feet at (x, y) and him turned rot degrees about them, in pose.
    */
   function hand(x, y, dir, rot, pose){
-    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : DOMO ? 9 : CHICKEN ? 16 : 14) * 3 * s
-    const hy = (HATTY ? -20 : DOMO ? -19 : CHICKEN ? -21 : CAPPY ? head(pose).y - (pose.squash || 0) - 37 : -23) * 3 * s
+    const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : DOMO ? 9 : CHICKEN ? 16 : IGGY ? 19.5 : 14) * 3 * s
+    const hy = (HATTY ? -20 : DOMO ? -19 : CHICKEN ? -21 : CAPPY ? head(pose).y - (pose.squash || 0) - 37 : IGGY ? head(pose).y - (pose.squash || 0) - 40 : -23) * 3 * s
     return [x + hx * Math.cos(a) - hy * Math.sin(a), y + hx * Math.sin(a) + hy * Math.cos(a)]
   }
   /** Longest web he'll swing on from (x, y): his feet clear the floor at the bottom of the arc, and a few swings fit across the screen. */
@@ -191,7 +192,7 @@
   function profileSuit(d, px, pose){
     const h = head(pose), dy = pose.dy || 0, flip = x => pose.face > 0 ? GW - 1 - x : x // between his art facing left and the screen, either way
     const dark = c => parseInt(c.slice(1, 3), 16) + parseInt(c.slice(3, 5), 16) + parseInt(c.slice(5, 7), 16) < 150
-    const cx = PUSHEEN ? h.x + 4 : SLIME ? h.x + 2 : h.x, web = (x, y) => { const dx = x - cx - .5, dv = y - h.y - .5, r = Math.hypot(dx / 1.3, dv); return y <= h.y + 9 && (Math.abs(Math.abs(dx) - 2 * Math.abs(dv)) < .7 || Math.abs(Math.abs(dv) - 2 * Math.abs(dx)) < .7 || Math.abs(r - 6) < .5) }
+    const cx = PUSHEEN || IGGY ? h.x + 4 : SLIME ? h.x + 2 : h.x, web = (x, y) => { const dx = x - cx - .5, dv = y - h.y - .5, r = Math.hypot(dx / 1.3, dv); return y <= h.y + 9 && (Math.abs(Math.abs(dx) - 2 * Math.abs(dv)) < .7 || Math.abs(Math.abs(dv) - 2 * Math.abs(dx)) < .7 || Math.abs(r - 6) < .5) }
     const low = new Map(); if (SLIME) for (const [x, y] of px) low.set(x, Math.max(low.get(x) ?? 0, y)) // its lowest pixel in each column
     const out = px.map(([x, y, c]) => {
       const blue = SLIME && low.get(x) >= 33 + dy && y > low.get(x) - 4 // its bottom four rows, following its edges down to its corner (a nub never reaches that low)
@@ -205,7 +206,7 @@
       return [x, y, mix(c, mask && !edge && web(flip(x), y) ? '#7E1219' : pal[shade || c] || pal[BODY], d)]
     })
     if (d < 1) return out
-    const lens = new Set(LENS.flatMap(([x, v]) => [x + h.x - 20 + ',' + (h.y + v), ...PUSHEEN ? [h.x + 30 - x + ',' + (h.y + v)] : SLIME ? [h.x + 25 - x + ',' + (h.y + v + 1)] : []])) // her far eye's is the mirror image (the slime's near eye's, a row lower)
+    const lens = new Set(LENS.flatMap(([x, v]) => IGGY ? [x + h.x - 20 + ',' + (h.y + v + 1), h.x + 29 - x + ',' + (h.y + v + 1)] : [x + h.x - 20 + ',' + (h.y + v), ...PUSHEEN ? [h.x + 30 - x + ',' + (h.y + v)] : SLIME ? [h.x + 25 - x + ',' + (h.y + v + 1)] : []])) // her far eye's is the mirror image (the slime's near eye's, a row lower; Iggy's both a row lower, round his square eyes)
     for (const k of lens) {
       const [x, y] = k.split(',').map(Number)
       out.push([flip(x), y, '#FFFFFF'])

@@ -10,7 +10,10 @@
   // Cappy has no hands: he holds the note up on the toes of his front paw, out low in front of his snout (by his chin as
   // he winds up), writes on it with the pen in his mouth, nodding as he scribbles, and slaps it on with that paw.
   const CAPPY = hangabout.skin === 'cappy'
-  const [NX, NY] = CAPPY ? [34, 23] : [38, 22], N = 12, LOW = 26 // the note in his hand (drawn as if he faces right), its size, and the top of it once stuck beside him
+  // Iggy has no hands either: he holds the note out by its edge on the toes of his front foot, clear of his face, and
+  // writes on it with the pen in those toes.
+  const IGGY = hangabout.skin === 'iggy'
+  const [NX, NY] = CAPPY ? [34, 23] : IGGY ? [42, 25] : [38, 22], N = 12, LOW = 26 // the note in his hand (drawn as if he faces right), its size, and the top of it once stuck beside him
   const YELLOW = '#FFD84D', LEAD = '#6B5E3C', TICK = '#2C7A39'
   const NOTE = [ // a, b: two scribbled lines; c, k: the tick, written last; f: a corner folded up
     'yyyyyyyyyyyy',
@@ -111,7 +114,7 @@
       if (CHICKEN) { ctx.fillStyle = '#16161A'; ctx.fillRect(x - 1, y - 1, N + 2, N + 2) } // outlined like him, so it doesn't run into his yellow wing
       paint(ctx, NOTE, x, y, ink(d.marks))
       if (!d.pen) return
-      const [tx, ty] = TIP[d.marks - 1], [hx, hy] = CAPPY ? [30, 32] : [36, OY + pose.hand + 1] // from his hand, or the corner of Cappy's mouth
+      const [tx, ty] = TIP[d.marks - 1], [hx, hy] = CAPPY ? [30, 32] : IGGY ? [41, 34] : [36, OY + pose.hand + 1] // from his hand, the corner of Cappy's mouth, or Iggy's toes
       thickLine(ctx, side > 0 ? hx : GW - 1 - hx, hy, x + tx - side, y + ty, 1, '#3F51B5') // a blue pen: a pencil wouldn't show on yellow
       ctx.fillStyle = '#2B2B2B'; ctx.fillRect(x + tx, y + ty, 1, 1)
     },

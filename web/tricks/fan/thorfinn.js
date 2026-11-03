@@ -10,6 +10,10 @@
   const SLIME = hangabout.skin === 'slime' // the mop over its whole top face, a dagger in each nub
   const DOMO = hangabout.skin === 'domo' // the mop on his head, bangs clear of his eyes, the scar between them, a dagger in each mitt
   const CAPPY = hangabout.skin === 'cappy' // his front dagger lower on his front leg, clear of his chin (under it, it read as a tusk)
+  // Iggy's face looks out at you like Pusheen's: her mop, moved to his eye, and the scar across his face between his eyes. No
+  // outline: his toes, a color of their own, are his lowest row. His front dagger hangs below his grin (on it, it read as a
+  // fang), and his back one by his hind foot (his tail curls up over his back).
+  const IGGY = hangabout.skin === 'iggy', IGGY_TOE = '#0988CC'
   const KNIGHT = hangabout.skin === 'knight' // his helmet stays on: the hair falls from under its back edge, over his shoulder
   const KNIGHT_MANE = ['MMOO', 'MMLMO', 'MMLMOO', 'MMLMLMO', 'MMLMLMOO', 'MMLMLMSMO', 'MMLMLMSMO', ...Array(8).fill('MMLMLMSMSO'), 'MMLMLMSMO', 'MMLMLMOMO', 'OOOMOMOO', '...O.O'] // as drawn facing left, from x 28: its front strands hide behind his helmet, the rest sweep out the back to ragged ends
   const BLADE = '#DCE1E8', STEEL = '#8E96A3', ARM = {down: 12, mid: 8, up: 4, high: -2}
@@ -37,15 +41,15 @@
    * to this skin's eye and snout; the back dagger goes by his rump, and his raised paw is found by his toes' color.
    */
   function profileFront(ctx, th, pose, px){
-    const h = head(pose), t = h.top, k = PUSHEEN ? -2 : h.x - 20, dy = pose.dy || 0, strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x + k, y0, 1, len) }
-    const L = x => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0), rump = Math.max(...px.map(([x]) => L(x))) - 1 // as drawn facing left
+    const h = head(pose), t = h.top, k = PUSHEEN ? -2 : IGGY ? h.x - 15 : h.x - 20, dy = pose.dy || 0, strand = (x, y0, len, c) => { ctx.fillStyle = c; ctx.fillRect(x + k, y0, 1, len) }
+    const L = x => pose.face > 0 ? GW - 1 - x + (pose.ox || 0) : x - (pose.ox || 0), low = Math.max(...px.map(([, y]) => y)), rump = Math.max(...px.filter(([, y]) => !IGGY || y >= low - 1).map(([x]) => L(x))) - 1 // as drawn facing left
     facing(ctx, pose, () => {
-      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < (PUSHEEN || SLIME ? 5 : 6); i++) ctx.fillRect(CHICKEN ? h.x + 5 - i : PUSHEEN ? h.x - 1 + i : h.nose + 2 + i, CHICKEN ? h.y - 2 + i : h.y + (PUSHEEN ? 3 : 5) - (i >> 1), 1, 1) } // scar across his snout (her cheek; the chicken: down his cheek past his eye; on his beak it reads as a mouth)
+      if (th.hair || th.daggers) { ctx.fillStyle = '#A44A35'; for (let i = 0; i < (PUSHEEN || SLIME || IGGY ? 5 : 6); i++) ctx.fillRect(CHICKEN ? h.x + 5 - i : PUSHEEN ? h.x - 1 + i : IGGY ? h.x + 2 + i : h.nose + 2 + i, CHICKEN ? h.y - 2 + i : h.y + (PUSHEEN || IGGY ? 3 : 5) - (i >> 1), 1, 1) } // scar across his snout (her cheek; the chicken: down his cheek past his eye; on his beak it reads as a mouth)
       if (th.hair && SLIME) slimeMop(ctx, h, px, L, dy)
       else if (th.hair && !KNIGHT) {
         ;[1, 2, 3, 4, 3, 5, 4, 3, 5, 4, 3, 4, 5, 3, 2, 1].forEach((n, i) => strand(13 + i, (i === 0 ? t + 2 : i === 1 ? t + 1 : t) - n, n + 2, i % 4 === 0 ? SHADE : i % 3 === 0 ? LIGHT : MID)) // the mop
-        for (const [x, len, c] of PUSHEEN ? [[11, 5, SHADE], [12, 6, MID], [27, 6, MID], [28, 5, SHADE]] : [[25, 7, MID], [26, 8, MID], [27, 9, SHADE], [28, 6, SHADE]]) strand(x, t, len, c) // locks down the back of his head (her face's sides)
-        for (const [x, len, c] of PUSHEEN ? [[15, 2, SHADE], [16, 1, MID], [19, 2, MID], [20, 1, MID]] : [[13, 4, SHADE], [14, 5, MID], ...CHICKEN ? [[15, 4, LIGHT]] : [], [16, 3, MID], [17, 2, MID]]) strand(x, t + 1, len, c) // bangs over his brow (the chicken's unparted: his brow shows through the part)
+        for (const [x, len, c] of PUSHEEN || IGGY ? [[11, 5, SHADE], [12, 6, MID], [27, 6, MID], [28, 5, SHADE]] : [[25, 7, MID], [26, 8, MID], [27, 9, SHADE], [28, 6, SHADE]]) strand(x, t, len, c) // locks down the back of his head (her face's sides)
+        for (const [x, len, c] of PUSHEEN || IGGY ? [[15, 2, SHADE], [16, 1, MID], [19, 2, MID], [20, 1, MID]] : [[13, 4, SHADE], [14, 5, MID], ...CHICKEN ? [[15, 4, LIGHT]] : [], [16, 3, MID], [17, 2, MID]]) strand(x, t + 1, len, c) // bangs over his brow (the chicken's unparted: his brow shows through the part)
         for (const x of [17, 22, 26]) strand(x, t - 2, 1, LIGHT) // shine
       }
       if (th.daggers && CHICKEN) { // reverse grip in his wing, down from his fist (up when he raises it); the other tucked at his side, darker so it shows on his white
@@ -64,16 +68,16 @@
           if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, up ? y0 - 1 : y0 + 5, 1, 1) }
         }
       } else if (th.daggers) { // reverse grip: down along his legs, or up from his front paw when he lifts it
-        const g = Math.max(...px.map(([, y]) => y)) - 1, line = px.find(([, y]) => y === g + 1)[2] // the row his feet are on; his outline is all that's below it
-        const sole = px.filter(([, y, c]) => y === g && c !== line).sort((a, b) => L(a[0]) - L(b[0]))[0]?.[2], toes = px.filter(([, y, c]) => y < g && c === sole)
+        const g = low - (IGGY ? 0 : 1), line = IGGY ? null : px.find(([, y]) => y === g + 1)[2] // the row his feet are on; his outline is all that's below it
+        const sole = IGGY ? IGGY_TOE : px.filter(([, y, c]) => y === g && c !== line).sort((a, b) => L(a[0]) - L(b[0]))[0]?.[2], toes = px.filter(([, y, c]) => y < g && c === sole)
         const paw = (pose.arms || []).some(a => a === 'up' || a === 'high') && toes.length ? [Math.min(...toes.map(([x]) => L(x))), Math.min(...toes.map(([, y]) => y))] : null
-        for (const [bx, y0, up] of [paw ? [paw[0], paw[1] - 5, 1] : CAPPY ? [h.nose + 9, 34 + dy, 0] : [h.nose + 6, 33 + dy, 0], [rump - 1, 33 + dy, 0]]) {
+        for (const [bx, y0, up] of [paw ? [paw[0], paw[1] - 5, 1] : CAPPY ? [h.nose + 9, 34 + dy, 0] : IGGY ? [h.nose + 7, 35 + dy, 0] : [h.nose + 6, 33 + dy, 0], [rump - 1, 33 + dy, 0]]) {
           ctx.fillStyle = BLADE; ctx.fillRect(bx, y0, 2, 5)
           ctx.fillStyle = STEEL; ctx.fillRect(bx + 1, y0, 1, 5)
           if (th.glint) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(bx, up ? y0 - 1 : y0 + 5, 1, 1) }
         }
       }
-      if (th.sheathe && !SLIME) { ctx.fillStyle = '#FFFFFF'; for (const [x, y] of CHICKEN ? [[6, 35], [24, 34]] : [[h.nose + (CAPPY ? 10 : 7), CAPPY ? 35 : 34], [rump, 34]]) ctx.fillRect(x, y + dy, 1, 1) }
+      if (th.sheathe && !SLIME) { ctx.fillStyle = '#FFFFFF'; for (const [x, y] of CHICKEN ? [[6, 35], [24, 34]] : [[h.nose + (CAPPY ? 10 : IGGY ? 8 : 7), CAPPY ? 35 : IGGY ? 36 : 34], [rump, 34]]) ctx.fillRect(x, y + dy, 1, 1) }
     })
     if (CHICKEN && (th.hair || th.daggers)) for (const [x, y, c] of px) if (c === BODY && (y === 32 + dy || y === 33 + dy)) { ctx.fillStyle = y === 32 + dy ? '#6B4A2B' : '#4A3020'; ctx.fillRect(x, y, 1, 1) } // the chicken's belt round his white, over the tucked blade (his wattle and wing hang in front of it)
   }

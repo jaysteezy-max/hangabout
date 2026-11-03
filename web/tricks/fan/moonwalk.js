@@ -32,6 +32,10 @@
   const CHICKEN_GOLD = ['#FFF050', '#B8960F'], SEAM = '#9AA1AF'
   // The slime (web/skins/slime.js) has no feet, so no socks or loafers: the glove goes on its nub, the fedora sits on its
   // top face, and in the slide its jelly base slips back along the floor and the rest of it catches up.
+  // Iggy (web/skins/iggy.js) has no outline: his toes, a color of their own, are his lowest row, and his feet are found on
+  // the row above them (his toes are split in two). His whole lifted front foot takes the glove, and his face looks out at
+  // you, so the fedora sits square on his head like Pusheen's.
+  const IGGY = hangabout.skin === 'iggy', IGGY_TOE = '#0988CC'
   const SLIME = hangabout.skin === 'slime', SLIME_LINE = '#6A9D23', SLIME_TOP = 21 // its outline; the middle of its top face as drawn facing left, which stays put as it squashes
 
   /**
@@ -43,24 +47,24 @@
   function inProfile(d, px, pose, now){
     const L = x => pose.face > 0 ? GW - 1 - x : x, f = d.fit
     let out = px.map(([x, y, c]) => [L(x), y, c])
-    const g = CHICKEN ? 38 + (pose.dy || 0) : Math.max(...out.map(([, y]) => y)) - 1, line = CHICKEN ? CHICKEN_LINE : out.find(([, y]) => y === g + 1)[2], legs = []
-    for (const [x] of out.filter(([, y, c]) => y === g && c !== line).sort((a, b) => a[0] - b[0])) { const l = legs.at(-1); if (l && x === l.x1 + 1) l.x1 = x; else legs.push({x0: x, x1: x}) }
+    const g = CHICKEN ? 38 + (pose.dy || 0) : Math.max(...out.map(([, y]) => y)) - (IGGY ? 0 : 1), line = CHICKEN ? CHICKEN_LINE : IGGY ? null : out.find(([, y]) => y === g + 1)[2], legs = []
+    for (const [x] of out.filter(([, y, c]) => y === g - (IGGY ? 1 : 0) && c !== line).sort((a, b) => a[0] - b[0])) { const l = legs.at(-1); if (l && x === l.x1 + 1) l.x1 = x; else legs.push({x0: x, x1: x}) }
     const at = new Map(out.map(([x, y, c]) => [x + ',' + y, c])), clear = (x, y) => [undefined, line].includes(at.get(x + ',' + y))
-    for (const l of legs) for (l.h = 1; clear(l.x0 - 1, g - l.h) && clear(l.x1 + 1, g - l.h); l.h++);
-    const sole = CHICKEN ? CHICKEN_TOES : legs[0] && at.get(legs[0].x0 + ',' + g), paw = out.some(([, y, c]) => y < g && c === sole) // front foot up, off the floor
+    for (const l of legs) for (l.h = 1; IGGY ? l.h < 3 : clear(l.x0 - 1, g - l.h) && clear(l.x1 + 1, g - l.h); l.h++);
+    const sole = CHICKEN ? CHICKEN_TOES : IGGY ? IGGY_TOE : legs[0] && at.get(legs[0].x0 + ',' + g), paw = out.some(([, y, c]) => y < g && c === sole) // front foot up, off the floor
     if (d.slide) { // the flat pair slides back (+x, as he faces left), the other is up on its toes
       const [flat, off] = d.slide, top = g + 1 - Math.max(1, ...legs.map(l => l.h)), moved = []
       legs.forEach((l, i) => { // numbered as his feet are, so the pairs stay put when his front one is up
         const n = i + (paw ? 1 : 0), dx = n % 2 === flat ? off : -off
-        for (const [x, y, c] of out) if (x >= l.x0 && x <= l.x1 && y > g - l.h && y <= g && (n % 2 === flat || y < g || x === l.x0)) moved.push([x + dx, y, c])
+        for (const [x, y, c] of out) if (x >= l.x0 && x <= l.x1 && y > g - l.h && y <= g && (n % 2 === flat || y < g || x <= l.x0 + (IGGY ? 2 : 0))) moved.push([x + dx, y, c])
       })
       const under = out.filter(([, y, c]) => y === top - 1 && c !== line), mine = new Set(moved.map(([x, y]) => x + ',' + y))
       out = out.filter(([, y]) => y < top)
-      for (const [x] of under) out.push([x, top, line])
-      for (const [x, y] of moved) for (const [a, b] of [[-1, 0], [1, 0], [0, 1], [0, -1]]) if (y + b >= top && !mine.has(x + a + ',' + (y + b))) out.push([x + a, y + b, line])
+      if (line) for (const [x] of under) out.push([x, top, line])
+      if (line) for (const [x, y] of moved) for (const [a, b] of [[-1, 0], [1, 0], [0, 1], [0, -1]]) if (y + b >= top && !mine.has(x + a + ',' + (y + b))) out.push([x + a, y + b, line])
       out.push(...moved)
     }
-    const front = !paw && !d.slide && legs[0], shod = new Set(out.filter(([, y, c]) => y === g && c !== line).map(([x]) => x))
+    const front = !paw && !d.slide && legs[0], shod = new Set(out.filter(([, y, c]) => y === g - (IGGY ? 1 : 0) && c !== line).map(([x]) => x))
     const h = head(pose)
     if (CHICKEN) {
       const dy = pose.dy || 0, toes = out.filter(([, , c]) => c === sole).map(([, y]) => y), shoe = toes.length ? Math.max(...toes) - 1 : g // his loafer: his toes and the row above
@@ -74,14 +78,14 @@
     } else if (KNIGHT) out = out.map(([x, y, c]) => KNIGHT_ARMOR.includes(c) && (x <= 12 || x <= 18 && y >= 30) ? [x, y, mix(c, GLOVE[(x * 3 + y * 5 + Math.floor(now / 140)) % 4 ? 0 : 1], f)] // his front fist, gloved
       : y === g ? [x, y, mix(c, SHOE[BODY], f)] : y === g - 1 && shod.has(x) ? [x, y, mix(c, SOCK[BODY], f)] : [x, y, c]) // loafers, white socks
     else out = out.map(([x, y, c]) => c === line ? [x, y, c]
-      : (c === sole && y < g) || (front && y === g && x >= front.x0 && x <= front.x1) ? [x, y, mix(c, GLOVE[(x * 3 + y * 5 + Math.floor(now / 140)) % 4 ? 0 : 1], f)] // the gloved front foot
+      : (c === sole && y < g) || (IGGY && paw && x < h.nose) || (front && y === g && x >= front.x0 && x <= front.x1) ? [x, y, mix(c, GLOVE[(x * 3 + y * 5 + Math.floor(now / 140)) % 4 ? 0 : 1], f)] // the gloved front foot
       : y === g ? [x, y, mix(c, SHOE[BODY], f)] // loafers
       : y === g - 1 && shod.has(x) ? [x, y, mix(c, SOCK[BODY], f)] // white socks above them
       : [x, y, c])
     if (d.hat != null && KNIGHT) HAT.forEach((row, j) => [...row].forEach((ch, i) => { if (INK[ch]) out.push([12 + i, h.top - HAT.length + j + d.hat + (j === HAT.length - 1 && i <= 6 ? d.tilt : 0), INK[ch]]) })) // on his helmet, the brim down at the front
     else if (d.hat != null) { // over his ears: the brim on the top of his head
       SMALL_HAT.forEach((row, j) => [...row].forEach((ch, i) => {
-        if (INK[ch]) out.push([h.x - (PUSHEEN ? 3 : 6) + i, h.top - SMALL_HAT.length + j + d.hat + (j === SMALL_HAT.length - 1 && i <= 2 ? d.tilt : 0), INK[ch]]) // brim down at the front, over his snout
+        if (INK[ch]) out.push([h.x - (PUSHEEN || IGGY ? 3 : 6) + i, h.top - SMALL_HAT.length + j + d.hat + (j === SMALL_HAT.length - 1 && i <= 2 ? d.tilt : 0), INK[ch]]) // brim down at the front, over his snout
       }))
     }
     return out.map(([x, y, c]) => [L(x), y, c])

@@ -7,19 +7,21 @@
   const HATTY = hangabout.skin === 'hatty' // the helmet in place of his top hat, his suit gone black, the saber in his cane hand
   const CHICKEN = hangabout.skin === 'chicken' // a dome of a helmet over his crest, his blue and toes gone black, the cape down his back, the saber in his wing
   const PUSHEEN = hangabout.skin === 'pusheen' // her face looks out of a side-on loaf: the dome over both ears, a lens on each eye
+  const IGGY = hangabout.skin === 'iggy' // his face looks out too: Pusheen's helmet, moved forward onto his head, his eyes closer together, the grille on his grin; the saber in his front foot held out low
   const CAPPY = hangabout.skin === 'cappy' // his snout and toes gone black too, his front paw out low to the hilt
   const SLIME = hangabout.skin === 'slime' // a cube with its face on its side: the dome over its top face, a lens on each eye, the saber in its goo arm
   const KNIGHT = hangabout.skin === 'knight' // his own helmet is the dome: it goes black, his faceplate the mask, the saber in his front hand
   const DOMO = hangabout.skin === 'domo' // his face is his body: the dome to his brow, the mask down over the top of his mouth, the saber in his raised mitt
   const ARMOR = {[BODY]: '#1E1E24', [TOP]: '#3C3D47', [SIDE]: '#111115', [EYE]: '#1E1E24'}
   if (PUSHEEN) ARMOR['#8B8B90'] = '#111115' // and her paws (web/skins/pusheen.js)
+  if (IGGY) ARMOR['#0988CC'] = ARMOR[BODY] // and Iggy's toes (web/skins/iggy.js)
   if (HATTY) Object.assign(ARMOR, {'#915544': '#1E1E24', '#4E4E4E': '#111115', '#9B225D': '#2C2D35', '#4BA2CE': '#1E1E24'}) // and his jacket, trousers, tie and tears (web/skins/hatty.js)
   if (CHICKEN) Object.assign(ARMOR, {'#F2BE2E': '#2C2D35', '#6B2020': '#111115'}) // his toes (web/skins/chicken.js)
   if (CAPPY) Object.assign(ARMOR, {'#86655F': '#2C2D35', '#8F6F69': '#3C3D47', '#7A3A3E': '#2C2D35'}) // his snout, its highlight and his toes (web/skins/cappy.js)
   if (SLIME) Object.assign(ARMOR, {'#6A9D23': '#0B0B0E', '#FFFFFF': '#4B4E5C', '#DCF9B6': '#3C3D47', '#EC9291': '#1E1E24'}) // its outline, glints (a shine on the armor) and cheeks (web/skins/slime.js)
   if (KNIGHT) Object.assign(ARMOR, {'#FFFFFF': '#2C2D35', '#D9DEEA': '#3C3D47', '#A9B4C8': '#5D606B', '#4A4A4A': '#1E1E24', '#7A7A7A': '#3C3D47', '#383838': '#111115', '#5E5E5E': '#111115'}) // his faceplate and tunic, armor and boots (web/skins/knight.js)
   const SUITED = {'#44AEF6': '#1E1E24', '#0060A0': '#111115', '#FFF050': '#3C3D47', '#B8960F': '#111115'} // the chicken's blue and yellow, gone black all but his beak and tail (see pixels)
-  const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid'], HOLD = {arms: DOMO ? ['mid', 'up'] : MID, ...(CHICKEN || CAPPY || SLIME) && {hand: 7}} // the chicken's wing round the hilt, Cappy's paw, the slime's goo arm, Domo's mitt up (his 'mid' is his rest)
+  const SUIT = {dark: 1, cape: 1, helmet: 0, mask: 1}, MID = ['mid', 'mid'], HOLD = {arms: DOMO ? ['mid', 'up'] : MID, ...(CHICKEN || CAPPY || SLIME || IGGY) && {hand: 7}} // the chicken's wing round the hilt, Cappy's paw, the slime's goo arm, Domo's mitt up (his 'mid' is his rest)
   const maythe4th = () => { const d = new Date(); return d.getMonth() === 4 && d.getDate() === 4 ? 1 : 0 } // your local date
 
   /** A side-on skin's last column at his back, as drawn facing left: just in from his outline. */
@@ -185,25 +187,27 @@
     facing(ctx, pose, () => {
       if (v.helmet != null) {
         const t = h.top + v.helmet
+        if (IGGY) ctx.translate(-5, 0) // from his nose back over his bumps
         for (const [dy, x0, x1] of [[-6, 14, 21], [-5, 12, 23], [-4, 11, 25], [-3, 10, 26], [-2, 10, 27], [-1, 9, 27], [0, 9, 28], [1, 9, 28]]) row(t + dy, x0, x1, '#111114')
         for (const [dy, l, r] of [[2, 10, 28], [3, 10, 29], [4, 10, 29], [5, 9, 29], [6, 9, 30]]) { row(t + dy, l, 11, '#111114'); row(t + dy, 25, r, '#111114') } // the flare, beside her face and down her back
         row(t - 6, 16, 19, '#3C3D47'); row(t + 1, 11, 25, '#2C2D35') // light on the crown, and the brow over the mask
         for (const [dy, x] of [[3, 29], [4, 29], [5, 29], [6, 30]]) row(t + dy, x, x, '#3C3D47') // and on the flare's edge
         ctx.fillStyle = '#4B4E5C'; for (const [x, y] of [[14, t - 5], [12, t - 4], [11, t - 3], [10, t - 2]]) ctx.fillRect(x, y, 1, 1) // shine
+        if (IGGY) ctx.translate(5, 0)
       }
       if (v.mask) {
-        for (const [x0, outer] of [[h.x - 1, -1], [h.x + 8, 1]]) { // angled lenses over her eyes, cut away at the outer bottom corner
+        for (const [x0, outer] of [[h.x - 1, -1], [h.x + (IGGY ? 7 : 8), 1]]) { // angled lenses over her eyes, cut away at the outer bottom corner
           row(h.y - 1, x0, x0 + 3, '#2B0E10'); row(h.y, x0, x0 + 3, '#2B0E10'); row(h.y + 1, x0 + (outer < 0), x0 + 3 - (outer > 0), '#2B0E10')
           ctx.fillStyle = '#7A3232'; ctx.fillRect(x0 + 1, h.y - 1, 1, 1)
         }
         ctx.fillStyle = '#5D606B'; ctx.fillRect(h.x + 4, h.y - 2, 1, 3); ctx.fillRect(h.x + 5, h.y - 2, 1, 3) // the ridge between them
         for (let i = 0; i < 2; i++) { ctx.fillRect(h.x + i, h.y + 2 + i, 1, 1); ctx.fillRect(h.x + 9 - i, h.y + 2 + i, 1, 1) } // the cheeks, down to the grille
-        for (const [y, w] of [[h.y + 1, 1], [h.y + 2, 2], [h.y + 3, 2]]) for (let x = h.x + 5 - w; x <= h.x + 4 + w; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille
+        for (const [y, w] of IGGY ? [[h.y + 3, 1], [h.y + 4, 2], [h.y + 5, 2]] : [[h.y + 1, 1], [h.y + 2, 2], [h.y + 3, 2]]) for (let x = h.x + 5 - w; x <= h.x + 4 + w; x++) { ctx.fillStyle = x % 2 ? '#8D929C' : '#2C2D33'; ctx.fillRect(x, y, 1, 1) } // mouth grille (Iggy's over his grin)
         row(h.y + 6, h.x + 1, h.x + 8, '#4F525C'); row(h.y + 7, h.x + 1, h.x + 8, '#4F525C') // chest panel, its lights blinking
         const on = Math.floor(now / 350)
         ;['#FF3B3B', '#3BDB6B', '#4D8BFF', '#FFFFFF'].forEach((c, i) => { if ((on + i) % 3) { ctx.fillStyle = c; ctx.fillRect(h.x + 2 + i * 2, h.y + 6 + (i % 2), 1, 1) } })
       }
-      saber(ctx, v, now, 8, h.y + 8)
+      saber(ctx, v, now, IGGY ? 1 : 8, h.y + (IGGY ? 6 : 8)) // Iggy's at the toes of his foot held out, the blade clear of it
     })
   }
 
@@ -274,7 +278,7 @@
     },
     /** In front: the helmet coming down, the mask and chest panel, and the red saber (hilt in his right hand). */
     front({ctx, d: v, px, now, pose}){
-      if (PUSHEEN) return pusheenFront(ctx, v, now, pose)
+      if (PUSHEEN || IGGY) return pusheenFront(ctx, v, now, pose)
       if (SLIME) return slimeFront(ctx, v, now, pose)
       if (KNIGHT) return knightFront(ctx, v, now, pose)
       if (PROFILE) return profileFront(ctx, v, px, now, pose)

@@ -18,6 +18,7 @@
     Object.assign(HURT, {'#86655F': '#D45A5A', '#8F6F69': '#E06C6C', '#7A3A3E': '#9E2C2C'})
     Object.assign(LIT, {'#86655F': '#E4E4E4', '#8F6F69': '#F0F0F0', '#7A3A3E': '#D8D8D8'}) // a hint of his face left in the flash
   }
+  if (hangabout.skin === 'iggy') for (const m of [DEAD, HURT, LIT]) m['#0988CC'] = m[BODY] // his toes (web/skins/iggy.js)
   const CAPPY_LINE = '#1C1214', CAPPY_TOES = '#7A3A3E', N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
   const LEGS = [[18, -1, 0], [21, 0, 1], [24, 0, 1], [27, 1, 0]] // his legs in the air, facing left, [left x, lean, far]: his near pair splayed out front and back, his far pair shorter between them, in shadow
   /**

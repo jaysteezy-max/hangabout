@@ -6,7 +6,7 @@
   const {OY, PH, GW, paint, surfaces, desk, rand, pick} = hangabout
   const KNIGHT = hangabout.skin === 'knight'
   const PUSHEEN = hangabout.skin === 'pusheen' // a loaf cat: she folds it on the floor in front of her, patting it with a paw, and aims it from her raised paw
-  const AIM = PUSHEEN ? [{x: 31, y: OY + 5}, {x: 29, y: OY + 6}] : hangabout.skin === 'cappy' ? [{x: 32, y: 26}, {x: 31, y: 27}] : [{x: 33, y: OY}, {x: 31, y: OY + 1}]
+  const AIM = PUSHEEN ? [{x: 31, y: OY + 5}, {x: 29, y: OY + 6}] : hangabout.skin === 'cappy' ? [{x: 32, y: 26}, {x: 31, y: 27}] : hangabout.skin === 'iggy' ? [{x: 39, y: 25}, {x: 39, y: 25}] : [{x: 33, y: OY}, {x: 31, y: OY + 1}]
   const INK = {W: '#F4F4F1', L: '#C9CDD3', F: '#8F959E'} // paper, its shaded underside, the fold
   const SHEET = ['WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'WWWWWWW', 'LLLLLLL']
   const POINTED = ['...W...', '..WFW..', '.WWFWW.', 'WWWFWWW', 'WWWFWWW', 'LLLFLLL'] // top corners folded in
@@ -19,9 +19,11 @@
   // The chicken is white too: he holds the paper out in his wing, off his belly, and aims the plane from it. The slime's
   // face is where his belly is: it folds the paper out ahead in its goo arm's tip, and aims the plane from a nub.
   // Cappy has no arms: the sheet lies on the floor in front of his snout, under him so his paw pats it down from his chin.
-  const CAPPY = hangabout.skin === 'cappy'
+  // Iggy has no hands either: his sheet lies on the floor before his chin, his front foot pats it down, and he aims the
+  // plane on the toes of that foot by his chin (it stays there as he draws back: his squash leaves that foot where it is).
+  const CAPPY = hangabout.skin === 'cappy', IGGY = hangabout.skin === 'iggy'
   const CHICKEN = hangabout.skin === 'chicken', SLIME = hangabout.skin === 'slime', HOLD = CHICKEN || SLIME
-  const SHEET_AT = CHICKEN ? {x: 37, y: 25} : SLIME ? {x: 36, y: 28} : PUSHEEN ? {x: 35, y: 33} : CAPPY ? {x: 33, y: 33, under: 1} : {x: 18, y: OY + 9}
+  const SHEET_AT = CHICKEN ? {x: 37, y: 25} : SLIME ? {x: 36, y: 28} : PUSHEEN ? {x: 35, y: 33} : CAPPY ? {x: 33, y: 33, under: 1} : IGGY ? {x: 39, y: 34, under: 1} : {x: 18, y: OY + 9}
   function paper(ctx, d, pose){
     const left = pose.face < 0, w = d.art[0].length
     paint(ctx, left ? d.art.map(r => [...r].reverse().join('')) : d.art, left ? GW - d.x - w : d.x, d.y, INK)
@@ -66,7 +68,7 @@
     trip({x, y, dir}){
       const s = hangabout.size, W = hangabout.width
       if ((dir > 0 ? W - x : x) < W / 3) dir = -dir // too near the edge he faces: he throws toward the room
-      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {...PUSHEEN ? arms[0] === 'up' && {hand: 8} : {arms}, ...CAPPY && arms[0] === 'up' && {reach: 3}, eyes: 'down', ...HOLD && {hand: arms[0] === 'up' ? 7 : 8}, paperPlane: {art, ...SHEET_AT}}})
+      const folding = (art, arms) => ({go: 'hold', T: 210, pose: {...PUSHEEN ? arms[0] === 'up' && {hand: 8} : {arms}, ...(CAPPY || IGGY) && arms[0] === 'up' && {reach: 3}, eyes: 'down', ...HOLD && {hand: arms[0] === 'up' ? 7 : 8}, paperPlane: {art, ...SHEET_AT}}})
       const cheer = (T, pose) => ({go: 'hold', T, pose: {face: dir, eyes: 'happy', ...pose}})
       let f // the flight, once it's left his hand
       const steps = [

@@ -6,6 +6,9 @@
   const {GW, OY, desk, paint, thickLine, pick} = hangabout
   const PUSHEEN = hangabout.skin === 'pusheen' // side on, she turns to the water and holds the rod's butt in her paw
   const CAPPY = hangabout.skin === 'cappy' // side on too: he turns to the water, lower on the ledge, the rod's butt on the toes of his paw, and kept there through the beauty and the goodbye (no wave: his one paw holds the rod)
+  // Iggy, like Cappy, turns to the water and keeps the rod in his one front foot, its butt between his toes: held out low
+  // (by his chin as he winds up). Lying flat would drop that foot behind the ledge, so he hunches as he reels.
+  const IGGY = hangabout.skin === 'iggy', TOES = {up: [5, 2], out: [6, 3]}
   document.head.insertAdjacentHTML('beforeend', `<style>
   .fishline{position:absolute;z-index:9;width:var(--a);height:0;pointer-events:none;transition:height .45s ease-in;background:linear-gradient(90deg,transparent 33%,var(--line) 33% 67%,transparent 67%)}
   .fishline canvas{position:absolute;image-rendering:pixelated}
@@ -50,9 +53,9 @@
       const s = hangabout.size, a = 3 * s
       const side = x - 66 < (here.x0 + here.x1) / 2 ? 1 : -1 // casts toward the middle of the window
       const hands = (rod, free) => side > 0 ? [free, rod] : [rod, free]
-      const sit = (o, f) => ({sink: CAPPY ? 6 : 12, arms: hands('mid', 'down'), ...(PUSHEEN || CAPPY) && {face: side, ...(!o?.arms || CAPPY && !f) && {hand: 6, ...CAPPY && {reach: 3}}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, ...KNIGHT && {face: side, hand: 11, sword: 'dropped'}, fishing: {rod: 'out', side, ...f}})
+      const sit = (o, f) => ({sink: CAPPY ? 6 : 12, arms: hands('mid', 'down'), ...(PUSHEEN || CAPPY || IGGY) && {face: side, ...(!o?.arms || (CAPPY || IGGY) && !f) && {hand: 6, ...CAPPY && {reach: 3}}}, ...o, ...CHICKEN && {face: side, hand: GRIP[f?.rod || 'out']}, ...SLIME && {face: side, hand: GOO[f?.rod || 'out'], ...o?.lift && {squash: o.lift[0]}}, ...KNIGHT && {face: side, hand: 11, sword: 'dropped'}, fishing: {rod: 'out', side, ...f}})
       const cast = () => {
-        const [, , tx, ty] = ROD.out
+        const [ox, oy] = IGGY ? TOES.out : [0, 0], tx = ROD.out[2] + ox, ty = ROD.out[3] + oy // from the rod's tip
         line = document.createElement('div'); line.className = 'fishline'
         line.style.cssText = `--a:${a}px;--line:${hangabout.C.dim};left:${x - 66 * s + (side > 0 ? tx : GW - 1 - tx) * a}px;top:${y - 120 * s + (ty + 1) * a + 12 * s}px`
         line.append(sprite(BOBBER, 'bobber', a))
@@ -68,7 +71,7 @@
         {go: 'do', fn: () => line.classList.add('bite')},
         {go: 'hold', T: 800, pose: sit({dx: side, lookY: 1}, {bite: 1})},
         {go: 'do', fn: reel},
-        {go: 'hold', T: 1400, pose: sit({eyes: 'strain', tuck: 1}, {reel: 1})},
+        {go: 'hold', T: 1400, pose: sit({eyes: 'strain', ...IGGY ? {squash: 1} : {tuck: 1}}, {reel: 1})},
         {go: 'hold', T: 1200, pose: t => sit({eyes: 'happy', arms: hands('mid', 'up'), lift: Math.floor(t / 200) % 2 ? [0, 2] : [1, 3]})}, // what a beauty
         {go: 'do', fn: () => line.lastChild.classList.add('free')},
         {go: 'hold', T: 900, pose: t => { const k = Math.floor(t / 200) % 2; return sit({dx: side, lookY: 1, arms: hands('mid', k ? 'up' : 'high'), ...CHICKEN && k && {beak: 'open'}, ...SLIME && {squash: k}}) }}, // bye, little one
@@ -81,7 +84,7 @@
     end: reelIn, // cut short: no line left hanging
     front({ctx, d, now, px, pose}){
       const m = x => d.side > 0 ? x : GW - 1 - x, at = (x, yy, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(d.side > 0 ? x : GW - x - w, yy, w, h) }
-      const [ox, oy] = CAPPY ? d.rod === 'up' ? [-5, 3] : [-1, 2] : [0, 0] // his paw's toes, low and out or at his chin
+      const [ox, oy] = CAPPY ? d.rod === 'up' ? [-5, 3] : [-1, 2] : IGGY ? TOES[d.rod] : [0, 0] // his paw's toes, low and out or at his chin
       const [x0, y0, x1, y1] = ROD[d.rod].map((v, i) => v + (i % 2 ? oy : ox)), [rx, ry] = CHICKEN ? [38, 27] : [36 + ox, 32 + oy]
       thickLine(ctx, m(x0), y0, m(x1), y1, 1, '#8A5A33')
       if (d.rod === 'out') { at(rx, ry, 2, 2, '#B9BDC6'); at(rx + 2, d.reel && Math.floor(now / 110) % 2 ? ry + 2 : ry, 1, 1, '#6B7078') } // the reel, its handle spinning as he winds
