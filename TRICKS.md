@@ -249,6 +249,7 @@ returns steps, run in order:
 | `{go: 'do', fn}` | Runs `fn(now)` once: jump him somewhere, add something to the page. |
 | `{go: 'move', fn, pose}` | Calls `fn(t, dt)` every frame (ms since the step began, ms since the last frame) to move him yourself with `putFeet`, for motion the other steps can't do: a swing on a web, a throw. Ends when `fn` returns true. `pose` as for `hold`. |
 | `{go: 'drop', vy}` | Lets go: he falls from where he is (optionally already moving down at `vy`) and the trip is over. |
+| `{go: 'display', id, x, y}` | Takes him to another display (from `across()` or `otherDisplays()`): his layer moves there and his feet go to `x, y` in its coordinates. Leave out `x, y` to cross to the display next door at the spot that lines up with him. If that display has gone, the trip ends where he is. |
 
 When the steps run out he falls to whatever is below him, so a trip can end anywhere. Distances are in screen points:
 multiply your art-sized distances by `hangabout.size` so a bigger pet goes further. Trip helpers on `hangabout`:
@@ -257,13 +258,21 @@ multiply your art-sized distances by `hangabout.size` so a bigger pet goes furth
 | --- | --- |
 | `feet()` | `{x, y}`: where his feet are now. |
 | `putFeet(x, y, rot)` | Puts his feet there at once, rotated `rot` degrees about them if given. |
-| `width`, `size`, `scr` | The screen's width; his size; `{top, bottom}`: the menu bar's and the Dock's heights. |
+| `width`, `size`, `scr` | The width of the display he's on; his size; `{top, bottom}`: the menu bar's and the Dock's heights. |
+| `across(side)` | The display beyond that side of his (`'left'`, `'right'`, `'up'`, `'down'`), as `{id, x, y, width}`: where his feet come in on it and its width. `null` if that side is a wall (and always in the mockup). |
+| `otherDisplays()` | Every other display, as `{id, w, h, top, bottom}`. Empty with one display. |
 | `surfaces()` | Everywhere he can stand: the floor first, then each window's top edge, as `{x0, x1, y}` measured at the top-left of his footprint. His feet can go from `x0 + 66` to `x1 + 66`, at `y + PH`. `here` is one of these. |
 | `edges()` | The top edges of the windows, as `{y, x0, x1, wx, w, h}`: the visible stretch of the top (`x0` to `x1`), and the window's left, width and height. For things that stick to windows (see `fan/spidey.js`). |
 | `clip({x, dir})`, `clip({y})` | Hides the part of him past `x` on the side he's heading, or above `y`, until he lands (into and out of a portal). |
 | `desk` | The element he lives in, for adding your own pieces of page (see `fan/portal.js`). |
 
 A trip is cut short when Claude needs him or you grab him. If yours added anything to the page, remove it in `end`.
+
+**More than one display.** In the app his layer covers one display at a time. An edge with another display beyond it
+leads there, and a trip that goes out that way can come out on the other display: `core/sneak.js` does, with
+`across()`, and `fan/portal.js` sometimes opens its exit on another display with `otherDisplays()`. An edge with
+nothing beyond is a wall, as it always was. Anything your trip added to the page stays where it was on the page, so
+remove it before a `display` step.
 
 ## Testing
 
@@ -352,8 +361,9 @@ poses beside references, sweeps every pose, and plays every trick headlessly. By
    hand shapes, expressions, gear. Draw shapes on purpose from it; never shrink a blurry frame, never trust a written
    description over the art, and never fit the character onto Clawd's or Cappy's body or the shared walk.
 3. **Block out the silhouette** at the target size and compare it to the references at the same height.
-4. **Review before the owner sees it**, in three stages: the look (the rest pose beside the references at 8x and 3x),
-   the body (walk, faces, hands, moods) and the tricks. Reviewers each have a role:
+4. **Review before the owner sees it**, in four stages: the look (the rest pose beside the references at 8x and 3x),
+   the motion design (model sheet, turnaround, key poses and timing), the body (walk, faces, hands, moods, in playback)
+   and the tricks. Reviewers each have a role:
    - likeness: does it read as the character;
    - craft: is it clean at 3x;
    - motion: does each animation read as what it's called;
@@ -364,7 +374,11 @@ poses beside references, sweeps every pose, and plays every trick headlessly. By
    declined. A stage is done when no blocker is left; whatever is still open after three rounds goes to the owner.
 5. **Show the owner** each stage as it passes, asking only what's theirs to decide, each question with a recommended,
    canonical answer.
-6. **Make it move its own way** (step 1's list), then **check**: every pose inside the 44 x 40 grid with its feet on
+6. **Design its motion before building it**: a model sheet (proportions, limb lengths, what every pose keeps) and a
+   turnaround, then each action's key poses, blocked and played on their own, then breakdowns and timing (what leads and
+   what follows, anticipation, arcs, spacing that eases in and out), and only then in-betweens and a cleanup pass at real
+   size. Motion is reviewed in playback and onion skins, not still strips.
+7. **Make it move its own way** (step 1's list), then **check**: every pose inside the 44 x 40 grid with its feet on
    row 39, every trick and state played with no console errors, and the pose and trick sheets looked at.
 
 ## Fan pack rules

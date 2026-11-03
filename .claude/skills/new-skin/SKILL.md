@@ -21,9 +21,10 @@ version's renders in your notes: the shared notes folder if the session has one,
      keep the head near rows 18 to 24 where tricks put hats and props, or plan to fit them.
    - Fan pack or not: someone else's character is fan art (`pack: 'fan'`, see TRICKS.md › Fan pack rules).
    - A key: lowercase letters and digits (`shovelknight`). The app drops anything else and falls back to Cappy.
-   - Say what done means (don't ask it): the art; its own walk (`walk`); hands, paws or wings for each action; every
-     `eyes` expression; Claude's states (`moods`); every trick audited at 2x against Cappy and tailored; props held in
-     its hands; every fan costume fitted; its own tricks if any; a pose sheet and trick sheets. Nothing merges until Jay
+   - Say what done means (don't ask it): the art; a model sheet and turnaround; its motion designed as key poses and
+     timing before it's built; its own walk (`walk`); hands, paws or wings for each action; every `eyes` expression;
+     Claude's states (`moods`); every trick audited at 2x against Cappy and tailored; props held in its hands; every fan
+     costume fitted; its own tricks if any; a pose sheet, GIFs of its moves and trick sheets. Nothing merges until Jay
      approves all of it, whatever the usual habit of merging your own PRs.
 2. **Research before pixels.** Find official art (wiki, renders), sprite sheets or rigs, gameplay GIFs or video for how it
    moves, and its personality. Search Google Images for `<name> 2d pixel art`, not Bing. To read a web image's pixels,
@@ -48,22 +49,27 @@ version's renders in your notes: the shared notes folder if the session has one,
    row to the Skins table in `README.md`. Give it pose keys of its own for parts the shared keys can't say (the
    chicken's `peck` and `kick`, a sword, a cane), never named like a trick: that turns the trick's draw hooks on. A side-on
    skin gives `head()`, which the page checks lands on an `EYE` pixel; a face with no eye there (a visor, Clay's blank
-   cube) has no `head()`, wears Clawd's costume spots, and is fitted with skin branches in step 7 instead.
+   cube) has no `head()`, wears Clawd's costume spots, and is fitted with skin branches in step 9 instead.
 5. **Review each stage before Jay sees it**, in at most 3 rounds, with reviewer agents who each have a role and return
    findings, not scores. Scores drifted: an uncapped loop of fresh reviewers scoring 1-10 until all said 8+ ran Gengar
    24 rounds, his moods bouncing between 5 and 7.5. The capped loop took Domo through every stage in 2.
-   - **Stages.** A, the look: the rest pose beside the references at 8x and 3x, and the ASCII grid. B, the body: the
-     walk, every `eyes`, the hands, the moods, as the pose sheet plus each mood's frames in order with their ms
-     (`moodstrips.py`). C, the tricks (step 7): every trick at 2x beside Cappy, then the ones you tailored.
+   - **Stages.** A, the look: the rest pose beside the references at 8x and 3x, and the ASCII grid. B1, the motion
+     design (step 7): the model sheet, the turnaround, each action's key poses and timing chart, the blocked keys as
+     GIFs and onion skins. B2, the body (step 8): the walk, every `eyes`, the hands, the moods, finished, as the pose
+     sheet, GIFs at real size (`gif.py`), onion skins (`onion.py`) and each mood's frames with their ms
+     (`moodstrips.py`). C, the tricks (step 9): every trick at 2x beside Cappy, then the ones you tailored.
    - **Roles**, one agent each:
      - likeness: would a fan know it at a glance, against the references and the bible;
      - craft: silhouette, outline, stray pixels and contrast at 3x;
-     - motion: does each animation read as what it's called and move like this body; a turn needs a playback clip;
+     - motion: does each animation read as what it's called and move like this body, judged in playback (the GIFs) and
+       onion skins, never from strips alone, against the principles in step 7: key poses that read in silhouette,
+       anticipation, follow-through and overlap, arcs, timing and spacing, squash and stretch that keeps volume, loop
+       seams, and flicker at real size;
      - breakage: what is wrong on it that is right on Cappy, such as a costume off its face or a prop not in its hand.
 
      Stage A gets likeness and craft, plus a blind ID check in round 1: only the 3x render, no name, "Which character is
-     this?". Stage B gets motion and likeness. Stage C gets one breakage scan of every trick, then motion and craft on
-     what you tailored.
+     this?". Stage B1 gets motion and likeness on the keys and model sheet; B2 gets motion and craft (the cleanup pass).
+     Stage C gets one breakage scan of every trick, then motion and craft on what you tailored.
    - **Round 1 is fresh**: the references, renders, ASCII grid and the bible's checklist, and none of your reasoning
      ("it's close"). Tell reviewers to measure the references themselves: Domo's bible had his width wrong, and one
      reviewer passed it on that.
@@ -91,18 +97,50 @@ version's renders in your notes: the shared notes folder if the session has one,
    - **Your own look at a sheet is not a review.** On Domo the session skimmed every trick and called them fine; a fresh
      breakage scan found four costumes broken.
 6. **Show Jay each stage once it passes**:
-   - A: the rest pose beside its references, before you build moves on it;
-   - B: the pose sheet and mood strips;
+   - A: the rest pose beside its references, before you design moves on it;
+   - B1: the model sheet, turnaround and key poses (GIFs of the blocked keys), before any in-betweens;
+   - B2: the GIFs of its moves and the pose sheet;
    - C: the costume and trick sheets.
 
    Ask only what is Jay's call (a color variant, which of two canonical looks), each with the canonical answer you
    recommend and why. Never offer an option that's off model: a non-expert can't tell. Changes go back through that
    stage's loop before Jay sees them again.
-7. **Make it move its own way**, from the references, once the look is approved:
-   - `walk(now, dir, arms)`: its stride, bob and arm swing (also used to climb).
+7. **Design the motion before building it**, once the look is approved, from the references and the bible. Drawing
+   finished frames straight away and letting review find the problems is how Iggy's walk slid, his raised foot read
+   as a pitchfork and he dropped flat in one frame: none of it was designed. In order:
+   1. **Model sheet**: the rest pose with its construction: proportions, each limb's length and where it joins (how far
+      a paw can reach, and what it can't reach), where its face and hands are, the few identifying features every pose
+      keeps, and its "never" rules (a raised limb stays a pixel off a face with no outline; the face never squashes).
+      Its expressions are on it too. Every later frame is checked against it.
+   2. **Turnaround**: the views it needs. A side-on skin facing left and right, and the in-between frame of a turn: the
+      page draws one 90 ms `half: true` frame on every turn (`web/pet.html`, "Turning"), so give `half` a frame of its
+      own (three-quarters, or face on) rather than a bare flip.
+   3. **Thumbnails**: for each action (walk, hop, sit or lie down, wave, a raised hand, each mood's beats), a few small
+      sketches of the key poses at 3x, exploring options; keep the one that reads in silhouette, and push it
+      (exaggeration reads at this size; a subtle pose doesn't).
+   4. **Block the keys**: the extremes and contacts of each action, as poses in the skin, played as a GIF on the keys
+      alone (`gif.py ... <name> '<json>'`). Check the action and its intent read before anything is added.
+   5. **Breakdowns and timing**: a timing chart per action in the bible: each key and breakdown with its ms, what leads
+      and what follows by how many frames (overlap: a tail, ears or gear lag the body and settle after it stops),
+      anticipation before every big move (a squash before a hop, a crouch before lying down), follow-through after it, the
+      arc each part travels (a limb moves through at least one breakdown between positions, never snaps), holds, and
+      the spacing: frames bunched near the keys ease in and out. Squash and stretch keep its volume.
+   6. **In-betweens** only where the spacing needs them, each checked against the model sheet in onion skins
+      (`onion.py`). More frames don't make it fluid; better keys and timing do.
+
+   This is stage B1: reviewed (step 5) and shown to Jay before step 8.
+8. **Build it and clean it up**: the keys, breakdowns and in-betweens in the skin, as charted.
+   - `walk(now, dir, arms)`: its stride, bob, sway and arm swing (also used to climb), keyed on contact, down, passing
+     and up poses, its planted feet pushing back so it doesn't slide.
    - `moods`: its own poses for each of Claude's states in `MOODS` (`web/pet.html`). `editing` and `running` are props
      it works at, posed by the prop: check its hands read there.
    - Hands for every `arms`, `hand` and `reach` value, and its own face for every `eyes` value.
+   - The cleanup pass, at real size (`gif.py` at scale 3): pixel clusters kept clean, no accidental flicker (a pixel or
+     edge that toggles frame to frame with no motion behind it), loops that join without a hitch, and every frame
+     checked against the model sheet.
+
+   This is stage B2.
+9. **Fit the tricks** once the body is approved:
    - Audit every trick at 2x beside Cappy (`DSF=2` runs of `check.cjs` on `cappy` and on `<key>`, then `framesheet.py`)
      through step 5's stage C: a fresh breakage scan of every trick, then motion and craft on what you tailor. A frames-only trick gets `tricks: {name: frames}` in the skin (keep the
      trick's pose key where its draw hooks need it). A trip (sneak, fishing, the paper plane...) or a trick that draws props or a
@@ -112,15 +150,16 @@ version's renders in your notes: the shared notes folder if the session has one,
      `vader`, `thorfinn`, `guts`, `spidey`, `powerUp` and `ghost` (Domo's are the closest). Separate trick files can go
      to parallel agents, one file each, each comparing the other skins' frames before and after with `cmp`.
    - Its own tricks, if the source has moves worth one: pitch a list first, Jay picks, then the new-trick skill.
-8. **Check everything** before asking Jay to approve:
-   - Pose sweep (`px.cjs ... sweep`): no pixels off the grid, and every pose it says floats has a foot up on purpose.
-   - Headless run (`check.cjs <key>`): every trick (Fan pack on) and every Claude state; `problems` must be empty (it
-     includes the page's asserts: lowest pixel on row 39, `head()` finds the eye). If you edited a trick file, run it
-     with `ONLY=<tricks>` on `cappy` and `clawd` here and with `WEB=` pointing at a checkout of `main`, and compare.
-   - Sheets like the other pets': the pose sheet, and the trick and state sheets from `framesheet.py`. Look at each.
-9. **Open a PR** from your worktree against `main`, listing the sheets, then show Jay the sheets. Merge only when Jay has
-   approved all of step 7. Report what the skin is, where its file is, and how it was checked. Don't run
-   `./install.sh` unless asked: it touches the user's install.
+10. **Check everything** before asking Jay to approve:
+    - Pose sweep (`px.cjs ... sweep`): no pixels off the grid, and every pose it says floats has a foot up on purpose.
+    - Headless run (`check.cjs <key>`): every trick (Fan pack on) and every Claude state; `problems` must be empty (it
+      includes the page's asserts: lowest pixel on row 39, `head()` finds the eye). If you edited a trick file, run it
+      with `ONLY=<tricks>` on `cappy` and `clawd` here and with `WEB=` pointing at a checkout of `main`, and compare.
+    - Sheets like the other pets': the pose sheet, the GIFs of its moves, and the trick and state sheets from
+      `framesheet.py`. Look at each.
+11. **Open a PR** from your worktree against `main`, listing the sheets, then show Jay the sheets. Merge only when Jay
+    has approved steps 7 to 9. Report what the skin is, where its file is, and how it was checked. Don't run
+    `./install.sh` unless asked: it touches the user's install.
 
 ## Tools
 
@@ -134,6 +173,8 @@ They are in `tools/` next to this file. Run them from the repo root.
 | `python3 .claude/skills/new-skin/tools/posesheet.py web/skins/<key>.js <key> out.png 5 [sections.json]` | The pose sheet: states, eyes, moving, hands. Pass sections.json (shape in the file) with its moods and own keys. |
 | `python3 .claude/skills/new-skin/tools/ascii.py web/skins/<key>.js <key> '{}'` | The exact pixels as letters on a numbered grid, with a color legend, for reviewers. |
 | `python3 .claude/skills/new-skin/tools/moodstrips.py web/skins/<key>.js <key> <dir> <prefix>` | Each of its moods' frames in order with their ms, and its walk, as strips at 3x: what the motion reviewer judges (`check.cjs` keeps too few state frames). |
+| `python3 .claude/skills/new-skin/tools/gif.py web/skins/<key>.js <key> <dir> [3] [name '<json [[pose, ms], ...]>']` | Playback: its walk each way, a turn (with the half-turn frame) and each mood as looping GIFs, at scale 3 (its real size) unless given; plus any sequence you name, such as blocked keys. What motion is judged in. |
+| `python3 .claude/skills/new-skin/tools/onion.py web/skins/<key>.js <key> out.png <walk-L \| turn \| mood-<name> \| '<json>'> [6]` | Onion skins: each frame over a ghost of the one before, then all frames stacked, poses marked `"key": true` solid. Shows arcs and spacing. |
 | `node .claude/skills/new-skin/tools/check.cjs <key> <dir>` | Every trick and state in headless Chrome on a fake clock (about 20 s); prints `{durations, problems}`, saves frames. `ONLY=dance,wave`, `DSF=2`, `WEB=<checkout>/web/pet.html`. |
 | `python3 .claude/skills/new-skin/tools/framesheet.py <dir> out.png [name ...]` | Those frames as rows, one per trick or state (`PER=6` frames each), split into pages. |
 

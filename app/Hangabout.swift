@@ -1,4 +1,5 @@
-// Hangabout: a desktop pet for Claude Code. A transparent layer over your whole main screen that the pet lives on.
+// Hangabout: a desktop pet for Claude Code. A transparent layer over the display the pet is on, which moves with him
+// when he goes to another display.
 // Clicks pass straight through it everywhere except the pet himself and his open bubble.
 // He shows what Claude Code is doing from state.json next to this app, which hangabout-hook keeps from Claude Code's hooks.
 import Cocoa
@@ -63,6 +64,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var hitRects: [NSRect] = []
     var holding = false
     var lastCursor = NSPoint(x: -1, y: -1), cursorWasNear = false, lastTops = "", lastState: Date?
+    /// The display his layer is on (its id, from displayID).
+    var on: String?
+    /// He's on the main display only because his own went away (unplugged, or a dock asleep): it stays the one remembered.
+    var fellBack = false
+    /// The display your pointer was last said to be on, where on it, and when.
+    var mouseOn = "", mouseAt = NSPoint(x: -1, y: -1), mouseSent = 0.0
     /// Each busy session's transcript as of the last time hangabout-hook looked at it.
     var checked: [String: Date] = [:]
     /// Whether you've left your Mac alone for five minutes or more (no mouse or keys).
@@ -119,14 +126,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     func applicationWillTerminate(_ note: Notification) { try? FileManager.default.removeItem(at: pidURL) }
 
-    /// He lives on the main display (the one with the menu bar), over everything on it.
-    // shortcut: one display only; spanning several needs a window per screen.
-    func fitScreen() {
-        guard let screen = NSScreen.screens.first else { return }
+    /// A display's lasting id (its UUID), so the one he was on is found again after a relaunch.
+    func displayID(_ s: NSScreen) -> String {
+        let n = s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? 0
+        return CGDisplayCreateUUIDFromDisplayID(n).map { CFUUIDCreateString(nil, $0.takeRetainedValue()) as String } ?? "\(n)"
+    }
+
+    /// Where a display sits on your desktop as the page has it: the main display's top-left at 0,0, y down (like window bounds).
+    func desktopRect(_ s: NSScreen) -> CGRect {
+        let main = NSScreen.screens.first?.frame ?? s.frame
+        return CGRect(x: s.frame.minX, y: main.maxY - s.frame.maxY, width: s.frame.width, height: s.frame.height)
+    }
+
+    /// He lives on one display at a time, over everything on it: the one the page asks for, else the one he's on, else the
+    /// one he was on last time, else the main one (with the menu bar). The page hears about them all, so he can go to them.
+    func fitScreen(_ id: String? = nil) {
+        let screens = NSScreen.screens
+        guard let main = screens.first else { return }
+        let find = { (want: String?) in want.flatMap { w in screens.first { self.displayID($0) == w } } }
+        let asked = find(id), mine = asked ?? find(on) ?? find(prefs.string(forKey: "display"))
+        fellBack = asked == nil && (fellBack || mine == nil) // until he's sent somewhere on purpose
+        let screen = mine ?? main, here = displayID(screen)
+        on = here
+        if !fellBack { prefs.set(here, forKey: "display") }
         panel.setFrame(screen.frame, display: true)
         for view in panel.contentView?.subviews ?? [] { view.frame = panel.contentView!.bounds }
-        let top = screen.frame.maxY - screen.visibleFrame.maxY, bottom = screen.visibleFrame.minY - screen.frame.minY
-        web.evaluateJavaScript("hangabout.screen(\(Int(top)),\(Int(bottom)))")
+        let list: [[String: Any]] = screens.map { s in
+            let r = desktopRect(s)
+            return ["id": displayID(s), "x": r.minX, "y": r.minY, "w": r.width, "h": r.height,
+                    "top": s.frame.maxY - s.visibleFrame.maxY, "bottom": s.visibleFrame.minY - s.frame.minY]
+        }
+        let json = (try? JSONSerialization.data(withJSONObject: [list, here])).flatMap { String(data: $0, encoding: .utf8) } ?? "[[],null]"
+        web.evaluateJavaScript("hangabout.displays(...\(json))")
+        sendWindows(force: true)
     }
 
     /// Takes the mouse only while it's over the pet or his open bubble; everywhere else clicks go straight through.
@@ -140,6 +172,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             web.evaluateJavaScript("hangabout.cursor(\(Int(point.x)),\(Int(point.y)))")
         }
         cursorWasNear = near
+        // Which display your pointer's on and where (so he can come to you): at once when it changes display, otherwise at
+        // most four times a second while it moves.
+        if let s = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) {
+            let id = displayID(s), at = NSPoint(x: mouse.x - s.frame.minX, y: s.frame.maxY - mouse.y), now = Date().timeIntervalSince1970
+            if id != mouseOn || (at != mouseAt && now - mouseSent >= 0.25) {
+                mouseOn = id; mouseAt = at; mouseSent = now
+                web.evaluateJavaScript("hangabout.mouse('\(id)',\(Int(at.x)),\(Int(at.y)))")
+            }
+        }
         let over = hitRects.contains { $0.contains(point) }
         let take = over || (holding && NSEvent.pressedMouseButtons != 0) // keeps him while you drag him around
         guard take != holding else { return }
@@ -157,12 +198,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func sendWindows(force: Bool = false) {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return }
         let width = panel.frame.width, height = panel.frame.height, me = getpid()
+        let origin = NSScreen.screens.first.map { CGPoint(x: panel.frame.minX, y: $0.frame.maxY - panel.frame.maxY) } ?? .zero // his display's top-left on the desktop
         var inFront: [CGRect] = [], tops: [String] = []
         for window in list { // front to back
             guard (window[kCGWindowLayer as String] as? Int) == 0, (window[kCGWindowOwnerPID as String] as? pid_t) != me,
                   (window[kCGWindowAlpha as String] as? Double ?? 1) > 0.1,
                   let bounds = window[kCGWindowBounds as String] as? NSDictionary,
-                  let r = CGRect(dictionaryRepresentation: bounds) else { continue }
+                  let r = CGRect(dictionaryRepresentation: bounds)?.offsetBy(dx: -origin.x, dy: -origin.y) else { continue }
             defer { inFront.append(r) }
             guard r.width >= 160, r.height >= 60, r.minY > 0, r.minY < height else { continue }
             var spans = [(max(0, r.minX), min(width, r.maxX))]
@@ -229,7 +271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     func sendSettings() {
         let list = (try? JSONSerialization.data(withJSONObject: found)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]" // JSON, so names can't break the script
-        web.evaluateJavaScript("hangabout.settings({sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale), preset: '\(preset)', fan: \(prefs.bool(forKey: "fan")), found: \(list)})")
+        web.evaluateJavaScript("hangabout.settings({stay: \(prefs.bool(forKey: "stay")), sound: \(prefs.bool(forKey: "sound")), reduced: \(prefs.bool(forKey: "reduced")), scale: \(scale), preset: '\(preset)', fan: \(prefs.bool(forKey: "fan")), found: \(list)})")
     }
 
     /// A Size slider for the menu. Its stops are sixths: at those, each of his art pixels covers whole screen pixels, so he stays crisp.
@@ -293,7 +335,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         menu.addItem(.separator())
         menu.addItem(sizeItem())
         menu.addItem(.separator())
-        for (key, title) in [("sound", "Chirp when Claude needs you"), ("reduced", "Reduce motion"), ("fan", "Fan pack (fan-made tricks)")] {
+        for (key, title) in [("sound", "Chirp when Claude needs you"), ("reduced", "Reduce motion"), ("fan", "Fan pack (fan-made tricks)"), ("stay", "Stay on one display")] {
             let item = menu.addItem(withTitle: title, action: #selector(toggle(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = key
@@ -360,6 +402,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         let body = message.body as? [String: Any]
+        if let id = body?["display"] as? String { fitScreen(id); return } // he's going to another display: his layer goes with him
         if let list = body?["tricks"] as? [[String: Any]] {
             tricks = list.compactMap { t in (t["name"] as? String).map { ($0, t["label"] as? String ?? $0, t["fan"] as? Bool ?? false) } }
             let sent = (body?["skins"] as? [[String: Any]] ?? []).compactMap { t in (t["name"] as? String).map { ($0, t["label"] as? String ?? $0, t["fan"] as? Bool ?? false) } }

@@ -464,7 +464,8 @@ const WHOLE = [-PAD, 0, GW + 2 * PAD, GH] // the whole canvas, in art pixels
 const path = petEl.querySelector('path'), box = petEl.querySelector('.box'), hist = petEl.querySelector('.hist'), l1 = petEl.querySelector('.l1'), l2 = petEl.querySelector('.l2')
 const live = document.getElementById('live')
 const pet = {id: 'idle', since: 0, open: false, openedAt: 0, closedAt: -1e9, pinned: false, hover: false, hoverTimer: 0, x: 0, y: 0, drag: null, swing: 0,
-  face: 0, heading: -1, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0}
+  face: 0, heading: -1, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0,
+  stay: false, calls: 0} // stay: Stay on one display; calls: times he's come to you since Claude came to need you
 
 // An optional soft two-note chirp when he needs you. Off until you turn it on.
 const sound = {on: false, ctx: null}
@@ -485,6 +486,70 @@ const PW = 132, PH = 120 // his footprint on screen at normal size; his feet sit
 let size = 1 // how big he's drawn around his feet; steps of 1/6 keep every art pixel a whole number of screen pixels
 function setSize(s){ size = s; petEl.style.setProperty('--s', s); place(pet.x, pet.y) }
 const scr = {top: 26, bottom: 0} // the menu bar above and the Dock below; the app sends the real ones
+// ---- displays: in the app his layer covers one display at a time, and moves to whichever one he goes to ----
+// Each display is {id, x, y, w, h, top, bottom}: where it sits on your desktop (the main display's top-left at 0,0, y
+// down), with its menu bar or top taskbar (top) and its Dock or bottom taskbar (bottom). next: the display the app has
+// put his layer on (since nextAt), until the page has its size. pointer: {id, x, y}, where your pointer is. pending: a move of his layer
+// the page asked the app for, and where his feet go once it's there (or nowhere: they keep their spot on the desktop).
+const disp = {list: [], on: null, next: null, nextAt: 0, pointer: null, pending: null}
+const curDisplay = () => disp.list.find(d => d.id === disp.on)
+/** The displays touching d, by side, with the stretch of edge they share (lo to hi, on the desktop). Corners and slivers under 40 points don't count. */
+function neighbors(list, d){
+  const TOUCH = 2, OVERLAP = 40, out = []
+  for (const o of d ? list : []) if (o.id !== d.id) {
+    const ys = [Math.max(d.y, o.y), Math.min(d.y + d.h, o.y + o.h)], xs = [Math.max(d.x, o.x), Math.min(d.x + d.w, o.x + o.w)]
+    const sideBySide = ys[1] - ys[0] >= OVERLAP, stacked = xs[1] - xs[0] >= OVERLAP
+    if (sideBySide && Math.abs(o.x - (d.x + d.w)) <= TOUCH) out.push({side: 'right', to: o, lo: ys[0], hi: ys[1]})
+    if (sideBySide && Math.abs(o.x + o.w - d.x) <= TOUCH) out.push({side: 'left', to: o, lo: ys[0], hi: ys[1]})
+    if (stacked && Math.abs(o.y + o.h - d.y) <= TOUCH) out.push({side: 'up', to: o, lo: xs[0], hi: xs[1]})
+    if (stacked && Math.abs(o.y - (d.y + d.h)) <= TOUCH) out.push({side: 'down', to: o, lo: xs[0], hi: xs[1]})
+  }
+  return out
+}
+/** His middle on the desktop: his feet's x, 33 points up from his feet (at normal size). */
+const middle = () => { const c = curDisplay() || {x: 0, y: 0}, f = feet(); return {x: c.x + f.x, y: c.y + f.y - 33 * size} }
+/** The display across that side of his, at the stretch of edge he's by, or undefined: there, that side is a wall. */
+function nextTo(side){
+  const m = middle(), at = side === 'up' || side === 'down' ? m.x : m.y
+  return neighbors(disp.list, curDisplay()).find(n => n.side === side && at >= n.lo && at <= n.hi)
+}
+/** His feet on n.to, in its coordinates, as his middle crosses n's edge at (gx, gy) on the desktop: slid along the edge
+ *  into the stretch both displays share, and on a display beside, never below its floor. */
+function entry(n, gx, gy){
+  const beside = n.side === 'left' || n.side === 'right', half = (beside ? 33 : 54) * size, t = n.to
+  const fit = v => n.hi - n.lo < 2 * half ? (n.lo + n.hi) / 2 : Math.max(n.lo + half, Math.min(n.hi - half, v))
+  const x = (beside ? gx : fit(gx)) - t.x, y = (beside ? fit(gy) : gy) - t.y + 33 * size
+  return {x, y: beside ? Math.min(y, t.h - t.bottom - 2) : y}
+}
+/** Asks the app to move his layer to display id, his feet to (x, y) there (or kept where they are on the desktop). False outside the app. */
+function askDisplay(id, x, y){
+  if (!NATIVE) return false
+  disp.pending = {id, x, y, at: performance.now()}
+  webkit.messageHandlers.hangabout.postMessage({display: id})
+  return true
+}
+/** Moves him onto the display the app put his layer on, once the page has that display's size (give or take a point or
+ *  two), or after half a second whatever size it has: a window that never quite takes it mustn't strand him. */
+function switchDisplay(){
+  const to = disp.list.find(d => d.id === disp.next), sized = to && Math.abs(desk.clientWidth - to.w) <= 2 && Math.abs(desk.clientHeight - to.h) <= 2
+  if (!to || !sized && performance.now() - disp.nextAt < 500) return // the window hasn't taken its new size yet: the next frame looks again
+  const from = curDisplay(), was = disp.on, p = disp.pending
+  disp.on = to.id; scr.top = to.top; scr.bottom = to.bottom
+  if (was != null && was !== to.id) {
+    if (from) { // he keeps his spot on the desktop, so a drag or a flight goes on unbroken
+      const dx = from.x - to.x, dy = from.y - to.y, d = pet.drag
+      pet.x += dx; pet.y += dy
+      if (d) { d.sx += dx; d.sy += dy; d.x += dx; d.y += dy; d.trail = d.trail.map(([t, x, y]) => [t, x + dx, y + dy]) }
+    } else { // the display he was on is gone: down to the floor of this one
+      if (ai.mode === 'script') endTrip(performance.now())
+      pet.y = surfaces()[0].y
+    }
+    if (p?.id === to.id) { disp.pending = null; if (p.x != null) putFeet(p.x, p.y) }
+    place(pet.x, pet.y)
+    return comeToYou(performance.now()) // Claude came to need you while he was on his way here: back to you
+  }
+  place(pet.x, pet.y)
+}
 let nativeTops = [] // in the app: the visible top edges of your real windows, {id, y, x0, x1, wx, w, h}
 let windowsAt = 0, surfAt = -1e9 // when the app last sent them, and when the one under him last moved fast
 /** The top edges of windows (and each window's left, width and height): your real ones in the app, the pretend ones in the mockup. */
@@ -543,6 +608,7 @@ function choose(...rarities){
  * function returning one), and one of those that pass plays. Says whether one did.
  */
 function fire(event){
+  if (ai.mode === 'script' && ai.urgent) return false // a flourish never cuts short a throw or his way to you
   const takers = Object.values(TRICKS).filter(t => {
     const c = t.on?.[event]
     return c && usable(t) && fits(t) && (!t.trip || roam(performance.now()) === 'free') && Math.random() < (typeof c === 'function' ? c() : c)
@@ -556,11 +622,12 @@ function fire(event){
 // no edge trips, so their share goes to jumping (it's his way back down). odds: the finer choices within those.
 // pace stretches or shortens his pauses; speed scales his walking.
 const PRESETS = {
-  calm: {chance: {walk: .3, pause: .45, move: .17, jump: .03, trip: .05}, odds: {farWalk: .2, rare: .08}, pace: 1.8, speed: .8},
-  normal: {chance: {walk: .38, pause: .2, move: .24, jump: .05, trip: .13}, odds: {farWalk: .35, rare: .15}, pace: 1, speed: 1},
-  erratic: {chance: {walk: .3, pause: .05, move: .33, jump: .15, trip: .17}, odds: {farWalk: .6, rare: .35}, pace: .4, speed: 1.6},
+  calm: {chance: {walk: .3, pause: .45, move: .17, jump: .03, trip: .045, cross: .005}, odds: {farWalk: .2, rare: .08}, pace: 1.8, speed: .8},
+  normal: {chance: {walk: .38, pause: .2, move: .24, jump: .05, trip: .115, cross: .015}, odds: {farWalk: .35, rare: .15}, pace: 1, speed: 1},
+  erratic: {chance: {walk: .3, pause: .05, move: .33, jump: .15, trip: .13, cross: .04}, odds: {farWalk: .6, rare: .35}, pace: .4, speed: 1.6},
 }
 // farWalk: of walks, a trot to anywhere along the ledge, not a stroll nearby. rare: of moves, a rare trick, not an everyday one.
+// cross: off to another display (on Normal, every few minutes); with nowhere to go, its share goes to the edge trips.
 for (const [name, p] of Object.entries(PRESETS)) console.assert(Math.abs(Object.values(p.chance).reduce((a, b) => a + b) - 1) < 1e-9, `preset ${name}: chances must add up to 1`)
 let preset = PRESETS.normal
 // Walking: turned toward where he's going, legs stepping in diagonal pairs, arms swinging fore and aft, rocking side to side.
@@ -617,17 +684,24 @@ function leapTo(now, to){
 const feet = () => ({x: pet.x + 66, y: pet.y + PH})
 /** Puts his feet at (x, y), turned rot degrees about them if given (on a wall: -90 on the right side, 90 on the left). */
 const putFeet = (x, y, rot) => { if (rot != null) ai.rot = rot; place(x - 66, y - PH) }
-function trip(now, steps){ ai.mode = 'script'; ai.steps = steps; ai.step = -1; ai.rot = 0; nextStep(now) }
+// urgent: a trip that goes on whatever Claude's doing (he's been thrown, or he's on his way to you); its maker sets it after trip().
+function trip(now, steps){ ai.mode = 'script'; ai.steps = steps; ai.step = -1; ai.rot = 0; ai.urgent = false; nextStep(now) }
 function nextStep(now){
   const s = ai.steps[++ai.step]
   if (!s) return endTrip(now)
   ai.stepAt = now; ai.from = {...feet(), rot: ai.rot}
   if (s.go === 'do') { s.fn(now); if (ai.mode === 'script') nextStep(now) }
   else if (s.go === 'drop') { ai.rot = 0; ai.mode = 'fall'; ai.vy = s.vy || 0 }
+  else if (s.go === 'display') { // to the spot asked for, or across to a neighbor at the spot that lines up with him
+    if (s.id === disp.on) { if (s.x != null) putFeet(s.x, s.y); return nextStep(now) } // already there: no need to ask the app
+    const n = neighbors(disp.list, curDisplay()).find(n => n.to.id === s.id), m = n && middle()
+    const at = s.x != null ? s : n && entry(n, m.x, m.y)
+    if (!at || !askDisplay(s.id, at.x, at.y)) endTrip(now)
+  }
 }
 /** Back to ordinary life: upright, on screen, falling to whatever is below (or standing, if he's already on it). */
 function endTrip(now){
-  ai.rot = 0; pet.clip = null; ai.trick?.end?.() // a trip cut short tidies up after itself (the portal gun's portals)
+  ai.rot = 0; pet.clip = null; ai.urgent = false; ai.trick?.end?.() // a trip cut short tidies up after itself (the portal gun's portals)
   ai.mode = 'fall'; ai.vy = 0
   place(pet.x, pet.y)
   const here = surfaceUnder(pet.x, pet.y)
@@ -650,6 +724,8 @@ function runStep(now, dt){
     if (p >= 1) nextStep(now)
   } else if (s.go === 'hold' && t >= s.T) nextStep(now)
   else if (s.go === 'move' && s.fn(t, dt)) nextStep(now)
+  else if (s.go === 'display' && disp.on === s.id && !disp.pending) nextStep(now) // his layer's there
+  else if (s.go === 'display' && (!disp.pending || t > 1000)) { disp.pending = null; endTrip(now) } // the app didn't move it (that display's gone): he stays
 }
 /** His pose on a trip: walking or climbing frames, or the step's own pose; a violet shimmer while he's partly off screen. */
 function tripPose(now){
@@ -676,7 +752,7 @@ function behave(now, dt){
   if (pet.drag?.moved) { if (ai.mode === 'script') { ai.rot = 0; pet.clip = null; ai.trick?.end?.() } ai.mode = 'dangle'; return }
   if (ai.mode === 'dangle') { ai.mode = 'fall'; ai.vy = 0 } // just let go
   if (ai.mode === 'script') {
-    if (roam(now) === 'free' && !isStill()) return runStep(now, dt)
+    if ((roam(now) === 'free' || ai.urgent) && !isStill()) return runStep(now, dt)
     endTrip(now) // Claude needs him, or got to work: back where you can see him
   }
   const here = surfaceUnder(pet.x, pet.y)
@@ -739,7 +815,81 @@ function behave(now, dt){
     const high = surfaces()[0].y - here.y > desk.clientHeight / 2 // a window ledge more than half the screen up
     if (!(high && fire('highUp'))) jumpFrom(now, here) // a trick may take him down another way
   }
-  else { const name = choose('edge'); name ? startMove(now, name, here) : jumpFrom(now, here) } // off to the screen's edges
+  else {
+    const n = r < c.walk + c.pause + c.move + c.jump + c.cross && canWander() && pick(neighbors(disp.list, curDisplay()))
+    if (n) { ai.trick = null; trip(now, crossSteps(n)) } // off to another display
+    else { const name = choose('edge'); name ? startMove(now, name, here) : jumpFrom(now, here) } // off to the screen's edges
+  }
+}
+/** Whether he may set off for another display on his own: in the app, unless you've asked him to stay on one. */
+const canWander = () => NATIVE && !pet.stay
+/**
+ * A move step's fn: flies him on from where he is at v ({vx, vy}, points a second), falling as he goes (and turning spin
+ * degrees a ms), until until(v, t) says stop. It moves him on from his feet each frame, and steps can share v, so a
+ * flight carries on across displays.
+ */
+function flight(v, until, g = 2600, spin = 0){
+  return (t, dt) => {
+    v.vy += g * dt / 1000
+    if (spin) ai.rot = (ai.rot + spin * dt) % 360
+    const f = feet()
+    putFeet(f.x + v.vx * dt / 1000, f.y + v.vy * dt / 1000)
+    return until(v, t)
+  }
+}
+const FLYING = {stretch: 1, arms: ['high', 'high'], eyes: 'up'}, LEAPING = {stretch: 2, tuck: 1, arms: ['up', 'mid'], eyes: 'up'}
+/** Lets go of a flight: he falls on from where he is, as fast as he was going. */
+const fallOn = v => ({go: 'do', fn: () => { ai.rot = 0; ai.mode = 'fall'; ai.vy = v.vy }})
+/** How fast to leap from where he is to rise through the top and on to about 100 points above the floor of `to`, the display above. */
+const leapSpeed = to => Math.sqrt(2 * 2600 * (feet().y + to.bottom + 102))
+// The rest of a flight into n.to: up through the top until he comes down above its floor, down through the bottom
+// (falling in from its top), or out the side and on 300 ms more. His middle crossing the edge moves his layer.
+const upInto = (n, v, pose, spin) => [
+  {go: 'move', fn: flight(v, () => feet().y - 33 * size <= 0, 2600, spin), pose}, {go: 'display', id: n.to.id},
+  {go: 'move', fn: flight(v, v => v.vy >= 0, 2600, spin), pose}, {go: 'drop'}]
+const downInto = (n, v, pose, spin) => [
+  {go: 'move', fn: flight(v, () => feet().y - 33 * size >= desk.clientHeight, 2600, spin), pose}, {go: 'display', id: n.to.id}, fallOn(v)]
+const sideInto = (n, v, pose, spin) => [
+  {go: 'move', fn: flight(v, () => n.side === 'right' ? feet().x >= desk.clientWidth : feet().x <= 0, 0, spin), pose}, {go: 'display', id: n.to.id},
+  {go: 'move', fn: flight(v, (v, t) => t >= 300, 2600, spin), pose}, fallOn(v)]
+/** The steps that take him from the floor across into n.to: off the side, a leap up through the top, or down through the floor. */
+function crossSteps(n){
+  const c = curDisplay(), W = desk.clientWidth, s = size, to = n.to
+  if (n.side === 'left' || n.side === 'right') {
+    const right = n.side === 'right', out = [{go: 'walk', to: right ? W : 0, speed: 70}, {go: 'display', id: to.id}]
+    if (entry(n, right ? c.x + W : c.x, middle().y).y >= to.h - to.bottom - 4) return [...out, {go: 'walk', to: right ? 120 * s : to.w - 120 * s, speed: 70}]
+    const v = {vx: (right ? 1 : -1) * 260, vy: -320} // its floor's lower: a hop in off the edge, and down
+    return [...out, {go: 'move', fn: flight(v, () => right ? feet().x >= 70 * size : feet().x <= to.w - 70 * size), pose: LEAPING}, fallOn(v)]
+  }
+  const x = rand(Math.max(n.lo, c.x) + 60 * s, Math.min(n.hi, c.x + W) - 60 * s) - c.x // a spot under (or over) the stretch they share
+  const walk = {go: 'walk', to: x, speed: 70}
+  if (n.side === 'up') return [walk, {go: 'hold', T: 260, pose: {squash: 2}}, ...upInto(n, {vx: 0, vy: -leapSpeed(to)}, LEAPING)]
+  return [walk, ...downInto(n, {vx: 0, vy: -500}, FLYING)] // a hop, then through the floor
+}
+/**
+ * Claude needs you (or is stuck) and your pointer's on another display: he pops out in a shimmer and drops in near it,
+ * not right under it. Once, and once more if you move on to yet another display while you're still needed.
+ */
+function comeToYou(now){
+  const p = disp.pointer, to = p && disp.list.find(d => d.id === p.id)
+  if (!NATIVE || pet.stay || pet.drag || !['needs', 'blocked'].includes(pet.id) || !to || to.id === disp.on || pet.calls >= 2) return
+  pet.calls++
+  const x = Math.max(PW, Math.min(to.w - PW, p.x + (p.x > to.w / 2 ? -160 : 160) * size)) // toward the side with more room
+  if (isStill()) return askDisplay(to.id, x, to.h - to.bottom - 2) // reduced motion: no trip, just there, on the floor
+  if (ai.mode === 'script') endTrip(now)
+  ai.trick = null
+  trip(now, [{go: 'hold', T: 300, pose: {phase: 1, eyes: 'up'}}, {go: 'display', id: to.id, x, y: 0}, {go: 'drop'}])
+  ai.urgent = true
+}
+/** Thrown at an edge with a display beyond: he sails through it, spinning, and on into the next display. v in points a second. */
+function flingSteps(n, vx, vy){
+  const spin = .7 * (Math.sign(vx) || 1)
+  // However softly thrown he makes it, and however hard he never sails out of sight: at most 3,000 points a second, and
+  // up, at most a little over the leap that lands him on the display above.
+  const leap = n.side === 'up' && leapSpeed(n.to)
+  if (leap) return upInto(n, {vx: 0, vy: -Math.min(Math.max(-vy, leap), leap * 1.3)}, FLYING, spin)
+  if (n.side === 'down') return downInto(n, {vx: 0, vy: Math.min(Math.max(vy, 0), 3000)}, FLYING, spin)
+  return sideInto(n, {vx: Math.sign(vx) * Math.min(Math.max(Math.abs(vx), 1500), 3000), vy: 0}, FLYING, spin) // straight out the side
 }
 /** A trick by name: most are played on the spot; a few are trips that take him places. */
 function startMove(now, name, here){
@@ -830,6 +980,8 @@ function setState(id, now = performance.now()){
     else if (NATIVE ? turn && !turn.fails && (turn.files || turn.cmds) : demo.on) fire('cleanFinish')
   }
   if (id === 'needs' && sound.on) chirp()
+  if ((id === 'needs' || id === 'blocked') && before !== 'needs' && before !== 'blocked') pet.calls = 0 // you're needed afresh
+  if (id === 'needs' || id === 'blocked') comeToYou(now)
   if (ANNOUNCE[id]) live.textContent = ANNOUNCE[id]
   for (const b of document.querySelectorAll('[data-state]')) b.setAttribute('aria-pressed', String(b.dataset.state === id && !demo.on))
 }
@@ -1120,15 +1272,18 @@ function runDemo(now){
 
 // ---- input: drag him anywhere, hover to show the bubble, click to pin ----
 const button = petEl.querySelector('button')
-const grab = (x, y) => { pet.drag = {sx: x, sy: y, x: pet.x, y: pet.y, moved: false, trail: [[performance.now(), x]]} }
+const grab = (x, y) => { pet.drag = {sx: x, sy: y, x: pet.x, y: pet.y, moved: false, trail: [[performance.now(), x, y]]} }
 function pull(x, y){
   if (!pet.drag) return
   const dx = x - pet.drag.sx, dy = y - pet.drag.sy
   if (Math.hypot(dx, dy) > 4) pet.drag.moved = true
   if (pet.drag.moved) {
+    const c = NATIVE && !(disp.pending && performance.now() - disp.pending.at < 1000) && curDisplay(), gx = c && c.x + x, gy = c && c.y + y // an ask unanswered for a second is given up on
+    const to = c && !(x >= 0 && x < c.w && y >= 0 && y < c.h) && disp.list.find(d => gx >= d.x && gx < d.x + d.w && gy >= d.y && gy < d.y + d.h)
+    if (to) askDisplay(to.id) // carried onto another display: his layer follows the pointer there
     const nx = pet.drag.x + dx, now = performance.now(), ms = Math.max(1, now - (pet.drag.t || now - 16)), vx = (nx - pet.x) / ms * 1000
     pet.drag.t = now
-    pet.drag.trail = [...pet.drag.trail.filter(([t]) => now - t < 300), [now, x]] // the pointer's recent path, for a throw: his own x stops at the screen's edges
+    pet.drag.trail = [...pet.drag.trail.filter(([t]) => now - t < 300), [now, x, y]] // the pointer's recent path, for a throw: his own x stops at the screen's edges
     pet.swing += (Math.max(-16, Math.min(16, -vx * .02)) - pet.swing) * .35 // swings opposite to the way you pull him
     // Shaken: four fast changes of direction within ~a second leave him dizzy.
     const sign = Math.sign(vx)
@@ -1142,14 +1297,21 @@ function drop(){
   const d = pet.drag, now = performance.now()
   if (d && !d.moved) { pet.pinned = !pet.pinned; beat(now) }
   if (d?.dizzy) pet.pendingDizzy = true
-  if (d?.moved) {
-    // Let go mid-fling, hard to the side: over 2,000 points a second across at least the last 50 ms, so moves that
-    // arrive bunched together can't fake one, and he has to have been moving in the last 150.
-    const from = d.trail.findLast(([t]) => now - t >= 50), to = d.trail.at(-1)
-    const thrown = from && now - from[0] < 150 && Math.abs(to[1] - from[1]) / (now - from[0]) > 2
-    pet.droppedAt = thrown && fire('thrown') ? null : pet.y // if not, how far he falls may count when he lands (bigDrop)
-  }
   pet.drag = null
+  if (d?.moved) {
+    // Let go mid-fling: over 2,000 points a second across at least the last 50 ms, so moves that arrive bunched
+    // together can't fake one, and he has to have been moving in the last 150. Hard at an edge with a display beyond,
+    // he sails on through it; hard to the side at a wall, a trick may answer.
+    const v = throwSpeed(d.trail, now), side = v && (Math.abs(v.vx) >= Math.abs(v.vy) ? (v.vx > 0 ? 'right' : 'left') : v.vy > 0 ? 'down' : 'up')
+    const n = v && Math.max(Math.abs(v.vx), Math.abs(v.vy)) > 2 && NATIVE && !isStill() && nextTo(side)
+    if (n) { ai.trick = null; trip(now, flingSteps(n, v.vx * 1000, v.vy * 1000)); ai.urgent = true; return }
+    pet.droppedAt = v && Math.abs(v.vx) > 2 && fire('thrown') ? null : pet.y // if not, how far he falls may count when he lands (bigDrop)
+  }
+}
+/** How fast the pointer was going as you let go, {vx, vy} in points a ms, or null if it had stopped or was too quick to measure. */
+function throwSpeed(trail, now){
+  const from = trail.findLast(([t]) => now - t >= 50), to = trail.at(-1), ms = from && now - from[0]
+  return from && ms < 150 ? {vx: (to[1] - from[1]) / ms, vy: (to[2] - from[2]) / ms} : null
 }
 /** Four clicks on him in an even beat (each gap 500–1,000 ms, all within 20% of their average): slower than a double-click. */
 function beat(now){
@@ -1191,8 +1353,25 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   get size(){ return size }, get width(){ return desk.clientWidth },
   get away(){ return !!pet.away }, // you've left your Mac alone for five minutes or more
   perform,
-  // From the app: the menu bar and Dock, your windows, the mouse, Claude Code's state, and your settings.
-  screen(top, bottom){ scr.top = top; scr.bottom = bottom; place(pet.x, pet.y) },
+  /** The display across that side of his ('left', 'right', 'up', 'down'), and where his feet come in on it in its coordinates; null if that side is a wall. */
+  across(side){
+    const n = NATIVE && nextTo(side), m = n && middle()
+    return n ? {id: n.to.id, ...entry(n, m.x, m.y), width: n.to.w} : null
+  },
+  otherDisplays: () => disp.list.filter(d => d.id !== disp.on).map(({id, w, h, top, bottom}) => ({id, w, h, top, bottom})),
+  // From the app: your displays, your windows, the mouse, Claude Code's state, and your settings.
+  displays(list, on){
+    if (on !== disp.next) disp.nextAt = performance.now()
+    if (on !== disp.on) nativeTops = [] // his layer's elsewhere now: the app sends that display's windows next
+    disp.list = list; disp.next = on
+    if (disp.pending && !list.some(d => d.id === disp.pending.id)) disp.pending = null // gone before he got there
+    switchDisplay()
+  },
+  mouse(id, x, y){
+    const moved = disp.pointer?.id !== id
+    disp.pointer = {id, x, y}
+    if (moved) comeToYou(performance.now()) // onto another display while Claude needs you: he follows
+  },
   windows(tops){
     const on = surfaceUnder(pet.x, pet.y), was = on?.id != null && nativeTops.find(t => t.id === on.id), now = performance.now()
     nativeTops = tops
@@ -1206,7 +1385,7 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   },
   cursor(x, y){ eyes.cursor = {x, y} },
   click(x, y){ eyes.attention = {x, y, until: performance.now() + 1800}; pet.pinned = false }, // you clicked something else: he glances at it, and his pinned box closes
-  hover(on){ on ? enter() : leave() },
+  hover(on){ on ? enter() : (leave(), pet.drag && drop()) }, // the button's up and the pointer's off him: a drag that never got its mouse-up (his layer moved under it) is over
   left(){ pet.away = true }, // five minutes or more without the mouse or keys
   back(){ pet.away = false; fire('back') }, // and you're back
   /** The cheat code, typed as arrows and capital letters (↑↑↓↓…): every secret found at once, and the Fan pack on. */
@@ -1226,7 +1405,7 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
     else fire('doubleClick')
   },
   claude(state){ cc.sessions = state.sessions || {}; syncClaude(performance.now()); watchLogs() },
-  settings(s){ sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); s.found?.forEach(n => found.add(n)); useFanPack(s.fan) },
+  settings(s){ pet.stay = !!s.stay; sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); s.found?.forEach(n => found.add(n)); useFanPack(s.fan) },
 }
 let hitKey = ''
 /** Tells the app where he and his open bubble are, so only those spots catch the mouse. */
@@ -1323,6 +1502,7 @@ function frame(now){
   const busy = ['walk', 'jump', 'fall', 'dangle', 'fidget', 'land', 'script'].includes(ai.mode) || pet.drag || now - Math.max(pet.openedAt, pet.closedAt) < 700
   NATIVE ? setTimeout(() => frame(performance.now()), busy ? 33 : 66) : requestAnimationFrame(frame)
   const dt = Math.min(100, now - last); last = now
+  if (disp.next !== disp.on) switchDisplay()
   runDemo(now); behave(now, dt); draw(now, dt); updateBox(now)
   if (NATIVE) { reportHits(); if (now - cc.checkedAt > 1000) syncClaude(now) } // re-checks once a second, for the time-based changes
 }
