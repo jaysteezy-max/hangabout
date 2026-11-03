@@ -487,9 +487,9 @@ const scr = {top: 26, bottom: 0} // the menu bar above and the Dock below; the a
 // ---- displays: in the app his layer covers one display at a time, and moves to whichever one he goes to ----
 // Each display is {id, x, y, w, h, top, bottom}: where it sits on your desktop (the main display's top-left at 0,0, y
 // down), with its menu bar or top taskbar (top) and its Dock or bottom taskbar (bottom). next: the display the app has
-// put his layer on, until the page has its size. pointer: {id, x, y}, where your pointer is. pending: a move of his layer
+// put his layer on (since nextAt), until the page has its size. pointer: {id, x, y}, where your pointer is. pending: a move of his layer
 // the page asked the app for, and where his feet go once it's there (or nowhere: they keep their spot on the desktop).
-const disp = {list: [], on: null, next: null, pointer: null, pending: null}
+const disp = {list: [], on: null, next: null, nextAt: 0, pointer: null, pending: null}
 const curDisplay = () => disp.list.find(d => d.id === disp.on)
 /** The displays touching d, by side, with the stretch of edge they share (lo to hi, on the desktop). Corners and slivers under 40 points don't count. */
 function neighbors(list, d){
@@ -506,10 +506,10 @@ function neighbors(list, d){
 }
 /** His middle on the desktop: his feet's x, 33 points up from his feet (at normal size). */
 const middle = () => { const c = curDisplay() || {x: 0, y: 0}, f = feet(); return {x: c.x + f.x, y: c.y + f.y - 33 * size} }
-/** The display across that side of his that's nearest to where he is, or undefined: that side is a wall. */
+/** The display across that side of his, at the stretch of edge he's by, or undefined: there, that side is a wall. */
 function nextTo(side){
-  const m = middle(), at = side === 'up' || side === 'down' ? m.x : m.y, gap = n => Math.max(0, n.lo - at, at - n.hi)
-  return neighbors(disp.list, curDisplay()).filter(n => n.side === side).sort((a, b) => gap(a) - gap(b))[0]
+  const m = middle(), at = side === 'up' || side === 'down' ? m.x : m.y
+  return neighbors(disp.list, curDisplay()).find(n => n.side === side && at >= n.lo && at <= n.hi)
 }
 /** His feet on n.to, in its coordinates, as his middle crosses n's edge at (gx, gy) on the desktop: slid along the edge
  *  into the stretch both displays share, and on a display beside, never below its floor. */
@@ -526,14 +526,14 @@ function askDisplay(id, x, y){
   webkit.messageHandlers.hangabout.postMessage({display: id})
   return true
 }
-/** Moves him onto the display the app put his layer on, once the page has that display's size. */
+/** Moves him onto the display the app put his layer on, once the page has that display's size (give or take a point or
+ *  two), or after half a second whatever size it has: a window that never quite takes it mustn't strand him. */
 function switchDisplay(){
-  const to = disp.list.find(d => d.id === disp.next)
-  if (!to || desk.clientWidth !== to.w || desk.clientHeight !== to.h) return // the window hasn't taken its new size yet: the next frame looks again
+  const to = disp.list.find(d => d.id === disp.next), sized = to && Math.abs(desk.clientWidth - to.w) <= 2 && Math.abs(desk.clientHeight - to.h) <= 2
+  if (!to || !sized && performance.now() - disp.nextAt < 500) return // the window hasn't taken its new size yet: the next frame looks again
   const from = curDisplay(), was = disp.on, p = disp.pending
   disp.on = to.id; scr.top = to.top; scr.bottom = to.bottom
   if (was != null && was !== to.id) {
-    nativeTops = [] // the app sends this display's windows next
     if (from) { // he keeps his spot on the desktop, so a drag or a flight goes on unbroken
       const dx = from.x - to.x, dy = from.y - to.y, d = pet.drag
       pet.x += dx; pet.y += dy
@@ -542,7 +542,9 @@ function switchDisplay(){
       if (ai.mode === 'script') endTrip(performance.now())
       pet.y = surfaces()[0].y
     }
-    if (p?.id === to.id) { disp.pending = null; if (p.x != null) return putFeet(p.x, p.y) }
+    if (p?.id === to.id) { disp.pending = null; if (p.x != null) putFeet(p.x, p.y) }
+    place(pet.x, pet.y)
+    return comeToYou(performance.now()) // Claude came to need you while he was on his way here: back to you
   }
   place(pet.x, pet.y)
 }
@@ -877,9 +879,12 @@ function comeToYou(now){
 /** Thrown at an edge with a display beyond: he sails through it, spinning, and on into the next display. v in points a second. */
 function flingSteps(n, vx, vy){
   const spin = .7 * (Math.sign(vx) || 1)
-  if (n.side === 'up') return upInto(n, {vx: 0, vy: -Math.max(-vy, leapSpeed(n.to))}, FLYING, spin)
-  if (n.side === 'down') return downInto(n, {vx: 0, vy: Math.max(vy, 0)}, FLYING, spin)
-  return sideInto(n, {vx: Math.sign(vx) * Math.max(Math.abs(vx), 1500), vy: 0}, FLYING, spin) // straight out the side, however softly thrown
+  // However softly thrown he makes it, and however hard he never sails out of sight: at most 3,000 points a second, and
+  // up, at most a little over the leap that lands him on the display above.
+  const leap = n.side === 'up' && leapSpeed(n.to)
+  if (leap) return upInto(n, {vx: 0, vy: -Math.min(Math.max(-vy, leap), leap * 1.3)}, FLYING, spin)
+  if (n.side === 'down') return downInto(n, {vx: 0, vy: Math.min(Math.max(vy, 0), 3000)}, FLYING, spin)
+  return sideInto(n, {vx: Math.sign(vx) * Math.min(Math.max(Math.abs(vx), 1500), 3000), vy: 0}, FLYING, spin) // straight out the side
 }
 /** A trick by name: most are played on the spot; a few are trips that take him places. */
 function startMove(now, name, here){
@@ -1351,6 +1356,8 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   otherDisplays: () => disp.list.filter(d => d.id !== disp.on).map(({id, w, h, top, bottom}) => ({id, w, h, top, bottom})),
   // From the app: your displays, your windows, the mouse, Claude Code's state, and your settings.
   displays(list, on){
+    if (on !== disp.next) disp.nextAt = performance.now()
+    if (on !== disp.on) nativeTops = [] // his layer's elsewhere now: the app sends that display's windows next
     disp.list = list; disp.next = on
     if (disp.pending && !list.some(d => d.id === disp.pending.id)) disp.pending = null // gone before he got there
     switchDisplay()
@@ -1373,7 +1380,7 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   },
   cursor(x, y){ eyes.cursor = {x, y} },
   click(x, y){ eyes.attention = {x, y, until: performance.now() + 1800}; pet.pinned = false }, // you clicked something else: he glances at it, and his pinned box closes
-  hover(on){ on ? enter() : leave() },
+  hover(on){ on ? enter() : (leave(), pet.drag && drop()) }, // the button's up and the pointer's off him: a drag that never got its mouse-up (his layer moved under it) is over
   left(){ pet.away = true }, // five minutes or more without the mouse or keys
   back(){ pet.away = false; fire('back') }, // and you're back
   /** The cheat code, typed as arrows and capital letters (↑↑↓↓…): every secret found at once, and the Fan pack on. */

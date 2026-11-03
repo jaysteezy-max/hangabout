@@ -362,6 +362,77 @@ test('portal can open on another display', async () => {
   return {problems: [], page: {close(){}}}
 })
 
+// ---- Final review fixes ----
+test('needed mid-switch, he comes back to you', async () => {
+  const h = await open({on: 'dellR', x: 300})
+  await h.run(() => hangabout.mouse('dellR', 900, 500))
+  await crossing(h, 'mac')
+  for (let i = 0; i < 400 && !(await h.run(() => __asks.length)); i++) await h.wait(33) // until he asks for the laptop
+  await claude(h, 'waiting') // Claude needs you before the app has moved his layer: his trip ends where he is
+  await h.wait(33)
+  await answer(h) // and then his layer lands on the laptop anyway
+  await h.tick(5000)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'dellR'); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  return h
+})
+test('a switch goes ahead when the window comes up a point off size', async () => {
+  const h = await open({on: 'mac', x: 400})
+  await h.page.setViewport({width: 1919, height: 1079})
+  await h.run(list => hangabout.displays(list, 'dellL'), JAY)
+  assert.strictEqual(await h.run(() => disp.on), 'dellL')
+  return h
+})
+test('a switch goes ahead when the window never takes its new size', async () => {
+  const h = await open({on: 'mac', x: 400})
+  await h.run(list => hangabout.displays(list, 'dellL'), JAY) // the page stays the laptop's size
+  for (let i = 0; i < 20; i++) await h.wait(33)
+  assert.strictEqual(await h.run(() => disp.on), 'dellL')
+  return h
+})
+test('windows sent before the window resizes stay', async () => {
+  const h = await open({on: 'mac', x: 400})
+  await h.run(list => { hangabout.displays(list, 'dellL'); hangabout.windows([{id: 1, y: 400, x0: 100, x1: 900, wx: 100, w: 800, h: 500}]) }, JAY)
+  await h.page.setViewport({width: 1920, height: 1080})
+  await h.wait(33)
+  assert.deepStrictEqual(await h.run(() => [disp.on, nativeTops.length]), ['dellL', 1])
+  return h
+})
+test('thrown down where nothing is below stays', async () => {
+  const h = await open({on: 'dellL', x: 400}) // the left Dell's left part: the laptop is under its other part
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let i = 1; i <= 20; i++) { await h.wait(33); await h.pointer('move', m.x, m.y - 30 * i) }
+  for (let i = 1; i <= 6; i++) { await h.wait(16); await h.pointer('move', m.x, m.y - 600 + 60 * i) }
+  await h.pointer('up', m.x, m.y - 240)
+  await h.tick(3000)
+  const w = await h.where()
+  assert.deepStrictEqual(h.sent, []); assert.strictEqual(w.on, 'dellL'); assert(w.standing, 'not standing')
+  return h
+})
+test('a wild flick up stays in sight', async () => {
+  const h = await open({on: 'mac', x: 400})
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let i = 1; i <= 4; i++) { await h.wait(16); await h.pointer('move', m.x, m.y - 190 * i) } // about 12 points a ms
+  await h.pointer('up', m.x, m.y - 760)
+  await h.tick(2500)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'dellL'); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  return h
+})
+test('a lost mouse-up after a carry still lets him go', async () => {
+  const h = await open({on: 'dellL', x: 1500})
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let gx = m.x; gx <= -1028 + 1920 + 300; gx += 20) { await h.wait(33); await h.pointer('move', gx, m.y - 200); await answer(h) }
+  await h.run(() => hangabout.hover(false)) // the button's up and the pointer's off him, but the page never got the mouse-up
+  await h.tick(3000)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'dellR'); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  return h
+})
+
 ;(async () => {
   browser = await puppeteer.launch({headless: 'shell'})
   const only = process.argv[2] || '', failed = []
