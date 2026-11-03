@@ -679,7 +679,8 @@ function leapTo(now, to){
 const feet = () => ({x: pet.x + 66, y: pet.y + PH})
 /** Puts his feet at (x, y), turned rot degrees about them if given (on a wall: -90 on the right side, 90 on the left). */
 const putFeet = (x, y, rot) => { if (rot != null) ai.rot = rot; place(x - 66, y - PH) }
-function trip(now, steps){ ai.mode = 'script'; ai.steps = steps; ai.step = -1; ai.rot = 0; nextStep(now) }
+// urgent: a trip that goes on whatever Claude's doing (he's been thrown, or he's on his way to you); its maker sets it after trip().
+function trip(now, steps){ ai.mode = 'script'; ai.steps = steps; ai.step = -1; ai.rot = 0; ai.urgent = false; nextStep(now) }
 function nextStep(now){
   const s = ai.steps[++ai.step]
   if (!s) return endTrip(now)
@@ -694,7 +695,7 @@ function nextStep(now){
 }
 /** Back to ordinary life: upright, on screen, falling to whatever is below (or standing, if he's already on it). */
 function endTrip(now){
-  ai.rot = 0; pet.clip = null; ai.trick?.end?.() // a trip cut short tidies up after itself (the portal gun's portals)
+  ai.rot = 0; pet.clip = null; ai.urgent = false; ai.trick?.end?.() // a trip cut short tidies up after itself (the portal gun's portals)
   ai.mode = 'fall'; ai.vy = 0
   place(pet.x, pet.y)
   const here = surfaceUnder(pet.x, pet.y)
@@ -745,7 +746,7 @@ function behave(now, dt){
   if (pet.drag?.moved) { if (ai.mode === 'script') { ai.rot = 0; pet.clip = null; ai.trick?.end?.() } ai.mode = 'dangle'; return }
   if (ai.mode === 'dangle') { ai.mode = 'fall'; ai.vy = 0 } // just let go
   if (ai.mode === 'script') {
-    if (roam(now) === 'free' && !isStill()) return runStep(now, dt)
+    if ((roam(now) === 'free' || ai.urgent) && !isStill()) return runStep(now, dt)
     endTrip(now) // Claude needs him, or got to work: back where you can see him
   }
   const here = surfaceUnder(pet.x, pet.y)
@@ -817,38 +818,52 @@ function behave(now, dt){
 /** Whether he may set off for another display on his own: in the app, unless you've asked him to stay on one. */
 const canWander = () => NATIVE && !pet.stay
 /**
- * A move step's fn: flies him on from where he is at v ({vx, vy}, points a second), falling as he goes, until until(v)
- * says stop. It moves him on from his feet each frame, and steps can share v, so a flight carries on across displays.
+ * A move step's fn: flies him on from where he is at v ({vx, vy}, points a second), falling as he goes (and turning spin
+ * degrees a ms), until until(v, t) says stop. It moves him on from his feet each frame, and steps can share v, so a
+ * flight carries on across displays.
  */
-function flight(v, until, g = 2600){
+function flight(v, until, g = 2600, spin = 0){
   return (t, dt) => {
     v.vy += g * dt / 1000
+    if (spin) ai.rot = (ai.rot + spin * dt) % 360
     const f = feet()
     putFeet(f.x + v.vx * dt / 1000, f.y + v.vy * dt / 1000)
     return until(v, t)
   }
 }
+const FLYING = {stretch: 1, arms: ['high', 'high'], eyes: 'up'}, LEAPING = {stretch: 2, tuck: 1, arms: ['up', 'mid'], eyes: 'up'}
+/** Lets go of a flight: he falls on from where he is, as fast as he was going. */
+const fallOn = v => ({go: 'do', fn: () => { ai.rot = 0; ai.mode = 'fall'; ai.vy = v.vy }})
+/** How fast to leap from where he is to rise through the top and on to about 100 points above the floor of `to`, the display above. */
+const leapSpeed = to => Math.sqrt(2 * 2600 * (feet().y + to.bottom + 102))
+// The rest of a flight into n.to: up through the top until he comes down above its floor, down through the bottom
+// (falling in from its top), or out the side and on 300 ms more. His middle crossing the edge moves his layer.
+const upInto = (n, v, pose, spin) => [
+  {go: 'move', fn: flight(v, () => feet().y - 33 * size <= 0, 2600, spin), pose}, {go: 'display', id: n.to.id},
+  {go: 'move', fn: flight(v, v => v.vy >= 0, 2600, spin), pose}, {go: 'drop'}]
+const downInto = (n, v, pose, spin) => [
+  {go: 'move', fn: flight(v, () => feet().y - 33 * size >= desk.clientHeight, 2600, spin), pose}, {go: 'display', id: n.to.id}, fallOn(v)]
+const sideInto = (n, v, pose, spin) => [
+  {go: 'move', fn: flight(v, () => n.side === 'right' ? feet().x >= desk.clientWidth : feet().x <= 0, 0, spin), pose}, {go: 'display', id: n.to.id},
+  {go: 'move', fn: flight(v, (v, t) => t >= 300, 2600, spin), pose}, fallOn(v)]
 /** The steps that take him from the floor across into n.to: off the side, a leap up through the top, or down through the floor. */
 function crossSteps(n){
-  const c = curDisplay(), W = desk.clientWidth, H = desk.clientHeight, s = size, to = n.to
+  const c = curDisplay(), W = desk.clientWidth, s = size, to = n.to
   if (n.side === 'left' || n.side === 'right') {
     const right = n.side === 'right'
     return [{go: 'walk', to: right ? W : 0, speed: 70}, {go: 'display', id: to.id}, {go: 'walk', to: right ? 120 * s : to.w - 120 * s, speed: 70}]
   }
   const x = rand(Math.max(n.lo, c.x) + 60 * s, Math.min(n.hi, c.x + W) - 60 * s) - c.x // a spot under (or over) the stretch they share
-  const walk = {go: 'walk', to: x, speed: 70}, flying = {stretch: 1, arms: ['high', 'high'], eyes: 'up'}
-  if (n.side === 'up') { // fast enough to rise through the top here, and on to about 100 points above the floor up there
-    const rise = feet().y - 33 * s + (to.h + 33 * s) - (to.h - to.bottom - 2 - 100), v = {vx: 0, vy: -Math.sqrt(2 * 2600 * rise)}
-    return [walk, {go: 'hold', T: 260, pose: {squash: 2}},
-      {go: 'move', fn: flight(v, () => feet().y - 33 * size <= 0), pose: {stretch: 2, tuck: 1, arms: ['up', 'mid'], eyes: 'up'}},
-      {go: 'display', id: to.id},
-      {go: 'move', fn: flight(v, v => v.vy >= 0), pose: {stretch: 2, tuck: 1, arms: ['up', 'mid'], eyes: 'up'}},
-      {go: 'drop'}]
-  }
-  const v = {vx: 0, vy: -500} // down: a hop, then through the floor, and in from the top of the display below
-  return [walk, {go: 'move', fn: flight(v, () => feet().y - 33 * size >= H), pose: flying},
-    {go: 'display', id: to.id},
-    {go: 'do', fn: () => { ai.rot = 0; ai.mode = 'fall'; ai.vy = v.vy }}]
+  const walk = {go: 'walk', to: x, speed: 70}
+  if (n.side === 'up') return [walk, {go: 'hold', T: 260, pose: {squash: 2}}, ...upInto(n, {vx: 0, vy: -leapSpeed(to)}, LEAPING)]
+  return [walk, ...downInto(n, {vx: 0, vy: -500}, FLYING)] // a hop, then through the floor
+}
+/** Thrown at an edge with a display beyond: he sails through it, spinning, and on into the next display. v in points a second. */
+function flingSteps(n, vx, vy){
+  const spin = .7 * (Math.sign(vx) || 1)
+  if (n.side === 'up') return upInto(n, {vx: 0, vy: -Math.max(-vy, leapSpeed(n.to))}, FLYING, spin)
+  if (n.side === 'down') return downInto(n, {vx: 0, vy: Math.max(vy, 0)}, FLYING, spin)
+  return sideInto(n, {vx: Math.sign(vx) * Math.max(Math.abs(vx), 1500), vy: 0}, FLYING, spin) // straight out the side, however softly thrown
 }
 /** A trick by name: most are played on the spot; a few are trips that take him places. */
 function startMove(now, name, here){
@@ -1229,15 +1244,18 @@ function runDemo(now){
 
 // ---- input: drag him anywhere, hover to show the bubble, click to pin ----
 const button = petEl.querySelector('button')
-const grab = (x, y) => { pet.drag = {sx: x, sy: y, x: pet.x, y: pet.y, moved: false, trail: [[performance.now(), x]]} }
+const grab = (x, y) => { pet.drag = {sx: x, sy: y, x: pet.x, y: pet.y, moved: false, trail: [[performance.now(), x, y]]} }
 function pull(x, y){
   if (!pet.drag) return
   const dx = x - pet.drag.sx, dy = y - pet.drag.sy
   if (Math.hypot(dx, dy) > 4) pet.drag.moved = true
   if (pet.drag.moved) {
+    const c = NATIVE && !disp.pending && curDisplay(), gx = c && c.x + x, gy = c && c.y + y
+    const to = c && !(x >= 0 && x < c.w && y >= 0 && y < c.h) && disp.list.find(d => gx >= d.x && gx < d.x + d.w && gy >= d.y && gy < d.y + d.h)
+    if (to) askDisplay(to.id) // carried onto another display: his layer follows the pointer there
     const nx = pet.drag.x + dx, now = performance.now(), ms = Math.max(1, now - (pet.drag.t || now - 16)), vx = (nx - pet.x) / ms * 1000
     pet.drag.t = now
-    pet.drag.trail = [...pet.drag.trail.filter(([t]) => now - t < 300), [now, x]] // the pointer's recent path, for a throw: his own x stops at the screen's edges
+    pet.drag.trail = [...pet.drag.trail.filter(([t]) => now - t < 300), [now, x, y]] // the pointer's recent path, for a throw: his own x stops at the screen's edges
     pet.swing += (Math.max(-16, Math.min(16, -vx * .02)) - pet.swing) * .35 // swings opposite to the way you pull him
     // Shaken: four fast changes of direction within ~a second leave him dizzy.
     const sign = Math.sign(vx)
@@ -1251,14 +1269,21 @@ function drop(){
   const d = pet.drag, now = performance.now()
   if (d && !d.moved) { pet.pinned = !pet.pinned; beat(now) }
   if (d?.dizzy) pet.pendingDizzy = true
-  if (d?.moved) {
-    // Let go mid-fling, hard to the side: over 2,000 points a second across at least the last 50 ms, so moves that
-    // arrive bunched together can't fake one, and he has to have been moving in the last 150.
-    const from = d.trail.findLast(([t]) => now - t >= 50), to = d.trail.at(-1)
-    const thrown = from && now - from[0] < 150 && Math.abs(to[1] - from[1]) / (now - from[0]) > 2
-    pet.droppedAt = thrown && fire('thrown') ? null : pet.y // if not, how far he falls may count when he lands (bigDrop)
-  }
   pet.drag = null
+  if (d?.moved) {
+    // Let go mid-fling: over 2,000 points a second across at least the last 50 ms, so moves that arrive bunched
+    // together can't fake one, and he has to have been moving in the last 150. Hard at an edge with a display beyond,
+    // he sails on through it; hard to the side at a wall, a trick may answer.
+    const v = throwSpeed(d.trail, now), side = v && (Math.abs(v.vx) >= Math.abs(v.vy) ? (v.vx > 0 ? 'right' : 'left') : v.vy > 0 ? 'down' : 'up')
+    const n = v && Math.max(Math.abs(v.vx), Math.abs(v.vy)) > 2 && NATIVE && !isStill() && nextTo(side)
+    if (n) { ai.trick = null; trip(now, flingSteps(n, v.vx * 1000, v.vy * 1000)); ai.urgent = true; return }
+    pet.droppedAt = v && Math.abs(v.vx) > 2 && fire('thrown') ? null : pet.y // if not, how far he falls may count when he lands (bigDrop)
+  }
+}
+/** How fast the pointer was going as you let go, {vx, vy} in points a ms, or null if it had stopped or was too quick to measure. */
+function throwSpeed(trail, now){
+  const from = trail.findLast(([t]) => now - t >= 50), to = trail.at(-1), ms = from && now - from[0]
+  return from && ms < 150 ? {vx: (to[1] - from[1]) / ms, vy: (to[2] - from[2]) / ms} : null
 }
 /** Four clicks on him in an even beat (each gap 500–1,000 ms, all within 20% of their average): slower than a double-click. */
 function beat(now){

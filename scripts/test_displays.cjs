@@ -66,6 +66,11 @@ async function open({on = 'mac', layout = JAY, app = true, seed = 7, x} = {}){
       for (const id of r.asks) { h.sent.push(id); await h.show(h.layout.some(d => d.id === id) ? id : h.on) } // a display that's gone: the app stays put
     }
   }
+  /** The mouse on him, at (gx, gy) on the desktop: the app hands the page points on the display his layer covers. */
+  h.pointer = (type, gx, gy) => { const d = h.layout.find(d => d.id === h.on); return h.run((t, x, y) => hangabout.pointer(t, x, y), type, gx - d.x, gy - d.y) }
+  h.wait = ms => h.run(ms => __tick(ms), ms) // one step of the clock, without answering asks
+  /** His middle on the desktop, where you'd grab him. */
+  h.middle = () => h.run(() => middle())
   h.where = () => h.run(() => {
     const f = feet(), s = surfaceUnder(pet.x, pet.y)
     return {on: disp.on, x: f.x, y: f.y, mode: ai.mode, standing: !!s && Math.abs(s.y - pet.y) < 2 && !['jump', 'fall', 'script', 'dangle'].includes(ai.mode)}
@@ -197,6 +202,68 @@ test('one display never crosses', async () => {
   await h.run(() => usePreset('erratic'))
   await h.tick(TEN_MINUTES)
   assert.deepStrictEqual(h.sent, [])
+  return h
+})
+
+// ---- Task 3: carry and throw him across ----
+/** Grabs him and moves the mouse by (dx, dy) in `steps` moves, `ms` apart, then lets go. */
+async function drag(h, dx, dy, steps, ms){
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let i = 1; i <= steps; i++) { await h.wait(ms); await h.pointer('move', m.x + dx * i / steps, m.y + dy * i / steps) }
+  await h.pointer('up', m.x + dx, m.y + dy)
+}
+const answer = async h => { for (const id of await h.run(() => __asks.splice(0))) { h.sent.push(id); await h.show(id) } } // asks made outside tick
+
+test('carried from the left Dell to the right Dell', async () => {
+  const h = await open({on: 'dellL', x: 1500})
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let gx = m.x; gx <= -1028 + 1920 + 300; gx += 20) { await h.wait(33); await h.pointer('move', gx, m.y - 200); await answer(h) }
+  assert.deepStrictEqual(h.sent, ['dellR'])
+  const held = await h.where()
+  near(held.x, -1028 + 1920 + 300 - 892, 21) // still under the mouse, on the right Dell
+  await h.pointer('up', -1028 + 1920 + 300, m.y - 200)
+  await h.tick(3000)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'dellR'); assert(w.standing, 'not standing')
+  return h
+})
+const thrown = (name, from, x, dx, dy, to) => test(name, async () => {
+  const h = await open({on: from, x})
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let i = 1; i <= 6; i++) { await h.wait(16); await h.pointer('move', m.x + dx * i, m.y + dy * i) }
+  await h.pointer('up', m.x + dx * 6, m.y + dy * 6)
+  await h.tick(4000)
+  const w = await h.where()
+  assert.strictEqual(w.on, to); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  assert.deepStrictEqual(h.sent, to === from ? [] : [to])
+  return h
+})
+thrown('thrown right from the left Dell', 'dellL', 1500, 60, 0, 'dellR')
+thrown('thrown left from the right Dell', 'dellR', 400, -60, 0, 'dellL')
+thrown('thrown up from the laptop', 'mac', 400, 0, -60, 'dellL')
+thrown('thrown at a wall stays', 'dellL', 600, -60, 0, 'dellL')
+test('thrown down from the left Dell', async () => {
+  const h = await open({on: 'dellL', x: 1300})
+  const m = await h.middle()
+  await h.pointer('down', m.x, m.y)
+  for (let i = 1; i <= 20; i++) { await h.wait(33); await h.pointer('move', m.x, m.y - 30 * i) } // lifted slowly...
+  for (let i = 1; i <= 6; i++) { await h.wait(16); await h.pointer('move', m.x, m.y - 600 + 60 * i) } // ...and flung down
+  await h.pointer('up', m.x, m.y - 240)
+  await h.tick(4000)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'mac'); assert(w.standing, `not standing: ${JSON.stringify(w)}`)
+  assert.deepStrictEqual(h.sent, ['mac'])
+  return h
+})
+test('gentle drop stays', async () => {
+  const h = await open({on: 'dellL', x: 1500})
+  await drag(h, 300, -100, 30, 33)
+  await h.tick(3000)
+  const w = await h.where()
+  assert.strictEqual(w.on, 'dellL'); assert(w.standing, 'not standing'); assert.deepStrictEqual(h.sent, [])
   return h
 })
 
