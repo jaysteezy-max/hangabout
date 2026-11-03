@@ -361,8 +361,9 @@ poses beside references, sweeps every pose, and plays every trick headlessly. By
    hand shapes, expressions, gear. Draw shapes on purpose from it; never shrink a blurry frame, never trust a written
    description over the art, and never fit the character onto Clawd's or Cappy's body or the shared walk.
 3. **Block out the silhouette** at the target size and compare it to the references at the same height.
-4. **Review before the owner sees it**, in three stages: the look (the rest pose beside the references at 8x and 3x),
-   the body (walk, faces, hands, moods) and the tricks. Reviewers each have a role:
+4. **Review before the owner sees it**, in four stages: the look (the rest pose beside the references at 8x and 3x),
+   the motion design (model sheet, turnaround, key poses and timing), the body (walk, faces, hands, moods, in playback)
+   and the tricks. Reviewers each have a role:
    - likeness: does it read as the character;
    - craft: is it clean at 3x;
    - motion: does each animation read as what it's called;
@@ -373,7 +374,11 @@ poses beside references, sweeps every pose, and plays every trick headlessly. By
    declined. A stage is done when no blocker is left; whatever is still open after three rounds goes to the owner.
 5. **Show the owner** each stage as it passes, asking only what's theirs to decide, each question with a recommended,
    canonical answer.
-6. **Make it move its own way** (step 1's list), then **check**: every pose inside the 44 x 40 grid with its feet on
+6. **Design its motion before building it**: a model sheet (proportions, limb lengths, what every pose keeps) and a
+   turnaround, then each action's key poses, blocked and played on their own, then breakdowns and timing (what leads and
+   what follows, anticipation, arcs, spacing that eases in and out), and only then in-betweens and a cleanup pass at real
+   size. Motion is reviewed in playback and onion skins, not still strips.
+7. **Make it move its own way** (step 1's list), then **check**: every pose inside the 44 x 40 grid with its feet on
    row 39, every trick and state played with no console errors, and the pose and trick sheets looked at.
 
 ## Fan pack rules
