@@ -484,6 +484,68 @@ const PW = 132, PH = 120 // his footprint on screen at normal size; his feet sit
 let size = 1 // how big he's drawn around his feet; steps of 1/6 keep every art pixel a whole number of screen pixels
 function setSize(s){ size = s; petEl.style.setProperty('--s', s); place(pet.x, pet.y) }
 const scr = {top: 26, bottom: 0} // the menu bar above and the Dock below; the app sends the real ones
+// ---- displays: in the app his layer covers one display at a time, and moves to whichever one he goes to ----
+// Each display is {id, x, y, w, h, top, bottom}: where it sits on your desktop (the main display's top-left at 0,0, y
+// down), with its menu bar or top taskbar (top) and its Dock or bottom taskbar (bottom). next: the display the app has
+// put his layer on, until the page has its size. pointer: {id, x, y}, where your pointer is. pending: a move of his layer
+// the page asked the app for, and where his feet go once it's there (or nowhere: they keep their spot on the desktop).
+const disp = {list: [], on: null, next: null, pointer: null, pending: null}
+const curDisplay = () => disp.list.find(d => d.id === disp.on)
+/** The displays touching d, by side, with the stretch of edge they share (lo to hi, on the desktop). Corners and slivers under 40 points don't count. */
+function neighbors(list, d){
+  const TOUCH = 2, OVERLAP = 40, out = []
+  for (const o of d ? list : []) if (o.id !== d.id) {
+    const ys = [Math.max(d.y, o.y), Math.min(d.y + d.h, o.y + o.h)], xs = [Math.max(d.x, o.x), Math.min(d.x + d.w, o.x + o.w)]
+    const sideBySide = ys[1] - ys[0] >= OVERLAP, stacked = xs[1] - xs[0] >= OVERLAP
+    if (sideBySide && Math.abs(o.x - (d.x + d.w)) <= TOUCH) out.push({side: 'right', to: o, lo: ys[0], hi: ys[1]})
+    if (sideBySide && Math.abs(o.x + o.w - d.x) <= TOUCH) out.push({side: 'left', to: o, lo: ys[0], hi: ys[1]})
+    if (stacked && Math.abs(o.y + o.h - d.y) <= TOUCH) out.push({side: 'up', to: o, lo: xs[0], hi: xs[1]})
+    if (stacked && Math.abs(o.y - (d.y + d.h)) <= TOUCH) out.push({side: 'down', to: o, lo: xs[0], hi: xs[1]})
+  }
+  return out
+}
+/** His middle on the desktop: his feet's x, 33 points up from his feet (at normal size). */
+const middle = () => { const c = curDisplay() || {x: 0, y: 0}, f = feet(); return {x: c.x + f.x, y: c.y + f.y - 33 * size} }
+/** The display across that side of his that's nearest to where he is, or undefined: that side is a wall. */
+function nextTo(side){
+  const m = middle(), at = side === 'up' || side === 'down' ? m.x : m.y, gap = n => Math.max(0, n.lo - at, at - n.hi)
+  return neighbors(disp.list, curDisplay()).filter(n => n.side === side).sort((a, b) => gap(a) - gap(b))[0]
+}
+/** His feet on n.to, in its coordinates, as his middle crosses n's edge at (gx, gy) on the desktop: slid along the edge
+ *  into the stretch both displays share, and on a display beside, never below its floor. */
+function entry(n, gx, gy){
+  const beside = n.side === 'left' || n.side === 'right', half = (beside ? 33 : 54) * size, t = n.to
+  const fit = v => n.hi - n.lo < 2 * half ? (n.lo + n.hi) / 2 : Math.max(n.lo + half, Math.min(n.hi - half, v))
+  const x = (beside ? gx : fit(gx)) - t.x, y = (beside ? fit(gy) : gy) - t.y + 33 * size
+  return {x, y: beside ? Math.min(y, t.h - t.bottom - 2) : y}
+}
+/** Asks the app to move his layer to display id, his feet to (x, y) there (or kept where they are on the desktop). False outside the app. */
+function askDisplay(id, x, y){
+  if (!NATIVE) return false
+  disp.pending = {id, x, y, at: performance.now()}
+  webkit.messageHandlers.hangabout.postMessage({display: id})
+  return true
+}
+/** Moves him onto the display the app put his layer on, once the page has that display's size. */
+function switchDisplay(){
+  const to = disp.list.find(d => d.id === disp.next)
+  if (!to || desk.clientWidth !== to.w || desk.clientHeight !== to.h) return // the window hasn't taken its new size yet: the next frame looks again
+  const from = curDisplay(), was = disp.on, p = disp.pending
+  disp.on = to.id; scr.top = to.top; scr.bottom = to.bottom
+  if (was != null && was !== to.id) {
+    nativeTops = [] // the app sends this display's windows next
+    if (from) { // he keeps his spot on the desktop, so a drag or a flight goes on unbroken
+      const dx = from.x - to.x, dy = from.y - to.y, d = pet.drag
+      pet.x += dx; pet.y += dy
+      if (d) { d.sx += dx; d.sy += dy; d.x += dx; d.y += dy; d.trail = d.trail.map(([t, x, y]) => [t, x + dx, y + dy]) }
+    } else { // the display he was on is gone: down to the floor of this one
+      if (ai.mode === 'script') endTrip(performance.now())
+      pet.y = surfaces()[0].y
+    }
+    if (p?.id === to.id) { disp.pending = null; if (p.x != null) return putFeet(p.x, p.y) }
+  }
+  place(pet.x, pet.y)
+}
 let nativeTops = [] // in the app: the visible top edges of your real windows, {id, y, x0, x1, wx, w, h}
 let windowsAt = 0, surfAt = -1e9 // when the app last sent them, and when the one under him last moved fast
 /** The top edges of windows (and each window's left, width and height): your real ones in the app, the pretend ones in the mockup. */
@@ -623,6 +685,11 @@ function nextStep(now){
   ai.stepAt = now; ai.from = {...feet(), rot: ai.rot}
   if (s.go === 'do') { s.fn(now); if (ai.mode === 'script') nextStep(now) }
   else if (s.go === 'drop') { ai.rot = 0; ai.mode = 'fall'; ai.vy = s.vy || 0 }
+  else if (s.go === 'display') { // to the spot asked for, or across to a neighbor at the spot that lines up with him
+    const n = neighbors(disp.list, curDisplay()).find(n => n.to.id === s.id), m = n && middle()
+    const at = s.x != null ? s : n && entry(n, m.x, m.y)
+    if (!at || !askDisplay(s.id, at.x, at.y)) endTrip(now)
+  }
 }
 /** Back to ordinary life: upright, on screen, falling to whatever is below (or standing, if he's already on it). */
 function endTrip(now){
@@ -649,6 +716,8 @@ function runStep(now, dt){
     if (p >= 1) nextStep(now)
   } else if (s.go === 'hold' && t >= s.T) nextStep(now)
   else if (s.go === 'move' && s.fn(t, dt)) nextStep(now)
+  else if (s.go === 'display' && disp.on === s.id && !disp.pending) nextStep(now) // his layer's there
+  else if (s.go === 'display' && (!disp.pending || t > 1000)) { disp.pending = null; endTrip(now) } // the app didn't move it (that display's gone): he stays
 }
 /** His pose on a trip: walking or climbing frames, or the step's own pose; a violet shimmer while he's partly off screen. */
 function tripPose(now){
@@ -1190,8 +1259,19 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
   get size(){ return size }, get width(){ return desk.clientWidth },
   get away(){ return !!pet.away }, // you've left your Mac alone for five minutes or more
   perform,
-  // From the app: the menu bar and Dock, your windows, the mouse, Claude Code's state, and your settings.
-  screen(top, bottom){ scr.top = top; scr.bottom = bottom; place(pet.x, pet.y) },
+  /** The display across that side of his ('left', 'right', 'up', 'down'), and where his feet come in on it in its coordinates; null if that side is a wall. */
+  across(side){
+    const n = NATIVE && nextTo(side), m = n && middle()
+    return n ? {id: n.to.id, ...entry(n, m.x, m.y), width: n.to.w} : null
+  },
+  otherDisplays: () => disp.list.filter(d => d.id !== disp.on).map(({id, w, h, top, bottom}) => ({id, w, h, top, bottom})),
+  // From the app: your displays, your windows, the mouse, Claude Code's state, and your settings.
+  displays(list, on){
+    disp.list = list; disp.next = on
+    if (disp.pending && !list.some(d => d.id === disp.pending.id)) disp.pending = null // gone before he got there
+    switchDisplay()
+  },
+  mouse(id, x, y){ disp.pointer = {id, x, y} },
   windows(tops){
     const on = surfaceUnder(pet.x, pet.y), was = on?.id != null && nativeTops.find(t => t.id === on.id), now = performance.now()
     nativeTops = tops
@@ -1225,7 +1305,7 @@ const hangabout = window.hangabout = window.hookpet = { // window.hookpet: the o
     else fire('doubleClick')
   },
   claude(state){ cc.sessions = state.sessions || {}; syncClaude(performance.now()); watchLogs() },
-  settings(s){ sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); s.found?.forEach(n => found.add(n)); useFanPack(s.fan) },
+  settings(s){ pet.stay = !!s.stay; sound.on = s.sound; document.body.classList.toggle('reduced', s.reduced); setSize(s.scale || 1); usePreset(s.preset); s.found?.forEach(n => found.add(n)); useFanPack(s.fan) },
 }
 let hitKey = ''
 /** Tells the app where he and his open bubble are, so only those spots catch the mouse. */
@@ -1322,6 +1402,7 @@ function frame(now){
   const busy = ['walk', 'jump', 'fall', 'dangle', 'fidget', 'land', 'script'].includes(ai.mode) || pet.drag || now - Math.max(pet.openedAt, pet.closedAt) < 700
   NATIVE ? setTimeout(() => frame(performance.now()), busy ? 33 : 66) : requestAnimationFrame(frame)
   const dt = Math.min(100, now - last); last = now
+  if (disp.next !== disp.on) switchDisplay()
   runDemo(now); behave(now, dt); draw(now, dt); updateBox(now)
   if (NATIVE) { reportHits(); if (now - cc.checkedAt > 1000) syncClaude(now) } // re-checks once a second, for the time-based changes
 }
