@@ -463,7 +463,8 @@ const WHOLE = [-PAD, 0, GW + 2 * PAD, GH] // the whole canvas, in art pixels
 const path = petEl.querySelector('path'), box = petEl.querySelector('.box'), hist = petEl.querySelector('.hist'), l1 = petEl.querySelector('.l1'), l2 = petEl.querySelector('.l2')
 const live = document.getElementById('live')
 const pet = {id: 'idle', since: 0, open: false, openedAt: 0, closedAt: -1e9, pinned: false, hover: false, hoverTimer: 0, x: 0, y: 0, drag: null, swing: 0,
-  face: 0, heading: -1, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0}
+  face: 0, heading: -1, turnFrom: 0, turnAt: -1e9, wiggleAt: -1e9, alertAt: -1e9, dizzyUntil: 0, pendingDizzy: false, stepAt: -1e9, propSide: 0,
+  stay: false, calls: 0} // stay: Stay on one display; calls: times he's come to you since Claude came to need you
 
 // An optional soft two-note chirp when he needs you. Off until you turn it on.
 const sound = {on: false, ctx: null}
@@ -691,6 +692,7 @@ function nextStep(now){
   if (s.go === 'do') { s.fn(now); if (ai.mode === 'script') nextStep(now) }
   else if (s.go === 'drop') { ai.rot = 0; ai.mode = 'fall'; ai.vy = s.vy || 0 }
   else if (s.go === 'display') { // to the spot asked for, or across to a neighbor at the spot that lines up with him
+    if (s.id === disp.on) { if (s.x != null) putFeet(s.x, s.y); return nextStep(now) } // already there: no need to ask the app
     const n = neighbors(disp.list, curDisplay()).find(n => n.to.id === s.id), m = n && middle()
     const at = s.x != null ? s : n && entry(n, m.x, m.y)
     if (!at || !askDisplay(s.id, at.x, at.y)) endTrip(now)
@@ -853,8 +855,10 @@ const sideInto = (n, v, pose, spin) => [
 function crossSteps(n){
   const c = curDisplay(), W = desk.clientWidth, s = size, to = n.to
   if (n.side === 'left' || n.side === 'right') {
-    const right = n.side === 'right'
-    return [{go: 'walk', to: right ? W : 0, speed: 70}, {go: 'display', id: to.id}, {go: 'walk', to: right ? 120 * s : to.w - 120 * s, speed: 70}]
+    const right = n.side === 'right', out = [{go: 'walk', to: right ? W : 0, speed: 70}, {go: 'display', id: to.id}]
+    if (entry(n, right ? c.x + W : c.x, middle().y).y >= to.h - to.bottom - 4) return [...out, {go: 'walk', to: right ? 120 * s : to.w - 120 * s, speed: 70}]
+    const v = {vx: (right ? 1 : -1) * 260, vy: -320} // its floor's lower: a hop in off the edge, and down
+    return [...out, {go: 'move', fn: flight(v, () => right ? feet().x >= 70 * size : feet().x <= to.w - 70 * size), pose: LEAPING}, fallOn(v)]
   }
   const x = rand(Math.max(n.lo, c.x) + 60 * s, Math.min(n.hi, c.x + W) - 60 * s) - c.x // a spot under (or over) the stretch they share
   const walk = {go: 'walk', to: x, speed: 70}
@@ -1273,7 +1277,7 @@ function pull(x, y){
   const dx = x - pet.drag.sx, dy = y - pet.drag.sy
   if (Math.hypot(dx, dy) > 4) pet.drag.moved = true
   if (pet.drag.moved) {
-    const c = NATIVE && !disp.pending && curDisplay(), gx = c && c.x + x, gy = c && c.y + y
+    const c = NATIVE && !(disp.pending && performance.now() - disp.pending.at < 1000) && curDisplay(), gx = c && c.x + x, gy = c && c.y + y // an ask unanswered for a second is given up on
     const to = c && !(x >= 0 && x < c.w && y >= 0 && y < c.h) && disp.list.find(d => gx >= d.x && gx < d.x + d.w && gy >= d.y && gy < d.y + d.h)
     if (to) askDisplay(to.id) // carried onto another display: his layer follows the pointer there
     const nx = pet.drag.x + dx, now = performance.now(), ms = Math.max(1, now - (pet.drag.t || now - 16)), vx = (nx - pet.x) / ms * 1000
