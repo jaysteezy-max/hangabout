@@ -1,6 +1,6 @@
 # python3 gif.py <skin.js> <key> <outdir> [scale] [name '<json [[pose, ms], ...]>' ...]: playback to judge motion by
 # (weight, timing, loop seams, flicker), not strips. Its walk each way, a turn (with the page's half-turned frame) and each
-# of its moods (intro, then rest), plus any sequences you name (blocked key poses, a trick's frames), as looping GIFs at
+# of its moods (intro, then rest) and its own trick frames, plus any sequences you name (blocked key poses, a trick's frames), as looping GIFs at
 # a scale: 3 (the default) is its real size on screen at Size 1. <outdir>/<key>-<name>.gif. BG=#hex for the backdrop.
 import json, os, subprocess, sys
 from PIL import Image
@@ -10,6 +10,7 @@ vm.runInThisContext(fs.readFileSync(process.argv[1], "utf8")); const s = SKINS[p
 if (s.walk) for (const d of [-1, 1]) out["walk-" + (d < 0 ? "L" : "R")] = [...Array(48)].map((_, i) => [s.walk(i * 33, d), 33])
 out.turn = [[{face: -1}, 700], [{face: 1, half: true}, 90], [{face: 1}, 700], [{face: -1, half: true}, 90]]
 for (const [n, m] of Object.entries(s.moods || {})) out["mood-" + n] = [...m.intro, ...(m.rest !== m.intro ? m.rest : [])]
+for (const [n, f] of Object.entries(s.tricks || {})) out["trick-" + n] = f
 console.log(JSON.stringify(out))'''
 
 
