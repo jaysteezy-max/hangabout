@@ -195,6 +195,7 @@ Right-click → **Skin** picks who lives on your screen. Your choice is saved.
 | --- | --- |
 | **Pusheen** | The default pet: fan art of Pusheen the cat as her classic loaf, side on, with her striped tail tucked in. She moves like a cat: pattering on little legs, stretching, washing, napping with z's, blushing when happy, and every fan costume fitted to her face. Not affiliated with or endorsed by Pusheen Corp. Available with Fan pack off. |
 | **Cappy** | A capybara, side on, who waves a front paw instead of a hand. |
+| **Iggy** | A teal-blue lizard in Clawd's flat colors and square eyes: side on with his face turned to you, a pale grin, spots down his back and his tail curled up over it. He scuttles in quick diagonal steps, flicks his forked tongue while he waits, raises a front foot instead of a hand, and lies flat on his belly to nap. Original art. |
 | **Clawd** | Fan art of Anthropic's Clawd, Claude Code's mascot. Not affiliated with or endorsed by Anthropic. |
 | **Clay** | A faceless clay soldier in grey clay, after the Clay Soldiers Minecraft mod: a cube head, chunky arms and legs, drawn three-quarters. Original art. |
 | **Hatty Hattington** | Fan art of Hatty from BattleBlock Theater, front on, with his top hat, tears and cane. Not affiliated with or endorsed by The Behemoth. In the menu while Fan pack is on. |

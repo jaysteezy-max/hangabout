@@ -22,7 +22,7 @@
   for (const [name, frames] of Object.entries(EVERYDAY)) hangabout.trick({name, rarity: 'common', frames, ...EXTRA[name]})
 
   // On a window: he sinks behind its top edge until only his eyes peek over, looks around, and comes back up.
-  const LOW = hangabout.skin === 'slime' ? 24 : 36 // the slime's eyes sit lower on it, down to row 31, so it sinks less
+  const LOW = hangabout.skin === 'slime' ? 24 : hangabout.skin === 'iggy' ? 27 : 36 // the slime's eyes sit lower on it, down to row 31, and Iggy's to row 29, so they sink less
   hangabout.trick({name: 'peek', rarity: 'common', where: 'ledge', weight: 2, frames: [
     [{sink: 12, clip: 1}, 90], [{sink: 24, clip: 1}, 90], [{sink: LOW, clip: 1}, 500],
     [{sink: LOW, clip: 1, eyes: 'side', look: -1}, 650], [{sink: LOW, clip: 1, eyes: 'side', look: 1}, 650],

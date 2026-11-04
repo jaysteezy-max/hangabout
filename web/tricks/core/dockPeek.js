@@ -1,7 +1,7 @@
 // On the floor: he ducks down behind the Dock (or the screen's bottom edge) until only his eyes peek over it, looks
 // around and up at the screen, blinks, and pops back up. The floor's mirror of `peek` in everyday.js.
 {
-  const LOW = hangabout.skin === 'slime' ? 24 : 36 // only his eyes show: the slime's sit lower on it, down to row 31, so it sinks less
+  const LOW = hangabout.skin === 'slime' ? 24 : hangabout.skin === 'iggy' ? 27 : 36 // only his eyes show: the slime's sit lower on it, down to row 31, and Iggy's to row 29, so they sink less
   hangabout.trick({
     name: 'dockPeek', label: 'Peek over the Dock ◠', rarity: 'common', where: 'floor', weight: .5,
     frames: [
