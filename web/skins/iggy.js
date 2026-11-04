@@ -30,8 +30,8 @@
   // his shoulder, his front feet planted either side of his chest. Same rows as side on, so his eyes stay where they were.
   const FRONT = [
     ...ROWS.slice(0, 5).map(r => '............' + r.slice(24)),
-    '...BBBB...BBBB...' + ROWS[5].slice(29), '..BBBBBBBBBBBBB..' + ROWS[6].slice(29), '.BBBBBBBBBBBBBBB.' + ROWS[7].slice(29),
-    '.BBBBBBBBBBBBBBB.B' + ROWS[8].slice(30), 'BBBBBBBBBBBBBBBBBB...', 'BBBBBBBBBBBBBBBBB....', 'BBBBBBBBBBBBBBBBB....',
+    '...BBBB...BBBB...' + ROWS[5].slice(29), '..BBBBBBBBBBBBB..' + ROWS[6].slice(29), '.BBBBBBBBBBBBBBBB' + ROWS[7].slice(29),
+    '.BBBBBBBBBBBBBBBBB' + ROWS[8].slice(30), 'BBBBBBBBBBBBBBBBBB...', 'BBBBBBBBBBBBBBBBB....', 'BBBBBBBBBBBBBBBBB....',
     'BLLBBBBBBBBBBBLLB....', '.LLLLLLLLLLLLLLL.....', '..LLLLLLLLLLLLL......', '....LLLLLLLLL........',
     '..BBBBLLLLLBBBB......', '..BBB.LLLLL.BBB......', '..BBB..LLL..BBB......', 'BBBBBB.....BBBBBB....', '.PP.PP.....PP.PP.....',
   ]
@@ -48,11 +48,11 @@
   // low in front (a hand; a jab reaches further), up by his chin, high beside his head, and a breakdown between each
   // (`paw: 1.5`, `2.5`) so a raised foot travels on an arc instead of snapping. It keeps a pixel clear of his face: with
   // no outline, they would run together.
-  const ARM = ['.BB........', '.BB........', '..BBB......', '...BBB.....', '....BBBBBBB'] // wrist down to shoulder
+  const ARM = ['.BB........', '.BB........', '.BBB.......', '..BBB......', '...BBBBBBBB'] // wrist down to shoulder
   const PAW = {
     1: [-3, 15, ['PBB.......', '.BBBBBBBBB', 'PBBBBBBBB.']],
-    1.5: [-4, 13, ['P..........', 'PBB........', '..BBBB.....', '....BBBBBBB']],
-    2: [-4, 12, ['P.P........', ...ARM.slice(1)]],
+    1.5: [-4, 13, ['P..........', 'PBB........', '..BBB......', '....BBBBBBB']],
+    2: [-4, 12, ['P.P........', 'BBB........', ...ARM.slice(2)]],
     2.5: [-4, 10, ['P.P........', 'BBB........', ...ARM]],
     3: [-4, 9, ['P.P........', 'BBB........', 'BBB........', ...ARM]],
   }
@@ -84,7 +84,7 @@
   const PUSHUPS = [[{squash: 1}, 80], [{stretch: 1}, 140], [{}, 60], [{squash: 1}, 80], [{stretch: 1}, 140], [{tail: 1}, 160]] // dip, up, twice; his tail tip follows through
   const IDLE = [[{}, 3200], [{eyes: 'blink'}, 130], [{}, 1800], [{tail: 1}, 160], [{}, 120], [{tail: 1}, 160], [{}, 1600],
     [{tongue: 1}, 80], [{}, 60], [{tongue: 1}, 80], [{}, 2200], [{eyes: 'blink'}, 120], [{}, 1400], ...PUSHUPS, [{}, 300]]
-  const LIE = e => [[{squash: 1, eyes: e}, 120], [{squash: 2, eyes: e}, 120], [{tuck: 1, tail: 'low', eyes: e}, 260]] // legs bend, he sinks, his tail settles last
+  const LIE = e => [[{squash: 1, eyes: e}, 120], [{squash: 2, eyes: e}, 120], [{tuck: 1, eyes: e}, 260]] // legs bend, he sinks, then his tail settles (LYING)
   const LYING = {tuck: 1, tail: 'low'} // lying on his belly, his tail settled low
   const NAP = [[{...LYING, eyes: 'blink'}, 2000], [{...LYING, squash: 1, eyes: 'blink'}, 2800]] // flat out, breathing in, and slowly out
   const SLUMP = [[{...LYING, eyes: 'sad'}, 5000], [{...LYING, squash: 1, eyes: 'blink'}, 750], [{...LYING, eyes: 'blink'}, 200]] // flat, glum, a long sigh now and then
@@ -98,7 +98,7 @@
   const WAVE = [...RAISE, ...PUMP('up'), ...PUMP('up'), ...PUMP('up')]
   const ASK = [[{paw: 3, eyes: 'up'}, 1400], ...HOP({eyes: 'up'}, [3, 3, 3, 3, 3, 3, 3, 3])] // foot up, a hop for attention now and then
   const CHEER = [...HOP({eyes: 'happy'}, [null, null, 2, 3, 3, 2.5, 3, 2.5]), ...PUMP('happy'), [{paw: 3, eyes: 'happy'}, 200], // his foot comes up as he springs and pumps
-    [{paw: 2, eyes: 'happy'}, 70], [{paw: 1.5, eyes: 'happy'}, 70], [{eyes: 'happy'}, 600]] // and comes down on its arc
+    [{paw: 2.5, eyes: 'happy'}, 50], [{paw: 2, eyes: 'happy'}, 70], [{paw: 1.5, eyes: 'happy'}, 70], [{eyes: 'happy'}, 600]] // and comes down on its arc
 
   SKINS.iggy = {
     name: 'Iggy', colors: COLORS, sideOn: true,
@@ -127,7 +127,7 @@
       if (!pose.half && pose.tail) rows.splice(0, 6, ...(pose.tail === 'low' ? DROOP : [...FLICK, rows[5]]))
       for (const [x, y, ch] of pose.half ? [] : MOUTH[kind] || []) rows[y] = rows[y].slice(0, x) + ch + rows[y].slice(x + 1)
       if (flat && !pose.half) rows.splice(16, pose.squash || 0)
-      if (flat && !pose.half) rows[rows.length - 1] = [...rows.at(-1)].map((ch, i) => SPLAY[i] === '.' ? ch : SPLAY[i]).join('')
+      if ((flat || pose.squash >= 2) && !pose.half) rows[rows.length - 1] = [...rows.at(-1)].map((ch, i) => SPLAY[i] === '.' ? ch : SPLAY[i]).join('') // lying or crouched right down, his feet splay beside him
       const arms = pose.arms || [], paw = pose.half ? 0 : pose.paw ?? (pose.hand <= 4 ? 2 : pose.hand != null || pose.reach ? 1 : arms.includes('high') ? 3 : arms.includes('up') ? 2 : 0)
       const top = pose.half ? 40 - FRONT.length + (pose.dy || 0) : topOf(pose), px = new Map() // his toes are on row 39
       const put = (x, y, c) => px.set(x + ',' + y, [x, y, c]) // a later pixel covers an earlier one
@@ -140,12 +140,14 @@
         const step = pose.lift?.includes(+n), up = step || pose.tapLeg === +n // a step goes forward as it lifts; a tap doesn't
         const legs = [...Array(st)].map(() => foot[0]).concat(foot).slice(Math.min(2, pose.squash || 0)) // crouched, his legs fold up under him
         const at = x - (step ? 1 : 0) + (pose.push?.includes(+n) ? 1 : 0)
-        if (legs.length < 2 && !up) art(at, top + rows.length - 1, [foot[1]]) // crouched right down, his feet splay beside him
         art(at, top + rows.length - (up ? 1 : 0), legs)
       }
       if (paw) {
         const r = paw === 1 ? Math.min(2, pose.reach || 0) : 0, [x0, y0, a] = PAW[paw] // a jab reaches r further
-        art(x0 - r, top + y0, r ? a.map((row, j) => row.slice(0, 3) + (j ? 'B' : '.').repeat(r) + row.slice(3)) : a)
+        // As he crouches, a raised foot holds steady (and what it holds) while his body dips, a pixel further out to clear
+        // his face; beside his face it gives one row of a deep crouch, or his elbow would close on his grin.
+        const sq = flat ? 0 : Math.min(paw > 1 ? 1 : 2, pose.squash || 0), out = paw > 1 && sq ? 1 : 0
+        art(x0 - r - out, top + y0 - sq, r ? a.map((row, j) => row.slice(0, 3) + (j ? 'B' : '.').repeat(r) + row.slice(3)) : a)
       }
       if (pose.tongue && !pose.half) for (const [x, y] of FORK) put(X0 + x, top + y, TONGUE)
       const right = pose.face > 0

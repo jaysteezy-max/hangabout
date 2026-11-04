@@ -54,7 +54,7 @@
    */
   function hand(x, y, dir, rot, pose){
     const s = hangabout.size, a = rot * Math.PI / 180, hx = dir * (HATTY ? 11 : DOMO ? 9 : CHICKEN ? 16 : IGGY ? 19.5 : 14) * 3 * s
-    const hy = (HATTY ? -20 : DOMO ? -19 : CHICKEN ? -21 : CAPPY ? head(pose).y - (pose.squash || 0) - 37 : IGGY ? head(pose).y - (pose.squash || 0) - 40 : -23) * 3 * s
+    const hy = (HATTY ? -20 : DOMO ? -19 : CHICKEN ? -21 : CAPPY ? head(pose).y - (pose.squash || 0) - 37 : IGGY ? head(pose).y - Math.min(1, pose.squash || 0) - 40 : -23) * 3 * s
     return [x + hx * Math.cos(a) - hy * Math.sin(a), y + hx * Math.sin(a) + hy * Math.cos(a)]
   }
   /** Longest web he'll swing on from (x, y): his feet clear the floor at the bottom of the arc, and a few swings fit across the screen. */

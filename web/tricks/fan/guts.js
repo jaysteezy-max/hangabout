@@ -66,7 +66,7 @@
         if (CHICKEN) ctx.translate(-32, pose.dy || 0) // its grip in his wing, out in front of him (behind him, so his wing closes over it)
         if (SLIME) { const h = head(pose); ctx.translate(h.nose - 42, h.y - 27) } // the same in the slime's goo-arm tip, which squashes with it
         if (g.low && (CHICKEN || SLIME)) { ctx.translate(0, 54); ctx.scale(1, -1) } // the chicken's after the swing: the same sword upside down, planted point first in front of him
-        if (CAPPY || IGGY) ctx.translate(0, (pose.dy || 0) - (pose.stretch || 0)) // with his raised paw, which keeps to his chin (web/skins/cappy.js)
+        if (CAPPY || IGGY) ctx.translate(0, (pose.dy || 0) - (pose.stretch || 0) + (IGGY ? Math.max(0, (pose.squash || 0) - 1) : 0)) // with his raised paw, which keeps to his chin (web/skins/cappy.js); Iggy's gives a row in a deep crouch
         if (g.sword && (CAPPY || IGGY)) ctx.translate(IGGY ? -36 : -29, -1) // its grip in the toes of his raised paw, the guard on them, the blade before his face
         if (g.sword || (g.low && (CHICKEN || SLIME))) { // drawn up from behind his back: longer than he is tall
           const tip = CAPPY || IGGY ? 1 : 0, cut = Math.round((1 - (g.sword || 1)) * 34), row = (y, x, w, c) => { if (y >= cut) { ctx.fillStyle = c; ctx.fillRect(x, y, w, 1) } } // Cappy's held higher: a shorter blade, its point on the grid
